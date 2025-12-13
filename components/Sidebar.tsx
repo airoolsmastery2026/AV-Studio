@@ -8,7 +8,8 @@ import {
   ShoppingBag,
   HeartPulse,
   X,
-  Infinity as InfinityIcon
+  Infinity as InfinityIcon,
+  Cpu
 } from 'lucide-react';
 import { TabView } from '../types';
 
@@ -23,6 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onCl
   const menuItems: { id: TabView, icon: any, label: string, special?: boolean }[] = [
     { id: 'auto_pilot', icon: InfinityIcon, label: 'Infinity Auto-Pilot', special: true }, 
     { id: 'campaign', icon: LayoutDashboard, label: 'Sản xuất & Chiến dịch' },
+    { id: 'models', icon: Cpu, label: 'AI Models' },
     { id: 'analytics', icon: BarChart3, label: 'Tình báo Chiến lược' },
     { id: 'marketplace', icon: ShoppingBag, label: 'Sản phẩm AI' },
     { id: 'risk_center', icon: HeartPulse, label: 'Sức khỏe Kênh' },

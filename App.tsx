@@ -14,10 +14,11 @@ import QueueDashboard from './components/QueueDashboard';
 import BatchProcessor from './components/BatchProcessor'; 
 import AIChatAssistant from './components/AIChatAssistant';
 import AutoPilotDashboard from './components/AutoPilotDashboard';
+import ModelSelector from './components/ModelSelector';
 import { Zap, Link as LinkIcon, AlertTriangle, Cpu, Lock, LayoutDashboard, Settings, Layers, RotateCw, Bot, Filter, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Type, Palette, Mic, Check, BrainCircuit, ArrowRight, Menu, MessageCircle, Factory } from 'lucide-react';
 import { generateVideoPlan, classifyInput } from './services/geminiService';
 import { postVideoToSocial } from './services/socialService';
-import { AppStatus, OrchestratorResponse, SourceMetadata, TabView, ApiKeyConfig, ContentNiche, ContentWorkflow, AppContext, KnowledgeBase, AgentCommand, PostingJob, ChatSession, ChatMessage, VideoResolution, AspectRatio, ScriptModel, VisualModel, VoiceModel } from './types';
+import { AppStatus, OrchestratorResponse, SourceMetadata, TabView, ApiKeyConfig, ContentNiche, ContentWorkflow, AppContext, KnowledgeBase, AgentCommand, PostingJob, ChatSession, ChatMessage, VideoResolution, AspectRatio, ScriptModel, VisualModel, VoiceModel, CompletedVideo } from './types';
 
 // SECURITY & PERSISTENCE CONSTANTS
 const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
@@ -25,6 +26,7 @@ const BRAIN_STORAGE_KEY = 'av_studio_brain_v1';
 const QUEUE_STORAGE_KEY = 'av_studio_queue_v1';
 const UI_STATE_STORAGE_KEY = 'av_studio_ui_state_v1';
 const CHAT_STORAGE_KEY = 'av_studio_chat_sessions_v2'; 
+const GALLERY_STORAGE_KEY = 'av_studio_gallery_v1';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabView>('campaign');
@@ -70,7 +72,16 @@ const App: React.FC = () => {
     return [];
   });
 
-  // --- STATE 4: UI PREFERENCES (URL, NICHE, WORKFLOW) ---
+  // --- STATE 4: COMPLETED VIDEOS (GALLERY) ---
+  const [completedVideos, setCompletedVideos] = useState<CompletedVideo[]>(() => {
+      try {
+          const saved = localStorage.getItem(GALLERY_STORAGE_KEY);
+          if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return [];
+  });
+
+  // --- STATE 5: UI PREFERENCES (URL, NICHE, WORKFLOW) ---
   const getUiState = () => {
       try {
           const saved = localStorage.getItem(UI_STATE_STORAGE_KEY);
@@ -127,6 +138,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueJobs));
   }, [queueJobs]);
+
+  useEffect(() => {
+    localStorage.setItem(GALLERY_STORAGE_KEY, JSON.stringify(completedVideos));
+  }, [completedVideos]);
 
   useEffect(() => {
     const stateToSave = { url, selectedNiche, selectedWorkflow, showAdvanced };
@@ -201,7 +216,7 @@ const App: React.FC = () => {
     addLog(`🤖 COMMAND: ${cmd.action} - ${JSON.stringify(cmd.payload)}`);
     switch (cmd.action) {
       case 'NAVIGATE':
-        if (['campaign', 'analytics', 'risk_center', 'marketplace', 'settings', 'queue', 'auto_pilot'].includes(cmd.payload)) {
+        if (['campaign', 'analytics', 'risk_center', 'marketplace', 'settings', 'queue', 'auto_pilot', 'models'].includes(cmd.payload)) {
           setActiveTab(cmd.payload as TabView);
         }
         break;
@@ -292,6 +307,12 @@ const App: React.FC = () => {
       setQueueJobs(prev => [job, ...prev]);
       addLog(`[QUEUE] Added job: ${job.content_title}`);
       setActiveTab('queue'); // Auto-switch to Queue tab for UX
+  };
+
+  // NEW: Handler for auto-generated videos (from AutoPilot)
+  const handleVideoCompleted = (video: CompletedVideo) => {
+      setCompletedVideos(prev => [video, ...prev]);
+      addLog(`[LIBRARY] 🎬 New Video Added: ${video.title}`);
   };
 
   const executePipeline = async () => {
@@ -431,7 +452,28 @@ const App: React.FC = () => {
       case 'queue': 
         return <QueueDashboard apiKeys={apiKeys} currentPlan={plan} jobs={queueJobs} setJobs={setQueueJobs} />;
       case 'auto_pilot':
-        return <AutoPilotDashboard apiKeys={apiKeys} onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} />;
+        return (
+            <AutoPilotDashboard 
+                apiKeys={apiKeys} 
+                onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} 
+                onVideoGenerated={handleVideoCompleted}
+                completedVideos={completedVideos}
+            />
+        );
+      case 'models':
+        return (
+          <div className="max-w-4xl mx-auto">
+             <div className="mb-6">
+                <h2 className="text-2xl font-bold text-white mb-2">AI Model Configuration</h2>
+                <p className="text-slate-400 text-sm">Select the brains behind your content generation.</p>
+             </div>
+             <ModelSelector 
+                scriptModel={scriptModel} setScriptModel={setScriptModel}
+                visualModel={visualModel} setVisualModel={setVisualModel}
+                voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+             />
+          </div>
+        );
       case 'settings':
         return (
           <SettingsDashboard 
@@ -745,6 +787,7 @@ const App: React.FC = () => {
                   {activeTab === 'settings' && "System Control Center"}
                   {activeTab === 'queue' && "Social Scheduler"}
                   {activeTab === 'auto_pilot' && "Infinity Auto-Pilot"}
+                  {activeTab === 'models' && "AI Model Engine"}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="text-slate-400 text-xs md:text-sm hidden md:block">
@@ -755,6 +798,7 @@ const App: React.FC = () => {
                     {activeTab === 'settings' && "Quản lý API Vault, AI Models, AI Brain và cấu hình hệ thống."}
                     {activeTab === 'queue' && "Lên lịch đăng bài tự động, tối ưu giờ vàng và quản lý đa kênh."}
                     {activeTab === 'auto_pilot' && "Chế độ chạy ngầm 24/7: Tự động săn tìm, tạo video và đăng bài liên tục."}
+                    {activeTab === 'models' && "Cấu hình Script, Visual và Voice Model cho toàn bộ hệ thống."}
                     </p>
                     
                     {/* Zalo Video Indicator */}

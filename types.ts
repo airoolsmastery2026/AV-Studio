@@ -82,6 +82,22 @@ export interface OrchestratorResponse {
   };
 }
 
+// NEW: COMPLETED VIDEO ASSET
+export interface CompletedVideo {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  videoUrl?: string; // Simulated path
+  platform: string;
+  niche: string;
+  createdAt: number;
+  stats?: {
+    views: number;
+    likes: number;
+  };
+}
+
 export interface SourceMetadata {
   url: string;
   type: 'channel' | 'product' | 'auto_detect';
@@ -104,7 +120,7 @@ export enum AppStatus {
   ERROR = 'ERROR'
 }
 
-export type TabView = 'campaign' | 'integrations' | 'queue' | 'analytics' | 'risk_center' | 'marketplace' | 'settings' | 'auto_pilot';
+export type TabView = 'campaign' | 'integrations' | 'queue' | 'analytics' | 'risk_center' | 'marketplace' | 'settings' | 'auto_pilot' | 'models';
 
 export interface CreditUsage {
   remaining: number;

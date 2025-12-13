@@ -3,18 +3,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Infinity as InfinityIcon, Power, Activity, Terminal, Shield, 
   Cpu, Globe, Zap, Clock, Video, Share2, 
-  AlertTriangle, RotateCcw, FileText, Check, DollarSign
+  AlertTriangle, RotateCcw, FileText, Check, DollarSign, Download, PlayCircle
 } from 'lucide-react';
-import { ApiKeyConfig, AutoPilotLog, AutoPilotStats, SourceMetadata, PostingJob } from '../types';
+import { ApiKeyConfig, AutoPilotLog, AutoPilotStats, SourceMetadata, PostingJob, CompletedVideo } from '../types';
 import { huntAffiliateProducts, generateVideoPlan } from '../services/geminiService';
 import { postVideoToSocial } from '../services/socialService';
 
 interface AutoPilotDashboardProps {
   apiKeys: ApiKeyConfig[];
   onAddToQueue: (job: PostingJob) => void;
+  onVideoGenerated?: (video: CompletedVideo) => void;
+  completedVideos?: CompletedVideo[];
 }
 
-const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddToQueue }) => {
+const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddToQueue, onVideoGenerated, completedVideos = [] }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [currentAction, setCurrentAction] = useState('IDLE');
   const [logs, setLogs] = useState<AutoPilotLog[]>([]);
@@ -216,6 +218,20 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
             
             onAddToQueue(job);
 
+            // SAVE COMPLETED VIDEO
+            if (onVideoGenerated && (postSuccess || effectiveDraftMode)) {
+                onVideoGenerated({
+                    id: crypto.randomUUID(),
+                    title: job.content_title,
+                    description: job.caption,
+                    thumbnailUrl: "https://placehold.co/1080x1920/black/white?text=" + encodeURIComponent(job.content_title.substring(0,20)),
+                    platform: targetPlatform,
+                    niche: targetNiche,
+                    createdAt: Date.now(),
+                    stats: { views: 0, likes: 0 }
+                });
+            }
+
             if (effectiveDraftMode) {
                 addLog("DRAFT_SAVED", `Content saved to Drafts. ID: ${job.id.substring(0,8)}`, "success");
             } else if (postSuccess) {
@@ -256,6 +272,19 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
     return `${h}h ${m}m ${s}s`;
+  };
+
+  // Download Handler for Gallery
+  const handleDownloadVideo = (video: any) => {
+      const content = JSON.stringify(video, null, 2);
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `video_assets_${video.title.substring(0, 10).replace(/\s/g, '_')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
   };
 
   return (
@@ -465,6 +494,59 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                </div>
            </div>
 
+       </div>
+
+       {/* FINISHED VIDEO LIBRARY (GALLERY) */}
+       <div className="pt-8 border-t border-slate-800">
+           <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <Video size={24} className="text-purple-500" /> Finished Video Library
+                <span className="text-sm font-normal text-slate-500 ml-2">({completedVideos.length} items)</span>
+           </h3>
+           
+           {completedVideos.length === 0 ? (
+               <div className="flex flex-col items-center justify-center p-12 bg-slate-900/30 rounded-2xl border border-slate-800 border-dashed text-slate-500">
+                   <Video size={48} className="mb-4 opacity-20" />
+                   <p>No videos generated yet. Start Auto-Pilot to populate.</p>
+               </div>
+           ) : (
+               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                   {completedVideos.map((video) => (
+                       <div key={video.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group hover:border-primary/50 transition-all duration-300">
+                           {/* Thumbnail / Video Placeholder */}
+                           <div className="relative aspect-[9/16] bg-black group">
+                               <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                               <div className="absolute bottom-4 left-4 right-4">
+                                   <div className="flex gap-2 mb-2">
+                                       <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30 font-bold">{video.niche}</span>
+                                       <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">{video.platform}</span>
+                                   </div>
+                                   <h4 className="text-sm font-bold text-white line-clamp-2 leading-tight">{video.title}</h4>
+                                   <p className="text-[10px] text-slate-400 mt-1">{new Date(video.createdAt).toLocaleTimeString()} {new Date(video.createdAt).toLocaleDateString()}</p>
+                               </div>
+                               
+                               {/* Hover Overlay */}
+                               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm gap-2">
+                                   <button className="p-3 bg-white/10 rounded-full hover:bg-white/20 hover:scale-110 transition-all text-white backdrop-blur-md border border-white/20">
+                                       <PlayCircle size={28} fill="white" className="text-transparent" />
+                                   </button>
+                               </div>
+                           </div>
+                           
+                           {/* Actions Footer */}
+                           <div className="p-3 bg-slate-950 flex justify-between items-center">
+                               <button 
+                                   onClick={() => handleDownloadVideo(video)}
+                                   className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                               >
+                                   <Download size={14} /> Download
+                               </button>
+                               <div className="text-[10px] font-mono text-green-500">Done</div>
+                           </div>
+                       </div>
+                   ))}
+               </div>
+           )}
        </div>
     </div>
   );

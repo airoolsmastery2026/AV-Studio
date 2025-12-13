@@ -93,6 +93,18 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
       }
   };
 
+  const handleDownload = () => {
+      const content = JSON.stringify(data, null, 2);
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `AV_Studio_Plan_${Date.now()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
   // Determine Aspect Ratio Class dynamically
   const ratio = data.production_plan.technical_specs?.ratio || '9:16';
   const aspectClass = ratio === '16:9' ? 'aspect-video' : ratio === '1:1' ? 'aspect-square' : 'aspect-[9/16]';
@@ -465,7 +477,10 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                      <button className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
                         <Share2 size={14} /> Share
                      </button>
-                     <button className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
+                     <button 
+                        onClick={handleDownload}
+                        className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+                     >
                         <Download size={14} /> Download
                      </button>
                   </div>
