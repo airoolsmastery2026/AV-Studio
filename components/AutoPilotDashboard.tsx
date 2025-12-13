@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ApiKeyConfig, AutoPilotLog, AutoPilotStats, SourceMetadata, PostingJob } from '../types';
 import { huntAffiliateProducts, generateVideoPlan } from '../services/geminiService';
+import { postVideoToSocial } from '../services/socialService';
 
 interface AutoPilotDashboardProps {
   apiKeys: ApiKeyConfig[];
@@ -159,6 +160,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
             
             let targetPlatform = 'No-Account';
             let platformId = '';
+            let postSuccess = false;
             
             if (!effectiveDraftMode && socialKeys.length > 0) {
                 // Pick a random account or cycle through
@@ -168,7 +170,20 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                 addLog("ROUTING", `Selected Account: ${targetPlatform}`, "info");
                 
                 addLog("UPLOADING", `Uploading to ${targetPlatform}...`, "info");
-                await new Promise(r => setTimeout(r, 2000)); // Sim Upload
+                
+                // EXECUTE REAL SIMULATION via Service
+                const result = await postVideoToSocial(account, { 
+                    title: plan.generated_content?.title || `Auto: ${bestProduct.product_name}`, 
+                    caption: (plan.generated_content?.description || "") + `\n\n👉 Link: ${bestProduct.affiliate_link}` 
+                });
+
+                if (result.success) {
+                    addLog("PUBLISHED", `Content live! ID: ${result.postId}`, "success");
+                    postSuccess = true;
+                } else {
+                    addLog("ERROR", `Failed to post to ${account.provider}: ${result.error}`, "error");
+                }
+
             } else {
                 addLog("DRAFTING", "Skipping upload. Saving to queue...", "warning");
                 await new Promise(r => setTimeout(r, 500));
@@ -182,16 +197,15 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                 hashtags: plan.generated_content?.hashtags || [],
                 platforms: platformId ? [platformId] : [],
                 scheduled_time: Date.now(),
-                status: effectiveDraftMode ? 'draft' : 'published'
+                status: postSuccess ? 'published' : (effectiveDraftMode ? 'draft' : 'failed')
             };
             
             onAddToQueue(job);
 
             if (effectiveDraftMode) {
                 addLog("DRAFT_SAVED", `Content saved to Drafts. ID: ${job.id.substring(0,8)}`, "success");
-            } else {
+            } else if (postSuccess) {
                 setStats(prev => ({ ...prev, postedCount: prev.postedCount + 1 }));
-                addLog("PUBLISHED", "Content live! Link copied to clipboard.", "success");
             }
 
         } catch (error: any) {

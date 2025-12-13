@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { 
   Cpu, Database, Save, Trash2, Plus, 
   Brain, Shield, RefreshCw, Key, 
   ChevronDown, ChevronUp, AlertCircle, Check, 
   Terminal, Sparkles, BookOpen, Layers,
-  Youtube, ShoppingBag, MessageCircle, Facebook, Instagram, Twitter, Globe, Banknote, CreditCard, ExternalLink, Info, Zap, Smartphone, TrendingUp, Image, Images, Linkedin, Send, Pin, ShoppingCart, Truck, MapPin
+  Youtube, ShoppingBag, MessageCircle, Facebook, Instagram, Twitter, Globe, Banknote, CreditCard, ExternalLink, Info, Zap, Smartphone, TrendingUp, Image, Images, Linkedin, Send, Pin, ShoppingCart, Truck, MapPin, Video, MonitorPlay
 } from 'lucide-react';
 import NeonButton from './NeonButton';
 import { ApiKeyConfig, KnowledgeBase } from '../types';
@@ -24,7 +25,8 @@ interface ProviderConfig {
   desc: string;
   instructions: string;
   inputLabel: string;
-  region?: 'vn' | 'global'; // Added for filtering
+  keyPlaceholder?: string; // New field for key examples
+  region?: 'vn' | 'global';
 }
 
 // --- DATA: CONFIGURATION FOR PROVIDERS ---
@@ -37,7 +39,8 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       icon: Cpu, 
       desc: 'ALL-IN-ONE: Script, Vision, Audio',
       instructions: '1. Truy cập Google AI Studio.\n2. Nhấn "Create API Key".\n3. MẸO: Key này dùng được cho cả Gemini Flash/Pro, Imagen (Ảnh) và Veo (nếu được cấp quyền).',
-      inputLabel: 'Gemini API Key'
+      inputLabel: 'Gemini API Key',
+      keyPlaceholder: 'AIzaSy...'
     },
     { 
       id: 'openai', 
@@ -46,16 +49,18 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       icon: Sparkles, 
       desc: 'Next-Gen Reasoning & Multi-Modal',
       instructions: '1. Truy cập OpenAI Platform.\n2. Đăng nhập và vào API Keys.\n3. Tạo Secret Key mới (bắt đầu bằng sk-...).',
-      inputLabel: 'OpenAI API Key'
+      inputLabel: 'OpenAI API Key',
+      keyPlaceholder: 'sk-proj-...'
     },
     { 
       id: 'veo', 
       name: 'Google Veo (Video FX)', 
       url: 'https://deepmind.google/technologies/veo/', 
-      icon: Layers, 
+      icon: MonitorPlay, 
       desc: 'High-fidelity Video Generation',
       instructions: '1. Nếu bạn đã có quyền truy cập Veo trên AI Studio, hãy dùng lại Key Gemini ở trên.\n2. Nếu dùng qua Vertex AI (GCP), hãy nhập Token riêng tại đây.',
-      inputLabel: 'Gemini Key / Vertex Token'
+      inputLabel: 'Gemini Key / Vertex Token',
+      keyPlaceholder: 'AIzaSy...'
     },
     { 
       id: 'stitch', 
@@ -64,7 +69,8 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       icon: Image, 
       desc: 'Imagen 3 Generative Tools',
       instructions: '1. Thường dùng chung Key với Gemini (Google AI Studio).\n2. Nhập lại Key Gemini vào đây nếu muốn quản lý quota riêng.',
-      inputLabel: 'API Key'
+      inputLabel: 'API Key',
+      keyPlaceholder: 'AIzaSy...'
     },
     { 
       id: 'wish', 
@@ -73,7 +79,8 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       icon: Images, 
       desc: 'Batch Processing & Asset Generation',
       instructions: '1. Truy cập Wish Developer Portal.\n2. Chọn dịch vụ "Batch Asset Generation".\n3. Tạo API Key với quyền Write Queue.',
-      inputLabel: 'Batch API Key'
+      inputLabel: 'Batch API Key',
+      keyPlaceholder: 'wish_live_...'
     },
   ],
   social: [
@@ -81,10 +88,11 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       id: 'tiktok', 
       name: 'TikTok for Developers', 
       url: 'https://developers.tiktok.com/apps/', 
-      icon: Layers, // Placeholder icon
+      icon: Video, 
       desc: 'Viral, GenZ, High Engagement',
-      instructions: '1. Tạo ứng dụng trên TikTok Developers.\n2. Lấy "Client Key" và "Client Secret".\n3. Nhập chuỗi kết nối hoặc Access Token dài hạn.',
-      inputLabel: 'Long-lived Access Token'
+      instructions: '1. Tạo ứng dụng trên TikTok Developers.\n2. Trong App Settings, lấy "Client Key" và "Client Secret".\n3. Tạo "Long-lived Access Token" thông qua OAuth flow hoặc Testing Tool.',
+      inputLabel: 'Access Token',
+      keyPlaceholder: 'act.E8bb...'
     },
     { 
       id: 'youtube', 
@@ -92,8 +100,19 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       url: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com', 
       icon: Youtube, 
       desc: 'Search, Long-form, High RPM',
-      instructions: '1. Google Cloud Console -> Tạo Project riêng.\n2. Enable "YouTube Data API v3".\n3. Tạo API Key mới (Khuyên dùng Key riêng, khác với Key Gemini để tránh lỗi quota).',
-      inputLabel: 'Google API Key / OAuth Token'
+      instructions: '1. Google Cloud Console -> Tạo Project riêng -> Enable "YouTube Data API v3".\n2. Credentials -> Create API Key.\n3. (Quan trọng) Để upload, bạn cần tạo OAuth 2.0 Client ID và lấy Refresh Token.',
+      inputLabel: 'API Key / OAuth Token',
+      keyPlaceholder: 'AIzaSy... / 1//0g...'
+    },
+    { 
+      id: 'zalo', 
+      name: 'Zalo OA (Official Account)', 
+      url: 'https://developers.zalo.me/', 
+      icon: MessageCircle, 
+      desc: 'Vietnam CRM & Zalo Video',
+      instructions: '1. Truy cập Zalo Developers -> Tools -> API Explorer.\n2. Chọn ứng dụng và OA cần liên kết.\n3. Chọn quyền "zalo_video_publish" (Đăng video) và "oa_manage" (Quản lý).\n4. Copy Access Token (Lưu ý: Token ngắn hạn cần cơ chế refresh).',
+      inputLabel: 'OA Access Token',
+      keyPlaceholder: 'v4.public.ey...'
     },
     { 
       id: 'facebook', 
@@ -101,8 +120,9 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       url: 'https://developers.facebook.com/tools/explorer/', 
       icon: Facebook, 
       desc: 'Community, GenX/Y, Retargeting',
-      instructions: '1. Dùng Graph API Explorer.\n2. Chọn App và Quyền (pages_show_list, pages_read_engagement).\n3. Generate Access Token.',
-      inputLabel: 'User/Page Access Token'
+      instructions: '1. Dùng Graph API Explorer.\n2. Chọn App và Quyền (pages_show_list, pages_read_engagement, pages_manage_posts).\n3. Generate Access Token (Chọn Page Token, không phải User Token).',
+      inputLabel: 'Page Access Token',
+      keyPlaceholder: 'EAA...'
     },
     { 
       id: 'instagram', 
@@ -111,7 +131,8 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       icon: Instagram, 
       desc: 'Lifestyle, Fashion, Visual High-End',
       instructions: '1. Liên kết Instagram Business với Facebook Page.\n2. Tạo App trên Meta Developers.\n3. Lấy Token có quyền instagram_content_publish.',
-      inputLabel: 'Access Token'
+      inputLabel: 'Access Token',
+      keyPlaceholder: 'IGQV...'
     },
     { 
       id: 'twitter', 
@@ -119,8 +140,9 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       url: 'https://developer.twitter.com/en/portal/dashboard', 
       icon: Twitter, 
       desc: 'Crypto, Tech, News, US/EU Market',
-      instructions: '1. Đăng ký tài khoản Developer.\n2. Tạo Project & App.\n3. Lấy API Key, API Secret và Bearer Token.',
-      inputLabel: 'Bearer Token'
+      instructions: '1. Đăng ký tài khoản Developer Portal.\n2. Tạo Project & App.\n3. Lấy API Key, API Secret và Bearer Token (v2).',
+      inputLabel: 'Bearer Token',
+      keyPlaceholder: 'AAAAAAAAAAAAAAAAAAAA...'
     },
     { 
       id: 'linkedin', 
@@ -128,8 +150,9 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       url: 'https://www.linkedin.com/developers/apps', 
       icon: Linkedin, 
       desc: 'B2B, High Ticket, Professional',
-      instructions: '1. Tạo App trên LinkedIn Developers.\n2. Xác thực doanh nghiệp.\n3. Lấy Client ID & Secret để tạo OAuth Token.',
-      inputLabel: 'OAuth Token'
+      instructions: '1. Tạo App trên LinkedIn Developers.\n2. Xác thực doanh nghiệp (Verify).\n3. Lấy Client ID & Secret để tạo OAuth Token (Scope: w_member_social).',
+      inputLabel: 'OAuth Token',
+      keyPlaceholder: 'AQXu...'
     },
     { 
       id: 'pinterest', 
@@ -137,8 +160,9 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       url: 'https://developers.pinterest.com/', 
       icon: Pin, 
       desc: 'E-com, Decor, DIY, High Conversion',
-      instructions: '1. Đăng ký tài khoản doanh nghiệp.\n2. Tạo App và lấy Access Token.\n3. Phù hợp nhất cho thị trường Mỹ/Âu.',
-      inputLabel: 'Access Token'
+      instructions: '1. Đăng ký tài khoản doanh nghiệp.\n2. Tạo App và lấy Access Token.\n3. Phù hợp nhất cho thị trường Mỹ/Âu (Traffic Source mạnh).',
+      inputLabel: 'Access Token',
+      keyPlaceholder: 'pina_...'
     },
     { 
       id: 'telegram', 
@@ -147,16 +171,8 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       icon: Send, 
       desc: 'Crypto Signals, MMO Community',
       instructions: '1. Chat với @BotFather trên Telegram.\n2. Gõ lệnh /newbot để tạo bot mới.\n3. Sao chép HTTP API Token.',
-      inputLabel: 'Bot Token'
-    },
-    { 
-      id: 'zalo', 
-      name: 'Zalo OA (Official Account)', 
-      url: 'https://developers.zalo.me/', 
-      icon: MessageCircle, 
-      desc: 'Vietnam CRM & CSKH',
-      instructions: '1. Truy cập Zalo Developers.\n2. Tạo ứng dụng mới -> Liên kết OA.\n3. Vào "Xét duyệt ứng dụng" để lấy OA Access Token.',
-      inputLabel: 'OA Access Token'
+      inputLabel: 'Bot Token',
+      keyPlaceholder: '123456789:AA...'
     },
   ],
   affiliate: [
@@ -169,6 +185,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Mạng lưới Affiliate số 1 VN',
       instructions: '1. Đăng ký Publisher tại AccessTrade.\n2. Vào Công cụ -> API.\n3. Tạo và sao chép Access Token.',
       inputLabel: 'Access Token',
+      keyPlaceholder: 'Token...',
       region: 'vn'
     },
     { 
@@ -179,6 +196,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Đối tác Tiki, NguyenKim, FPT...',
       instructions: '1. Đăng ký MasOffer Publisher.\n2. Vào Tài khoản -> API.\n3. Lấy Distribution ID và Token.',
       inputLabel: 'Token / Dist. ID',
+      keyPlaceholder: 'Token...',
       region: 'vn'
     },
     { 
@@ -189,6 +207,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Social Selling tốt nhất cho KOC',
       instructions: '1. Đăng ký Ecomobi SSP/Passio.\n2. Vào Profile -> Thiết lập API.\n3. Lấy Access Token để tạo link tự động.',
       inputLabel: 'SSP Access Token',
+      keyPlaceholder: 'Bearer ...',
       region: 'vn'
     },
     { 
@@ -199,6 +218,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Hoa hồng cao (Dược/Mỹ phẩm)',
       instructions: '1. Đăng ký AdFlex CPO.\n2. Liên hệ AM (Account Manager) để mở API.\n3. Lấy API Key trong Dashboard.',
       inputLabel: 'API Key',
+      keyPlaceholder: 'Token...',
       region: 'vn'
     },
     { 
@@ -209,6 +229,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Sàn TMĐT phổ biến nhất ĐNA',
       instructions: '1. Đăng ký Shopee Affiliate.\n2. Vào Open Platform nếu bạn là Developer, hoặc dùng Link Tracking thông thường.',
       inputLabel: 'App ID / Key',
+      keyPlaceholder: 'Key...',
       region: 'vn'
     },
     { 
@@ -219,6 +240,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Tiếp thị liên kết Lazada',
       instructions: '1. Đăng ký Lazada Adsense.\n2. Vào Developer Center -> Create App.\n3. Lấy App Key và Secret.',
       inputLabel: 'App Key',
+      keyPlaceholder: 'AppKey...',
       region: 'vn'
     },
     // --- GLOBAL PLATFORMS ---
@@ -230,6 +252,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Digital Products & CPO Commissions',
       instructions: '1. Vào Settings -> Account Access.\n2. Quan trọng: Thêm IP hiện tại vào "IP Access" (Whitelist).\n3. Tạo API Key quyền Read/Write để theo dõi CPO.',
       inputLabel: 'API Key',
+      keyPlaceholder: 'xxxx-xxxx...',
       region: 'global'
     },
     { 
@@ -240,6 +263,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Thị trường số 1 US/EU/JP',
       instructions: '1. Đăng ký Amazon Associates.\n2. Vào Tools -> Product Advertising API.\n3. Tạo Access Key và Secret Key.',
       inputLabel: 'Access Key ID:Secret Key',
+      keyPlaceholder: 'AKIA...:SECRET...',
       region: 'global'
     },
     { 
@@ -250,6 +274,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Đấu giá & Đồ cũ tốt nhất US',
       instructions: '1. Đăng ký EPN Account.\n2. Vào Developer Program.\n3. Tạo Application Keys (Production) để lấy App ID và Cert ID.',
       inputLabel: 'App ID (Client ID)',
+      keyPlaceholder: 'AppID...',
       region: 'global'
     },
     { 
@@ -260,6 +285,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Handmade, Vintage, Niche Gifts',
       instructions: '1. Tạo App tại Etsy Developers.\n2. Lấy Keystring (API Key).\n3. Sử dụng để quét sản phẩm trending.',
       inputLabel: 'Keystring API Key',
+      keyPlaceholder: 'Key...',
       region: 'global'
     },
     { 
@@ -270,6 +296,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Bán lẻ hàng đầu US',
       instructions: '1. Tham gia qua Impact Radius hoặc Direct.\n2. Truy cập Walmart.io IO Developer.\n3. Lấy Consumer ID và Private Key.',
       inputLabel: 'Consumer ID',
+      keyPlaceholder: 'UUID...',
       region: 'global'
     },
     { 
@@ -280,6 +307,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Dropshipping & Giá rẻ (Global)',
       instructions: '1. Đăng ký AliExpress Portals.\n2. Vào Ad Center -> API Settings.\n3. Tạo App Key và App Secret.',
       inputLabel: 'App Key',
+      keyPlaceholder: 'Key...',
       region: 'global'
     },
     { 
@@ -290,6 +318,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Sản phẩm số (Digital) High Ticket',
       instructions: '1. Đăng nhập ClickBank -> Account Settings.\n2. Chọn Developer API Keys.\n3. Tạo Key mới (Clerk API Key).',
       inputLabel: 'Dev API Key',
+      keyPlaceholder: 'API-Key...',
       region: 'global'
     },
     { 
@@ -300,6 +329,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       desc: 'Thương hiệu lớn (GoDaddy, HostGator...)',
       instructions: '1. CJ Developer Portal.\n2. Authentication -> Personal Access Tokens.',
       inputLabel: 'Personal Access Token',
+      keyPlaceholder: 'Token...',
       region: 'global'
     },
   ],
@@ -311,7 +341,8 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       icon: Database, 
       desc: 'Serverless Job Queue',
       instructions: '1. Tạo Database mới trên Upstash.\n2. Sao chép "UPSTASH_REDIS_REST_URL" và "TOKEN".\n3. Nhập theo định dạng URL;TOKEN',
-      inputLabel: 'REST_URL;TOKEN'
+      inputLabel: 'REST_URL;TOKEN',
+      keyPlaceholder: 'https://...;token...'
     },
   ]
 };
@@ -597,17 +628,17 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                             placeholder={`VD: ${selectedProviderConfig.name} - Acc 1`} 
                             value={newAlias}
                             onChange={(e) => setNewAlias(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                           />
                         </div>
                         <div>
                           <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1.5">{selectedProviderConfig.inputLabel}</label>
                           <input 
                             type="password" 
-                            placeholder="Dán key/token vào đây..." 
+                            placeholder={selectedProviderConfig.keyPlaceholder || "Dán key/token vào đây..."} 
                             value={newKey}
                             onChange={(e) => setNewKey(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-xs text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono"
                           />
                         </div>
                       </div>

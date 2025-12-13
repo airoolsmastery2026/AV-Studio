@@ -279,12 +279,19 @@ const PlanResult: React.FC<PlanResultProps> = ({ data }) => {
                       {/* Live Video Simulation */}
                       {isPlaying ? (
                           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 animate-pulse">
+                              {/* LIVE BADGE */}
+                              <div className="absolute top-4 left-4 z-20">
+                                <span className="flex items-center gap-1.5 px-2 py-1 bg-red-600/90 text-white text-[10px] font-bold rounded animate-pulse shadow-lg backdrop-blur-sm">
+                                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span> LIVE PREVIEW
+                                </span>
+                              </div>
+
                               {/* Simulate Moving Visuals */}
                               <div className="absolute inset-0 flex items-center justify-center">
                                   <div className="w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-[spin_4s_linear_infinite]"></div>
                               </div>
-                              <div className="absolute bottom-10 left-4 right-4 text-center">
-                                  <div className="bg-black/50 px-2 py-1 rounded text-white text-sm font-bold backdrop-blur-sm">
+                              <div className="absolute bottom-12 left-4 right-4 text-center z-20">
+                                  <div className="bg-black/60 px-3 py-2 rounded-xl text-white text-xs md:text-sm font-medium backdrop-blur-md border border-white/10 shadow-lg">
                                       {data.production_plan.scenes[Math.floor((progress / 100) * data.production_plan.scenes.length)]?.vo_text || "Scene transition..."}
                                   </div>
                               </div>
@@ -311,27 +318,31 @@ const PlanResult: React.FC<PlanResultProps> = ({ data }) => {
                         onClick={() => setIsPlaying(!isPlaying)}
                         className={`absolute inset-0 z-30 flex items-center justify-center transition-all duration-300 ${isPlaying ? 'opacity-0 hover:opacity-100 bg-black/40' : 'opacity-100'}`}
                       >
-                          <div className="w-12 h-12 md:w-16 md:h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-lg group-hover:bg-white/20">
+                          <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-lg group-hover:bg-white/20 hover:scale-110 transition-transform">
                              {isPlaying ? (
-                                <Pause size={24} className="text-white fill-white ml-1" />
+                                <Pause size={28} className="text-white fill-white ml-1" />
                              ) : (
-                                <Play size={24} className="text-white fill-white ml-1" />
+                                <Play size={28} className="text-white fill-white ml-1" />
                              )}
                           </div>
                       </button>
 
                       {/* Video Controls (Fake) */}
-                      <div className="absolute bottom-0 left-0 right-0 p-3 z-40 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-full h-1 bg-slate-700 rounded-full mb-2 overflow-hidden cursor-pointer">
-                              <div className="h-full bg-primary transition-all duration-100" style={{ width: `${progress}%` }}></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-3 z-40 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-full h-1 bg-slate-700 rounded-full mb-2 overflow-hidden cursor-pointer hover:h-1.5 transition-all">
+                              <div className="h-full bg-primary transition-all duration-100 relative" style={{ width: `${progress}%` }}>
+                                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow"></div>
+                              </div>
                           </div>
                           <div className="flex justify-between items-center text-white/80">
-                              <div className="flex gap-3">
-                                  {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-                                  <Volume2 size={14} />
+                              <div className="flex items-center gap-3">
+                                  <button onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}>
+                                    {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                                  </button>
+                                  <Volume2 size={14} className="hover:text-white cursor-pointer" />
                                   <span className="text-[10px] font-mono">00:{Math.floor(progress/100 * 30).toString().padStart(2,'0')} / 00:30</span>
                               </div>
-                              <Maximize size={14} />
+                              <Maximize size={14} className="hover:text-white cursor-pointer" />
                           </div>
                       </div>
                   </div>

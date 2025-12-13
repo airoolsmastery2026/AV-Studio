@@ -8,6 +8,7 @@ import {
 import { ApiKeyConfig, OrchestratorResponse, PostingJob, TargetRegion, GoldenHourRecommendation, ScheduleSlot } from '../types';
 import NeonButton from './NeonButton';
 import { predictGoldenHours, generateDailySchedule } from '../services/geminiService';
+import { postVideoToSocial } from '../services/socialService';
 
 interface QueueDashboardProps {
   apiKeys: ApiKeyConfig[];
@@ -28,6 +29,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [scheduleMode, setScheduleMode] = useState<'now' | 'auto' | 'manual' | 'smart_rule'>('smart_rule'); // Default to new smart rule
   const [manualTime, setManualTime] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
   
   // AI State
   const [isPredicting, setIsPredicting] = useState(false);
@@ -132,7 +134,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
       alert(`Đã lên lịch 3 video cho tài khoản đã chọn!`);
   };
 
-  const handleCreateJob = () => {
+  const handleCreateJob = async () => {
     if (!draftTitle || selectedPlatforms.length === 0) {
         alert("Vui lòng nhập tiêu đề và chọn ít nhất 1 nền tảng.");
         return;
@@ -158,11 +160,49 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
 
     setJobs(prev => [newJob, ...prev]);
 
-    // Simulate Publishing if "Post Now"
+    // Handle "Post Now" Logic
     if (scheduleMode === 'now') {
-        setTimeout(() => {
-            setJobs(prev => prev.map(j => j.id === newJob.id ? { ...j, status: 'published' } : j));
-        }, 3000);
+        setIsPosting(true);
+        
+        try {
+            // Execute post for all selected platforms concurrently
+            const results = await Promise.all(selectedPlatforms.map(async (platformId) => {
+                const keyConfig = apiKeys.find(k => k.id === platformId);
+                if (keyConfig) {
+                    return await postVideoToSocial(keyConfig, { 
+                        title: draftTitle, 
+                        caption: draftCaption 
+                    });
+                }
+                return { success: false, platform: 'unknown', error: 'Key not found' };
+            }));
+
+            // Check if all succeeded
+            const allSuccess = results.every(r => r.success);
+            
+            // Update job status
+            setJobs(prev => prev.map(j => j.id === newJob.id ? { 
+                ...j, 
+                status: allSuccess ? 'published' : 'failed' 
+            } : j));
+
+            if (allSuccess) {
+                // If Zalo was one of them, show specific message
+                if (results.some(r => r.platform === 'zalo')) {
+                    alert("Đã đăng thành công lên Zalo Video và các nền tảng khác!");
+                } else {
+                    alert("Đăng bài thành công!");
+                }
+            } else {
+                alert("Một số nền tảng đăng thất bại. Kiểm tra console.");
+            }
+
+        } catch (error) {
+            console.error("Posting error", error);
+            setJobs(prev => prev.map(j => j.id === newJob.id ? { ...j, status: 'failed' } : j));
+        } finally {
+            setIsPosting(false);
+        }
     }
   };
 
@@ -181,7 +221,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
           case 'zalo': return (
               <div className="flex items-center gap-1">
                   <MessageCircle size={16} />
-                  <span className="text-[9px] font-bold text-blue-300">VIDEO</span>
+                  <span className="text-[9px] font-bold text-blue-300">ZALO</span>
               </div>
           );
           default: return <Globe size={16} />;
@@ -233,13 +273,14 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                       )}
                       {socialKeys.map(key => {
                           const isSelected = selectedPlatforms.includes(key.id);
+                          const isZalo = key.provider === 'zalo';
                           return (
                               <button
                                   key={key.id}
                                   onClick={() => handlePlatformToggle(key.id)}
                                   className={`px-3 py-2 rounded-lg border flex items-center gap-2 transition-all ${
                                       isSelected 
-                                      ? 'bg-primary/20 border-primary text-white shadow-[0_0_10px_rgba(14,165,164,0.3)]' 
+                                      ? isZalo ? 'bg-blue-600/20 border-blue-500 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-primary/20 border-primary text-white shadow-[0_0_10px_rgba(14,165,164,0.3)]' 
                                       : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
                                   }`}
                               >
@@ -297,6 +338,12 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                         className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${scheduleMode === 'manual' ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
                       >
                           Thủ Công
+                      </button>
+                      <button 
+                        onClick={() => setScheduleMode('now')}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${scheduleMode === 'now' ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
+                      >
+                          Đăng Ngay
                       </button>
                   </div>
 
@@ -389,11 +436,13 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                   )}
               </div>
 
-              {/* Action Button (For Manual/Draft Post) */}
+              {/* Action Button (For Manual/Draft/Now Post) */}
               {scheduleMode !== 'smart_rule' && (
                   <div className="mt-6">
-                      <NeonButton onClick={handleCreateJob} className="w-full" size="lg">
-                          {scheduleMode === 'now' ? (
+                      <NeonButton onClick={handleCreateJob} disabled={isPosting} className="w-full" size="lg">
+                          {isPosting ? (
+                              <span className="flex items-center gap-2"><RefreshCw className="animate-spin" /> UPLOADING TO SERVERS...</span>
+                          ) : scheduleMode === 'now' ? (
                               <span className="flex items-center gap-2"><Send size={18} /> POST IMMEDIATELY</span>
                           ) : (
                               <span className="flex items-center gap-2"><Calendar size={18} /> ADD TO QUEUE</span>
@@ -425,6 +474,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                           <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${
                               job.status === 'published' ? 'bg-green-900/20 text-green-400 border-green-500/20' :
                               job.status === 'publishing' ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/20 animate-pulse' :
+                              job.status === 'failed' ? 'bg-red-900/20 text-red-400 border-red-500/20' :
                               'bg-blue-900/20 text-blue-400 border-blue-500/20'
                           }`}>
                               {job.status}
@@ -443,7 +493,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                           {job.platforms.map(pid => {
                              const key = apiKeys.find(k => k.id === pid);
                              return (
-                                 <span key={pid} className="w-5 h-5 rounded bg-slate-800 flex items-center justify-center text-[10px] text-slate-300 border border-slate-700" title={key?.alias}>
+                                 <span key={pid} className={`w-5 h-5 rounded flex items-center justify-center text-[10px] text-slate-300 border ${key?.provider === 'zalo' ? 'bg-blue-900/50 border-blue-500/50 text-blue-300' : 'bg-slate-800 border-slate-700'}`} title={key?.alias}>
                                      {key?.provider === 'zalo' ? 'Z' : key?.provider.charAt(0).toUpperCase()}
                                  </span>
                              )
