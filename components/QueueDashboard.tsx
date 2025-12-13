@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Calendar, Clock, Check, AlertCircle, RefreshCw, Send, 
   Hash, Globe, Video, Youtube, Facebook, Instagram, Twitter, MessageCircle, 
-  MoreVertical, Trash2, Edit3, UploadCloud, PlayCircle, Zap
+  MoreVertical, Trash2, Edit3, UploadCloud, PlayCircle, Zap, Sliders, ArrowRight
 } from 'lucide-react';
 import { ApiKeyConfig, OrchestratorResponse, PostingJob, TargetRegion, GoldenHourRecommendation, ScheduleSlot } from '../types';
 import NeonButton from './NeonButton';
@@ -38,6 +38,11 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
   // NEW: Smart Rule State
   const [targetAccount, setTargetAccount] = useState<string>('');
   const [generatedSlots, setGeneratedSlots] = useState<ScheduleSlot[]>([]);
+  
+  // Smart Rule Config
+  const [postQuantity, setPostQuantity] = useState<number>(3);
+  const [startHour, setStartHour] = useState<string>("08:00");
+  const [endHour, setEndHour] = useState<string>("22:00");
 
   // Get connected social keys
   const socialKeys = apiKeys.filter(k => k.category === 'social' && k.status === 'active');
@@ -94,7 +99,14 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
       setIsPredicting(true);
       try {
           const accountAlias = socialKeys.find(k => k.id === targetAccount)?.alias || "My Channel";
-          const slots = await generateDailySchedule(googleKey.key, accountAlias, niche, region);
+          // Pass custom config
+          const slots = await generateDailySchedule(
+              googleKey.key, 
+              accountAlias, 
+              niche, 
+              region,
+              { quantity: postQuantity, startHour, endHour }
+          );
           setGeneratedSlots(slots);
       } catch(e) {
           console.error(e);
@@ -131,7 +143,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
       });
 
       setJobs(prev => [...newJobs, ...prev]);
-      alert(`Đã lên lịch 3 video cho tài khoản đã chọn!`);
+      alert(`Đã lên lịch ${generatedSlots.length} video cho tài khoản đã chọn!`);
   };
 
   const handleCreateJob = async () => {
@@ -325,7 +337,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                         onClick={() => setScheduleMode('smart_rule')}
                         className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${scheduleMode === 'smart_rule' ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
                       >
-                          <Zap size={12} className="inline mr-1"/> Rule 3 Video/Ngày
+                          <Zap size={12} className="inline mr-1"/> Custom Rule
                       </button>
                       <button 
                         onClick={() => setScheduleMode('auto')}
@@ -347,12 +359,46 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                       </button>
                   </div>
 
-                  {/* MODE: SMART RULE (3 Videos/Day) */}
+                  {/* MODE: SMART RULE (CUSTOM) */}
                   {scheduleMode === 'smart_rule' && (
                       <div className="space-y-4 animate-fade-in bg-slate-900 p-4 rounded-xl border border-green-900/30">
-                          <p className="text-xs text-slate-400 mb-2">
-                              Tự động tạo lịch 3 video cho 3 khung giờ vàng (Sáng, Trưa, Tối) dựa trên Nick & Thị trường.
-                          </p>
+                          <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-slate-400 flex items-center gap-1">
+                                  <Sliders size={12} /> Cấu hình lịch tự động
+                              </p>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 mb-2">
+                              <div>
+                                  <label className="text-[10px] text-slate-500 block mb-1 uppercase font-bold">Số lượng</label>
+                                  <input 
+                                      type="number"
+                                      min="1"
+                                      max="24"
+                                      value={postQuantity}
+                                      onChange={(e) => setPostQuantity(parseInt(e.target.value) || 1)}
+                                      className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-white text-center font-bold focus:border-green-500"
+                                  />
+                              </div>
+                              <div>
+                                  <label className="text-[10px] text-slate-500 block mb-1 uppercase font-bold">Bắt đầu</label>
+                                  <input 
+                                      type="time"
+                                      value={startHour}
+                                      onChange={(e) => setStartHour(e.target.value)}
+                                      className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-white text-center font-bold focus:border-green-500"
+                                  />
+                              </div>
+                              <div>
+                                  <label className="text-[10px] text-slate-500 block mb-1 uppercase font-bold">Kết thúc</label>
+                                  <input 
+                                      type="time"
+                                      value={endHour}
+                                      onChange={(e) => setEndHour(e.target.value)}
+                                      className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-white text-center font-bold focus:border-green-500"
+                                  />
+                              </div>
+                          </div>
                           
                           <div className="flex gap-2">
                               <select 
@@ -387,9 +433,9 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                                   ))}
                                   <button 
                                       onClick={handleApplySmartRule}
-                                      className="w-full mt-2 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold transition-colors"
+                                      className="w-full mt-2 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2"
                                   >
-                                      Áp dụng & Lên hàng chờ
+                                      Áp dụng & Lên hàng chờ <ArrowRight size={14} />
                                   </button>
                               </div>
                           )}
