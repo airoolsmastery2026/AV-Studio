@@ -17,6 +17,7 @@ import ModelSelector from './components/ModelSelector';
 import AutoPilotDashboard from './components/AutoPilotDashboard'; // NEW IMPORT
 import { Zap, Link as LinkIcon, AlertTriangle, Cpu, Lock, LayoutDashboard, Settings, Layers, RotateCw, Bot, Filter, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Type, Palette, Mic, Check, BrainCircuit, ArrowRight, Menu, MessageCircle } from 'lucide-react';
 import { generateVideoPlan, classifyInput } from './services/geminiService';
+import { postVideoToSocial } from './services/socialService';
 import { AppStatus, OrchestratorResponse, SourceMetadata, TabView, ApiKeyConfig, ContentNiche, ContentWorkflow, AppContext, KnowledgeBase, AgentCommand, PostingJob, ChatSession, ChatMessage, VideoResolution, AspectRatio, ScriptModel, VisualModel, VoiceModel } from './types';
 
 // SECURITY & PERSISTENCE CONSTANTS
@@ -258,6 +259,31 @@ const App: React.FC = () => {
     } catch(e) {
         console.error("Failed to send report to chat", e);
     }
+  };
+
+  // --- ZALO POSTING INTEGRATION ---
+  const handlePostToZalo = async (content: { title: string, description: string }) => {
+    const zaloKey = apiKeys.find(k => k.provider === 'zalo' && k.status === 'active');
+    if (zaloKey) {
+        addLog(`[ZALO] Initiating Auto-Post to Zalo OA...`);
+        try {
+            const result = await postVideoToSocial(zaloKey, { 
+                title: content.title, 
+                caption: content.description 
+            });
+            if (result.success) {
+                addLog(`[ZALO] ✅ Posted Successfully! Post ID: ${result.postId}`);
+                return true;
+            } else {
+                addLog(`[ZALO] ❌ Posting Failed: ${result.error}`);
+            }
+        } catch (e: any) {
+            addLog(`[ZALO] Error: ${e.message}`);
+        }
+    } else {
+        addLog(`[AUTO-POST] Skipped Zalo (No Active Key).`);
+    }
+    return false;
   };
 
   const executePipeline = async () => {
@@ -510,7 +536,7 @@ const App: React.FC = () => {
                                       <option value="16:9">16:9</option>
                                       <option value="1:1">1:1</option>
                                   </select>
-                               </div>
+                                </div>
                                <div>
                                   <label className="block text-[10px] text-slate-500 mb-1">Độ phân giải</label>
                                   <select 
@@ -624,7 +650,7 @@ const App: React.FC = () => {
                 </div>
               )}
               {status === AppStatus.COMPLETE && plan ? (
-                <PlanResult data={plan} />
+                <PlanResult data={plan} onPost={handlePostToZalo} />
               ) : (
                 <div className="h-full min-h-[300px] md:min-h-[400px] flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/20 p-6 md:p-8">
                    {status !== AppStatus.IDLE && status !== AppStatus.COMPLETE && status !== AppStatus.ERROR ? (

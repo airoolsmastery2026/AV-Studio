@@ -6,9 +6,10 @@ import NeonButton from './NeonButton';
 
 interface PlanResultProps {
   data: OrchestratorResponse;
+  onPost?: (content: { title: string, description: string }) => Promise<boolean>;
 }
 
-const PlanResult: React.FC<PlanResultProps> = ({ data }) => {
+const PlanResult: React.FC<PlanResultProps> = ({ data, onPost }) => {
   const [autoPostTime, setAutoPostTime] = useState<number>(3600); // 1 hour in seconds
   const [isAutoPosting, setIsAutoPosting] = useState(true);
   const [postStatus, setPostStatus] = useState<'pending' | 'posted'>('pending');
@@ -24,11 +25,20 @@ const PlanResult: React.FC<PlanResultProps> = ({ data }) => {
         setAutoPostTime((prev) => prev - 1);
       }, 1000);
     } else if (autoPostTime === 0 && postStatus === 'pending') {
-       // Simulate Auto-Post
-       setPostStatus('posted');
+       // Auto-Post Trigger
+       if (onPost && data.generated_content) {
+           onPost({
+               title: data.generated_content.title,
+               description: data.generated_content.description
+           }).then(success => {
+               if (success) setPostStatus('posted');
+           });
+       } else {
+           setPostStatus('posted');
+       }
     }
     return () => clearInterval(interval);
-  }, [isAutoPosting, autoPostTime, postStatus]);
+  }, [isAutoPosting, autoPostTime, postStatus, onPost, data]);
 
   // Video Progress Simulation
   useEffect(() => {
@@ -47,10 +57,22 @@ const PlanResult: React.FC<PlanResultProps> = ({ data }) => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
       setIsAutoPosting(false);
-      setPostStatus('posted');
-      alert("Đã duyệt! Video sẽ được đăng ngay lập tức.");
+      
+      if (onPost && data.generated_content) {
+          const success = await onPost({
+              title: data.generated_content.title,
+              description: data.generated_content.description
+          });
+          if (success) {
+              setPostStatus('posted');
+              // alert("Đã duyệt! Video sẽ được đăng ngay lập tức.");
+          }
+      } else {
+          setPostStatus('posted');
+          alert("Đã duyệt! Video sẽ được đăng ngay lập tức.");
+      }
   };
 
   // Determine Aspect Ratio Class dynamically
