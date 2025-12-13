@@ -13,9 +13,8 @@ import AIMarketplace from './components/AIMarketplace';
 import QueueDashboard from './components/QueueDashboard'; 
 import BatchProcessor from './components/BatchProcessor'; 
 import AIChatAssistant from './components/AIChatAssistant';
-import ModelSelector from './components/ModelSelector';
-import AutoPilotDashboard from './components/AutoPilotDashboard'; // NEW IMPORT
-import { Zap, Link as LinkIcon, AlertTriangle, Cpu, Lock, LayoutDashboard, Settings, Layers, RotateCw, Bot, Filter, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Type, Palette, Mic, Check, BrainCircuit, ArrowRight, Menu, MessageCircle } from 'lucide-react';
+import AutoPilotDashboard from './components/AutoPilotDashboard';
+import { Zap, Link as LinkIcon, AlertTriangle, Cpu, Lock, LayoutDashboard, Settings, Layers, RotateCw, Bot, Filter, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Type, Palette, Mic, Check, BrainCircuit, ArrowRight, Menu, MessageCircle, Factory } from 'lucide-react';
 import { generateVideoPlan, classifyInput } from './services/geminiService';
 import { postVideoToSocial } from './services/socialService';
 import { AppStatus, OrchestratorResponse, SourceMetadata, TabView, ApiKeyConfig, ContentNiche, ContentWorkflow, AppContext, KnowledgeBase, AgentCommand, PostingJob, ChatSession, ChatMessage, VideoResolution, AspectRatio, ScriptModel, VisualModel, VoiceModel } from './types';
@@ -88,6 +87,9 @@ const App: React.FC = () => {
   // New: Google Ecosystem Preference
   const [preferGoogleStack, setPreferGoogleStack] = useState<boolean>(false);
   
+  // --- CAMPAIGN MODE: SINGLE VS BATCH ---
+  const [campaignMode, setCampaignMode] = useState<'single' | 'batch'>('single');
+
   // --- NEW: VIDEO CONFIG STATE ---
   const [resolution, setResolution] = useState<VideoResolution>('1080p');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
@@ -199,7 +201,7 @@ const App: React.FC = () => {
     addLog(`🤖 COMMAND: ${cmd.action} - ${JSON.stringify(cmd.payload)}`);
     switch (cmd.action) {
       case 'NAVIGATE':
-        if (['campaign', 'analytics', 'risk_center', 'marketplace', 'settings', 'queue', 'models', 'batch_factory', 'auto_pilot'].includes(cmd.payload)) {
+        if (['campaign', 'analytics', 'risk_center', 'marketplace', 'settings', 'queue', 'auto_pilot'].includes(cmd.payload)) {
           setActiveTab(cmd.payload as TabView);
         }
         break;
@@ -284,6 +286,12 @@ const App: React.FC = () => {
         addLog(`[AUTO-POST] Skipped Zalo (No Active Key).`);
     }
     return false;
+  };
+
+  const handleAddToQueue = (job: PostingJob) => {
+      setQueueJobs(prev => [job, ...prev]);
+      addLog(`[QUEUE] Added job: ${job.content_title}`);
+      setActiveTab('queue'); // Auto-switch to Queue tab for UX
   };
 
   const executePipeline = async () => {
@@ -422,9 +430,7 @@ const App: React.FC = () => {
         return <AIMarketplace onSelectProduct={handleSelectProduct} apiKeys={apiKeys} />;
       case 'queue': 
         return <QueueDashboard apiKeys={apiKeys} currentPlan={plan} jobs={queueJobs} setJobs={setQueueJobs} />;
-      case 'batch_factory': 
-        return <BatchProcessor apiKeys={apiKeys} onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} />;
-      case 'auto_pilot': // NEW TAB
+      case 'auto_pilot':
         return <AutoPilotDashboard apiKeys={apiKeys} onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} />;
       case 'settings':
         return (
@@ -433,29 +439,52 @@ const App: React.FC = () => {
              setApiKeys={setApiKeys}
              knowledgeBase={knowledgeBase}
              setKnowledgeBase={setKnowledgeBase}
-          />
-        );
-      case 'models':
-        return (
-          <ModelSelector 
-            scriptModel={scriptModel}
-            setScriptModel={setScriptModel}
-            visualModel={visualModel}
-            setVisualModel={setVisualModel}
-            voiceModel={voiceModel}
-            setVoiceModel={setVoiceModel}
+             scriptModel={scriptModel} setScriptModel={setScriptModel}
+             visualModel={visualModel} setVisualModel={setVisualModel}
+             voiceModel={voiceModel} setVoiceModel={setVoiceModel}
           />
         );
       case 'campaign':
       default:
+        // CAMPAIGN VIEW: SINGLE OR BATCH
+        if (campaignMode === 'batch') {
+            return (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="flex justify-between items-center mb-2">
+                        <button 
+                            onClick={() => setCampaignMode('single')}
+                            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white"
+                        >
+                            <ArrowRight className="rotate-180" size={16} /> Quay lại chế độ Single
+                        </button>
+                        <div className="px-3 py-1 bg-purple-900/30 text-purple-300 rounded text-xs font-bold border border-purple-500/30">
+                            BATCH PRODUCTION MODE
+                        </div>
+                    </div>
+                    <BatchProcessor apiKeys={apiKeys} onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} />
+                </div>
+            )
+        }
+
         return (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
             <div className="lg:col-span-1 space-y-4 md:space-y-6">
               <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 p-4 md:p-6 rounded-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                <h3 className="text-base md:text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Bot size={18} className="text-primary" /> Smart Bot Input
-                </h3>
+                
+                <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-base md:text-lg font-semibold text-white flex items-center gap-2">
+                    <Bot size={18} className="text-primary" /> Smart Bot Input
+                    </h3>
+                    <button 
+                        onClick={() => setCampaignMode('batch')}
+                        className="text-[10px] flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition-colors"
+                        title="Chuyển sang chế độ nhập hàng loạt"
+                    >
+                        <Factory size={12} /> Switch to Batch
+                    </button>
+                </div>
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">
@@ -552,30 +581,21 @@ const App: React.FC = () => {
                            </div>
                         </div>
 
-                        {/* Section 3: AI Models (New) */}
+                        {/* Section 3: AI Models (Quick View) */}
                         <div className="border-t border-slate-800 pt-3">
                            <div className="flex items-center justify-between mb-2">
-                               <h5 className="text-[10px] font-bold text-primary flex items-center gap-1"><Cpu size={10} /> AI MODELS CONFIG</h5>
+                               <h5 className="text-[10px] font-bold text-primary flex items-center gap-1"><Cpu size={10} /> AI MODELS (Quick View)</h5>
                                <button 
-                                  onClick={() => setActiveTab('models')}
+                                  onClick={() => setActiveTab('settings')}
                                   className="text-[10px] text-blue-400 hover:text-white flex items-center gap-1 underline"
                                >
-                                  Config <ArrowRight size={10} />
+                                  Full Config <ArrowRight size={10} />
                                </button>
                            </div>
-                           <div className="space-y-2">
-                               <div className="flex items-center justify-between">
-                                  <label className="text-[10px] text-slate-500 flex items-center gap-1"><Type size={10}/> Script:</label>
-                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700 truncate max-w-[120px]">{scriptModel}</span>
-                                </div>
-                               <div className="flex items-center justify-between">
-                                  <label className="text-[10px] text-slate-500 flex items-center gap-1"><Palette size={10}/> Visual:</label>
-                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700 truncate max-w-[120px]">{visualModel}</span>
-                               </div>
-                               <div className="flex items-center justify-between">
-                                  <label className="text-[10px] text-slate-500 flex items-center gap-1"><Mic size={10}/> Voice:</label>
-                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700 truncate max-w-[120px]">{voiceModel}</span>
-                               </div>
+                           <div className="space-y-1 text-[10px] text-slate-400 font-mono">
+                               <div>Script: {scriptModel}</div>
+                               <div>Visual: {visualModel}</div>
+                               <div>Voice: {voiceModel}</div>
                            </div>
                         </div>
                         
@@ -611,7 +631,7 @@ const App: React.FC = () => {
                        {status !== AppStatus.IDLE && status !== AppStatus.COMPLETE && status !== AppStatus.ERROR ? (
                          <span className="flex items-center gap-2">
                            <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-                           Routing...
+                           Processing...
                          </span>
                        ) : (
                          <>
@@ -650,7 +670,7 @@ const App: React.FC = () => {
                 </div>
               )}
               {status === AppStatus.COMPLETE && plan ? (
-                <PlanResult data={plan} onPost={handlePostToZalo} />
+                <PlanResult data={plan} onPost={handlePostToZalo} onAddToQueue={handleAddToQueue} />
               ) : (
                 <div className="h-full min-h-[300px] md:min-h-[400px] flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/20 p-6 md:p-8">
                    {status !== AppStatus.IDLE && status !== AppStatus.COMPLETE && status !== AppStatus.ERROR ? (
@@ -719,25 +739,21 @@ const App: React.FC = () => {
               <div>
                 <h2 className="text-lg md:text-3xl font-bold text-white mb-1 md:mb-2 leading-tight truncate">
                   {activeTab === 'campaign' && "Smart Campaign Wizard"}
-                  {activeTab === 'batch_factory' && "Batch Video Production"}
                   {activeTab === 'analytics' && "Strategic Intelligence"}
                   {activeTab === 'risk_center' && "Channel Risk Center"}
                   {activeTab === 'marketplace' && "AI Affiliate Hub"}
                   {activeTab === 'settings' && "System Control Center"}
                   {activeTab === 'queue' && "Social Scheduler"}
-                  {activeTab === 'models' && "AI Model Orchestration"}
                   {activeTab === 'auto_pilot' && "Infinity Auto-Pilot"}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="text-slate-400 text-xs md:text-sm hidden md:block">
-                    {activeTab === 'campaign' && "Tự động phân loại nguồn và tạo video theo chiến lược thông minh."}
-                    {activeTab === 'batch_factory' && "Nhà máy sản xuất hàng loạt: Input danh sách -> Output video + lịch đăng tự động."}
+                    {activeTab === 'campaign' && "Tự động phân loại nguồn và tạo video theo chiến lược thông minh (Hỗ trợ Batch)."}
                     {activeTab === 'analytics' && "Tình báo thị trường, giải mã đối thủ để Clone & Build New."}
                     {activeTab === 'risk_center' && "Phân tích sức khỏe kênh, phát hiện rủi ro và nhận diện Shadowban."}
                     {activeTab === 'marketplace' && "Khám phá các sản phẩm AI hoa hồng cao để review."}
-                    {activeTab === 'settings' && "Quản lý API Vault, AI Brain và cấu hình hệ thống."}
+                    {activeTab === 'settings' && "Quản lý API Vault, AI Models, AI Brain và cấu hình hệ thống."}
                     {activeTab === 'queue' && "Lên lịch đăng bài tự động, tối ưu giờ vàng và quản lý đa kênh."}
-                    {activeTab === 'models' && "Cấu hình sức mạnh lõi của hệ thống AI (Script, Visual, Voice)."}
                     {activeTab === 'auto_pilot' && "Chế độ chạy ngầm 24/7: Tự động săn tìm, tạo video và đăng bài liên tục."}
                     </p>
                     
@@ -759,7 +775,7 @@ const App: React.FC = () => {
                   onClick={() => setActiveTab('settings')}
                   className="px-3 py-2 md:py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                 >
-                  <Settings size={14} /> <span className="inline">Cấu hình Vault</span>
+                  <Settings size={14} /> <span className="inline">Cấu hình</span>
                 </button>
                 <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block"></div>
                 <button 

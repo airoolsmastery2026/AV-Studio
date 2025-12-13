@@ -2,16 +2,11 @@
 import React from 'react';
 import { 
   LayoutDashboard, 
-  Video, 
   ListVideo, 
   Settings, 
-  Zap, 
   BarChart3, 
-  Users,
   ShoppingBag,
   HeartPulse,
-  Cpu,
-  Factory,
   X,
   Infinity as InfinityIcon
 } from 'lucide-react';
@@ -26,15 +21,13 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onClose }) => {
   const menuItems: { id: TabView, icon: any, label: string, special?: boolean }[] = [
-    { id: 'auto_pilot', icon: InfinityIcon, label: 'Infinity Auto-Pilot', special: true }, // NEW ITEM
-    { id: 'campaign', icon: LayoutDashboard, label: 'Chiến dịch (Bot)' },
-    { id: 'batch_factory', icon: Factory, label: 'Sản xuất hàng loạt' },
-    { id: 'analytics', icon: BarChart3, label: 'Thống kê & Trends' },
-    { id: 'models', icon: Cpu, label: 'AI Models' },
-    { id: 'risk_center', icon: HeartPulse, label: 'Sức khỏe & Rủi ro' },
+    { id: 'auto_pilot', icon: InfinityIcon, label: 'Infinity Auto-Pilot', special: true }, 
+    { id: 'campaign', icon: LayoutDashboard, label: 'Sản xuất & Chiến dịch' },
+    { id: 'analytics', icon: BarChart3, label: 'Tình báo Chiến lược' },
     { id: 'marketplace', icon: ShoppingBag, label: 'Sản phẩm AI' },
-    { id: 'queue', icon: ListVideo, label: 'Hàng chờ Render' },
-    { id: 'settings', icon: Settings, label: 'Cài đặt' },
+    { id: 'risk_center', icon: HeartPulse, label: 'Sức khỏe Kênh' },
+    { id: 'queue', icon: ListVideo, label: 'Lịch đăng & Queue' },
+    { id: 'settings', icon: Settings, label: 'Cấu hình Hệ thống' },
   ];
 
   return (

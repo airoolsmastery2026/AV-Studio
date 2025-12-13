@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { OrchestratorResponse } from '../types';
-import { Play, FileText, Target, TrendingUp, CheckCircle, Lock, Download, Film, Zap, Brain, Crosshair, DollarSign, Activity, Video as VideoIcon, MonitorPlay, Clock, Send, Share2, Hash, Pause, Volume2, Maximize } from 'lucide-react';
+import { OrchestratorResponse, PostingJob } from '../types';
+import { Play, FileText, Target, TrendingUp, CheckCircle, Lock, Download, Film, Zap, Brain, Crosshair, DollarSign, Activity, Video as VideoIcon, MonitorPlay, Clock, Send, Share2, Hash, Pause, Volume2, Maximize, Calendar } from 'lucide-react';
 import NeonButton from './NeonButton';
 
 interface PlanResultProps {
   data: OrchestratorResponse;
   onPost?: (content: { title: string, description: string }) => Promise<boolean>;
+  onAddToQueue?: (job: PostingJob) => void;
 }
 
-const PlanResult: React.FC<PlanResultProps> = ({ data, onPost }) => {
+const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) => {
   const [autoPostTime, setAutoPostTime] = useState<number>(3600); // 1 hour in seconds
   const [isAutoPosting, setIsAutoPosting] = useState(true);
   const [postStatus, setPostStatus] = useState<'pending' | 'posted'>('pending');
@@ -72,6 +73,23 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost }) => {
       } else {
           setPostStatus('posted');
           alert("Đã duyệt! Video sẽ được đăng ngay lập tức.");
+      }
+  };
+
+  const handleAddToQueue = () => {
+      if (onAddToQueue && data.generated_content) {
+          setIsAutoPosting(false); // Stop auto post
+          const job: PostingJob = {
+              id: crypto.randomUUID(),
+              content_title: data.generated_content.title,
+              caption: data.generated_content.description,
+              hashtags: data.generated_content.hashtags,
+              platforms: [], // User will select platform in Queue
+              scheduled_time: Date.now() + 86400000, // Default +24h
+              status: 'draft', // Saved as draft
+              thumbnail_url: 'https://via.placeholder.com/150' 
+          };
+          onAddToQueue(job);
       }
   };
 
@@ -391,14 +409,15 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost }) => {
                         </div>
                      ) : (
                         <div className="grid grid-cols-2 gap-3">
+                           {/* Add to Queue Button */}
                            <button 
-                             onClick={() => setIsAutoPosting(!isAutoPosting)}
-                             className="py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition-colors"
+                             onClick={handleAddToQueue}
+                             className="py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
                            >
-                              {isAutoPosting ? 'PAUSE TIMER' : 'RESUME'}
+                              <Calendar size={14} /> LÊN LỊCH / QUEUE
                            </button>
                            <NeonButton onClick={handleApprove} size="md">
-                              DUYỆT NGAY
+                              ĐĂNG NGAY
                            </NeonButton>
                         </div>
                      )}

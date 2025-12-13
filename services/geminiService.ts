@@ -554,6 +554,16 @@ export const sendChatToAssistant = async (
 
   } catch (error: any) {
       console.error("Assistant API Error:", error);
+      
+      // Improved Error Handling for Quota Issues
+      const errMsg = error.message || "";
+      if (errMsg.includes('429') || errMsg.includes('Quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+          return {
+              text: "⚠️ **QUOTA LIMIT REACHED:** You have exceeded the free tier rate limit for Gemini API.\n\n**Solution:**\n1. Wait about 60 seconds before trying again.\n2. Or use a Paid API Key (Pay-as-you-go) for higher limits in Settings.",
+              command: undefined
+          };
+      }
+
       return { 
           text: "⚠️ **SYSTEM ERROR:** Cannot connect to Omni-Mind Core.\n" + (error.message || "Unknown error"), 
           command: undefined 
@@ -570,9 +580,11 @@ export const huntAffiliateProducts = async (apiKey: string, niche: string, netwo
         
         **MISSION:**
         1. Identify 3-5 high-converting, trending products in this niche.
-        2. If niche is related to "AI" or "Tech", prioritize SaaS, AI Tools, or High-Ticket Software.
+        2. **HIGH PRIORITY:** Look for "AI Tools", "SaaS", or "Software" with Recurring Commissions or High Ticket value (> $50).
         3. Analyze the commission potential deeply (Recurring vs One-time).
         4. Provide a "Content Angle" for each: How should the user promote this? (e.g., "Tutorial", "Comparison", "Shocking Reveal").
+        
+        If the niche is 'AI', focus on: Generative Video, AI Writers, No-Code Builders, and Trading Bots.
 
         Output valid JSON matching the schema.
     `;

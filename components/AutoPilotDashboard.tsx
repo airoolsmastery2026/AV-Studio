@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Infinity as InfinityIcon, Power, Activity, Terminal, Shield, 
   Cpu, Globe, Zap, Clock, Video, Share2, 
-  AlertTriangle, RotateCcw, FileText, Check
+  AlertTriangle, RotateCcw, FileText, Check, DollarSign
 } from 'lucide-react';
 import { ApiKeyConfig, AutoPilotLog, AutoPilotStats, SourceMetadata, PostingJob } from '../types';
 import { huntAffiliateProducts, generateVideoPlan } from '../services/geminiService';
@@ -102,13 +102,18 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
             // Determine Target Niche (Round Robin if AUTO)
             let targetNiche = selectedNiche;
             if (selectedNiche === 'AUTO') {
-                const niches = ['AI Tools', 'Smart Home', 'Crypto Trading', 'Biohacking', 'Kitchen Gadgets', 'Pet Tech'];
+                // Priority Queue for AI & High-Tech
+                const niches = [
+                    'AI Video Generators', 'AI Writing Assistants', 'No-Code AI Builders', // Priority
+                    'Crypto Trading Bots', 'Smart Home Tech', 'Biohacking Supplements',
+                    'High-Ticket SaaS', 'Personal Finance Apps'
+                ];
                 targetNiche = niches[Math.floor(Math.random() * niches.length)];
-                addLog("AUTO_NICHE", `Detected high-value niche: ${targetNiche}`, "info");
+                addLog("AUTO_NICHE", `🤖 Smart Scout locked target: "${targetNiche}"`, "info");
             }
 
             // Call Hunter API (Smart Hunt)
-            const networkList = affiliateKeys.length > 0 ? affiliateKeys.map(k => k.provider.toUpperCase()) : ['AMAZON', 'CLICKBANK', 'SHOPEE', 'TIKTOK_SHOP'];
+            const networkList = affiliateKeys.length > 0 ? affiliateKeys.map(k => k.provider.toUpperCase()) : ['AMAZON', 'CLICKBANK', 'SHOPEE', 'TIKTOK_SHOP', 'IMPACT', 'PARTNERSTACK'];
             
             const huntResult = await huntAffiliateProducts(googleKey.key, targetNiche, networkList);
             if (!huntResult || huntResult.products.length === 0) {
@@ -116,31 +121,40 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
             }
             
             // SMART SELECTION LOGIC: Sort by Opportunity Score
-            addLog("ANALYZING", `Found ${huntResult.products.length} candidates. Comparing ROI...`, "info");
+            addLog("ANALYZING", `Scanned ${huntResult.products.length} candidates. Calculating Potential...`, "info");
             await new Promise(r => setTimeout(r, 1000));
 
             const sortedProducts = [...huntResult.products].sort((a, b) => b.opportunity_score - a.opportunity_score);
             const bestProduct = sortedProducts[0];
 
-            addLog("WINNER_FOUND", `Top Pick: ${bestProduct.product_name}`, "success");
-            addLog("METRICS", `Score: ${bestProduct.opportunity_score}/100 | Angle: ${bestProduct.content_angle}`, "success");
+            // High Ticket Detection Logic
+            const isHighTicket = bestProduct.commission_est.includes('$') && (parseInt(bestProduct.commission_est.replace(/\D/g, '')) > 50 || bestProduct.commission_est.toLowerCase().includes('recurring'));
+            
+            addLog("WINNER_FOUND", `💎 TOP PICK: ${bestProduct.product_name}`, "success");
+            
+            if (isHighTicket) {
+                addLog("MONEY_ALERT", `💰 HIGH TICKET DETECTED: ${bestProduct.commission_est}`, "warning");
+            } else {
+                addLog("METRICS", `Score: ${bestProduct.opportunity_score}/100 | Comm: ${bestProduct.commission_est}`, "info");
+            }
 
             // 3. PLANNING PHASE
             setCurrentAction("PLANNING");
-            addLog("STRATEGY", `Generating viral script for ${bestProduct.product_name}...`, "info");
+            addLog("STRATEGY", `Deploying Strategy: "${bestProduct.content_angle}"`, "info");
             
             const metadata: SourceMetadata = {
                 url: bestProduct.affiliate_link,
                 type: 'product',
-                detected_strategy: 'REVIEW_TUTORIAL', // Default strategy for products
+                detected_strategy: 'REVIEW_TUTORIAL', 
                 manual_niche: 'AUTO',
-                manual_workflow: 'REVIEW_TUTORIAL', // Enforce review workflow
-                notes: `Focus on this angle: ${bestProduct.content_angle}. Commission: ${bestProduct.commission_est}`,
+                manual_workflow: 'REVIEW_TUTORIAL',
+                notes: `Auto-Hunter Strategy: ${bestProduct.reason_to_promote}. Focus angle: ${bestProduct.content_angle}. Commission: ${bestProduct.commission_est}`,
+                prefer_google_stack: targetNiche.includes('AI') || bestProduct.product_name.includes('Google'), // Auto-prefer Google stack for AI topics
                 video_config: {
                     resolution: '1080p',
                     aspectRatio: '9:16',
                     scriptModel: 'Gemini 2.5 Flash',
-                    visualModel: 'SORA', // Prefer Sora for high quality
+                    visualModel: targetNiche.includes('AI') ? 'VEO' : 'SORA', // Use VEO for AI/Tech
                     voiceModel: 'Google Chirp'
                 }
             };
@@ -150,7 +164,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
 
             // 4. PRODUCTION PHASE
             setCurrentAction("RENDERING");
-            addLog("PRODUCTION", "Simulating Asset Generation (Veo/Imagen)...", "info");
+            addLog("PRODUCTION", `Simulating Asset Generation (${metadata.video_config?.visualModel})...`, "info");
             await new Promise(r => setTimeout(r, 3000)); // Sim Rendering Time
             
             setStats(prev => ({ ...prev, videosCreated: prev.videosCreated + 1 }));
@@ -312,11 +326,33 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                                className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 px-3 text-xs text-white focus:border-primary disabled:opacity-50"
                            >
                                <option value="AUTO">🤖 AUTO (Smart Scout)</option>
-                               <option value="Tech & Gadgets">📱 Tech & Gadgets</option>
-                               <option value="Health & Beauty">💄 Health & Beauty</option>
-                               <option value="Crypto & Finance">💰 Crypto & Finance</option>
-                               <option value="Pet Care">🐶 Pet Care</option>
-                               <option value="Home Office">🏠 Home Office</option>
+                               <optgroup label="🔥 Trending High-Ticket">
+                                   <option value="AI SaaS & Tools">🧠 AI SaaS & Tools</option>
+                                   <option value="Crypto & Finance">💰 Crypto & Finance</option>
+                                   <option value="Make Money Online">💸 Make Money Online</option>
+                                   <option value="Digital Marketing">📈 Digital Marketing</option>
+                               </optgroup>
+                               <optgroup label="🛍️ Consumer Goods">
+                                   <option value="Tech & Gadgets">📱 Tech & Gadgets</option>
+                                   <option value="Smart Home">🏠 Smart Home Automation</option>
+                                   <option value="Health & Beauty">💄 Health & Beauty</option>
+                                   <option value="Fashion & Accessories">👗 Fashion & Accessories</option>
+                                   <option value="Pet Care">🐶 Pet Care</option>
+                                   <option value="Kitchen & Cooking">🍳 Kitchen & Cooking</option>
+                               </optgroup>
+                               <optgroup label="🌱 Lifestyle & Growth">
+                                   <option value="Self Improvement">📚 Self Improvement</option>
+                                   <option value="Fitness & Yoga">🧘 Fitness & Yoga</option>
+                                   <option value="Travel & Lifestyle">✈️ Travel & Lifestyle</option>
+                                   <option value="Sustainable Living">🌿 Sustainable Living</option>
+                                   <option value="Survival & Gear">🏕️ Survival & Gear</option>
+                               </optgroup>
+                               <optgroup label="🎨 Creative & Skills">
+                                   <option value="AI Art & Design">🎨 AI Art & Design</option>
+                                   <option value="DIY & Crafts">🔨 DIY & Crafts</option>
+                                   <option value="Gaming & Esports">🎮 Gaming & Esports</option>
+                                   <option value="No-Code Dev">💻 No-Code Dev</option>
+                               </optgroup>
                            </select>
                        </div>
                        

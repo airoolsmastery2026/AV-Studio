@@ -104,7 +104,7 @@ export enum AppStatus {
   ERROR = 'ERROR'
 }
 
-export type TabView = 'campaign' | 'integrations' | 'queue' | 'analytics' | 'risk_center' | 'marketplace' | 'settings' | 'models' | 'batch_factory' | 'auto_pilot';
+export type TabView = 'campaign' | 'integrations' | 'queue' | 'analytics' | 'risk_center' | 'marketplace' | 'settings' | 'auto_pilot';
 
 export interface CreditUsage {
   remaining: number;
