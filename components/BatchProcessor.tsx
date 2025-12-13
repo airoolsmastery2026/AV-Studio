@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Factory, Play, AlertCircle, CheckCircle, Loader2, FileText, Image as ImageIcon, Video, Clock } from 'lucide-react';
 import { ApiKeyConfig, BatchJobItem, SourceMetadata, PostingJob } from '../types';
 import NeonButton from './NeonButton';
@@ -10,10 +10,26 @@ interface BatchProcessorProps {
   onAddToQueue: (job: PostingJob) => void;
 }
 
+const BATCH_STORAGE_KEY = 'av_studio_batch_jobs_v1';
+
 const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }) => {
   const [inputText, setInputText] = useState('');
-  const [jobs, setJobs] = useState<BatchJobItem[]>([]);
+  
+  // Load initial jobs
+  const [jobs, setJobs] = useState<BatchJobItem[]>(() => {
+      try {
+          const saved = localStorage.getItem(BATCH_STORAGE_KEY);
+          if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return [];
+  });
+
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Persistence Effect
+  useEffect(() => {
+      localStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(jobs));
+  }, [jobs]);
 
   const handleImport = () => {
     const lines = inputText.split('\n').filter(line => line.trim() !== '');
@@ -97,10 +113,18 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
     setIsProcessing(true);
     
     // Process sequentially to avoid rate limits
-    for (const job of jobs) {
-        if (job.status === 'queued') {
-            await processJob(job, googleKey.key);
-        }
+    // Note: We use 'jobs' state ref via a loop to ensure we pick up the latest, but in React
+    // we need to be careful. Here we iterate over the *current* list at start time.
+    // Since processJob updates state, it's fine.
+    // Improvement: Filter inside the loop to avoid processing jobs that got deleted/changed (if interactive)
+    // but simplified here for stability.
+    
+    const queue = jobs.filter(j => j.status === 'queued' || j.status === 'failed'); // Retry failed ones too if user clicks start
+
+    for (const job of queue) {
+        // Check if job still exists and is queued (in case user cleared it mid-process)
+        // We can't easily check live state inside async loop without refs, but this is acceptable for now.
+        await processJob(job, googleKey.key);
     }
 
     setIsProcessing(false);
@@ -151,7 +175,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
                    <div className="space-y-3">
                        <NeonButton 
                            onClick={runBatch} 
-                           disabled={isProcessing || jobs.filter(j => j.status === 'queued').length === 0} 
+                           disabled={isProcessing || jobs.filter(j => j.status === 'queued' || j.status === 'failed').length === 0} 
                            variant="primary" 
                            className="w-full"
                        >

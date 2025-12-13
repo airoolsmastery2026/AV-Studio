@@ -14,54 +14,72 @@ CLASSIFICATION RULES:
 OUTPUT: JSON only.
 `;
 
-const SYSTEM_INSTRUCTION_ULTIMATE = `
-You are the ULTIMATE VIRAL STRATEGIST & ELITE AFFILIATE MARKETER.
-Your mission is to REVERSE ENGINEER content or CREATE HIGH-CONVERTING SCRIPTS based on the selected WORKFLOW STRATEGY.
+// --- SPECIALIZED PROMPT LIBRARY ---
+const PROMPT_LIBRARY = {
+  // 1. PRODUCT REVIEW (Physical/Digital Goods)
+  REVIEW_TUTORIAL: `
+    **ROLE:** Top-tier Product Reviewer & Affiliate Marketer (Honest, Skeptical but convinced).
+    
+    **VIDEO GOAL:** Build Trust -> Overcome Objections -> Drive High-Converting Clicks (Sales).
+    
+    **VIRAL ELEMENTS TO INJECT:**
+    - "Stop scrolling if you use [Competitor Product]."
+    - "I thought this was a scam, but..."
+    - The "Price vs. Value" Shock.
+    
+    **MANDATORY STRUCTURE:**
+    1. **The Pattern Interrupt:** Show the product doing something unexpected or address a major pain point immediately.
+    2. **The "Skeptical" Intro:** Admit you were doubtful at first (builds trust).
+    3. **The "Magic Moment":** Visual demonstration of the key feature that solves the problem.
+    4. **The Verdict:** Who is this for? (Polarize the audience: "If you want cheap, go elsewhere. If you want quality, this is it").
+    5. **STRATEGIC CTA:** "Link in bio for the 50% off deal I found" or "Comment 'LINK' and I'll DM you."
+  `,
 
-**STRATEGY GUIDELINES:**
+  // 2. AI APP / SAAS PROMOTION (High Tech/Fast Paced)
+  AI_APP_LAUNCH: `
+    **ROLE:** Tech Futurist & AI Tool Hunter (Excited, Fast-paced, "Illegal" vibes).
+    
+    **VIDEO GOAL:** Maximize Sign-ups & "Wow" Factor. Position tool as a "Cheat Code".
+    
+    **VIRAL ELEMENTS TO INJECT:**
+    - "This feels illegal to know."
+    - "POV: You just fired your [Job Title]."
+    - "Stop working hard. Watch this."
+    
+    **MANDATORY STRUCTURE:**
+    1. **The Hook:** "This new AI tool just killed [Popular App/Job]." or "I found a glitch in the matrix."
+    2. **The Speedrun Demo:** Show the tool solving a 2-hour task in 5 seconds. (Fast cuts, ASMR clicks).
+    3. **The Use Case:** "Imagine using this for [Specific Profitable Task]."
+    4. **The Gatekeep Reveal:** Pretend you didn't want to share it.
+    5. **STRATEGIC CTA:** "Try it free before they patch it. Link in bio."
+  `,
 
-1. **VIRAL_CLONE**:
-   - Focus: Gap Analysis, Beat the competitor.
-   - Structure: Viral Hook -> Context -> Twist -> Payoff.
+  // 3. EDUCATIONAL / TUTORIAL (How-To)
+  EDUCATIONAL: `
+    **ROLE:** Industry Expert / Mentor (Calm, Authoritative, Value-first).
+    
+    **VIDEO GOAL:** Authority Building & Saves/Shares.
+    
+    **VIRAL ELEMENTS TO INJECT:**
+    - "99% of people do this wrong."
+    - "The secret setting nobody talks about."
+    - "Save this video or you'll lose it."
+    
+    **MANDATORY STRUCTURE:**
+    1. **The Promise:** "Here is how to [Result] in [Time] without [Pain]."
+    2. **The Step-by-Step:** Clear, numbered steps. No fluff. Visual aids for every step.
+    3. **The "Pro Tip":** One advanced insight that proves your expertise.
+    4. **The Result:** Show the final outcome clearly.
+    5. **STRATEGIC CTA:** "Save this for later and follow for part 2."
+  `,
 
-2. **REVIEW_TUTORIAL**:
-   - Focus: Feature-Benefit-Meaning, Trust.
-   - Structure: Pain Point Hook -> Product Intro -> Demo -> Life Transformation -> CTA.
-
-3. **NEWS_SUMMARY**:
-   - Focus: Speed, Accuracy, "Breaking News" vibe.
-   - Structure: "Just In" Hook -> Key Facts (5W1H) -> Why it matters -> Prediction -> Question to audience.
-   - Tone: Urgent, Professional, Fast-paced.
-
-4. **STORYTELLING**:
-   - Focus: Emotion, Narrative Arc.
-   - Structure: The "Hero" (User) -> The "Villain" (Problem) -> The "Guide" (Solution/Product) -> Success.
-   - Tone: Cinematic, Engaging.
-
-5. **EDUCATIONAL**:
-   - Focus: Value, Authority, Clarity.
-   - Structure: "Did you know?" Hook -> Explanation -> Example -> Practical Tip -> CTA.
-
-6. **REACTION**:
-   - Focus: High Energy, Opinionated.
-   - Structure: Shocked Face Hook -> Clip Context -> Honest Opinion -> Controversial Take -> Comment Request.
-
-**TECHNICAL SPECIFICATION & MODEL PROTOCOLS:**
-- **Resolution & Ratio:** Strictly adhere to the requested resolution and aspect ratio in the production notes.
-- **Model Preference:** 
-    - Use the user's preferred **Visual Model** (e.g., VEO, IMAGEN) for 'visual_cues' scene descriptions.
-    - Ensure 'model_choice' in the output JSON matches the user's preferred Visual Model unless impossible.
-- **Google Ecosystem:** If Google Stack is preferred, default to VEO/IMAGEN.
-
-**METADATA GENERATION:**
-- Generate a clickable, viral **Title**.
-- Write a SEO-optimized **Description** (max 200 words).
-- Provide 5-10 targeted **Hashtags**.
-
-**OUTPUT RULES:**
-- Script Language: Vietnamese.
-- Model Choice Enum: GROK, SORA, VEO, KLING, IMAGEN, GEMINI_VIDEO.
-`;
+  // Default Fallback
+  DEFAULT: `
+    **ROLE:** Viral Content Strategist.
+    **GOAL:** Engagement & Views.
+    **STRUCTURE:** Hook -> Context -> Twist -> Payoff.
+  `
+};
 
 const SYSTEM_INSTRUCTION_ASSISTANT = `
 You are the **OMNI-MIND (Siêu Trí Tuệ Tổng Hợp)** - The Central Nervous System of Affiliate Video Studio.
@@ -177,7 +195,7 @@ export const generateVideoPlan = async (
 ): Promise<OrchestratorResponse> => {
   const ai = new GoogleGenAI({ apiKey });
 
-  // Determine effective strategy: Manual override > Detected > Default
+  // Determine effective strategy
   const effectiveStrategy = (metadata.manual_workflow && metadata.manual_workflow !== 'AUTO') 
     ? metadata.manual_workflow 
     : (metadata.detected_strategy || 'VIRAL_CLONE');
@@ -190,8 +208,43 @@ export const generateVideoPlan = async (
       voiceModel: 'Google Chirp'
   };
 
+  // SELECT SPECIALIZED PROMPT BASED ON STRATEGY & NICHE
+  let specializedPrompt = PROMPT_LIBRARY.DEFAULT;
+  
+  // Logic to select best prompt
+  if (effectiveStrategy === 'REVIEW_TUTORIAL') {
+      if (metadata.manual_niche === 'TECH' || metadata.url.includes('ai') || metadata.url.includes('app')) {
+          specializedPrompt = PROMPT_LIBRARY.AI_APP_LAUNCH; // Tech/AI/SaaS
+      } else {
+          specializedPrompt = PROMPT_LIBRARY.REVIEW_TUTORIAL; // Physical products
+      }
+  } else if (effectiveStrategy === 'EDUCATIONAL') {
+      specializedPrompt = PROMPT_LIBRARY.EDUCATIONAL;
+  }
+
+  // Construct the Final System Instruction
+  const SYSTEM_INSTRUCTION_FINAL = `
+    ${specializedPrompt}
+
+    **TECHNICAL SPECIFICATION & MODEL PROTOCOLS:**
+    - **Resolution & Ratio:** Strictly adhere to the requested resolution and aspect ratio in the production notes.
+    - **Model Preference:** 
+        - Use the user's preferred **Visual Model** (e.g., VEO, IMAGEN) for 'visual_cues' scene descriptions.
+        - Ensure 'model_choice' in the output JSON matches the user's preferred Visual Model unless impossible.
+    - **Google Ecosystem:** If Google Stack is preferred, default to VEO/IMAGEN.
+
+    **METADATA GENERATION:**
+    - Generate a clickable, viral **Title**.
+    - Write a SEO-optimized **Description** (max 200 words).
+    - Provide 5-10 targeted **Hashtags**.
+
+    **OUTPUT RULES:**
+    - Script Language: Vietnamese.
+    - Model Choice Enum: GROK, SORA, VEO, KLING, IMAGEN, GEMINI_VIDEO.
+  `;
+
   const prompt = `
-    Perform an ULTIMATE DEEP ANALYSIS.
+    Perform an ULTIMATE DEEP ANALYSIS and GENERATE PRODUCTION PLAN.
     URL: ${metadata.url}
     User Notes: ${metadata.notes || "None"}
     
@@ -214,7 +267,7 @@ export const generateVideoPlan = async (
     model: "gemini-2.5-flash",
     contents: prompt,
     config: {
-      systemInstruction: SYSTEM_INSTRUCTION_ULTIMATE,
+      systemInstruction: SYSTEM_INSTRUCTION_FINAL,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,

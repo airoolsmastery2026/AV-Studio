@@ -16,11 +16,23 @@ interface AutoPilotDashboardProps {
   completedVideos?: CompletedVideo[];
 }
 
+const AUTOPILOT_STORAGE_KEY = 'av_studio_autopilot_state_v1';
+
 const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddToQueue, onVideoGenerated, completedVideos = [] }) => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [currentAction, setCurrentAction] = useState('IDLE');
-  const [logs, setLogs] = useState<AutoPilotLog[]>([]);
-  const [stats, setStats] = useState<AutoPilotStats>({
+  // Load initial state from storage
+  const getInitialState = () => {
+      try {
+          const saved = localStorage.getItem(AUTOPILOT_STORAGE_KEY);
+          if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return {};
+  };
+  const initialState = getInitialState();
+
+  const [isRunning, setIsRunning] = useState<boolean>(initialState.isRunning || false);
+  const [currentAction, setCurrentAction] = useState<string>(initialState.currentAction || 'IDLE');
+  const [logs, setLogs] = useState<AutoPilotLog[]>(initialState.logs || []);
+  const [stats, setStats] = useState<AutoPilotStats>(initialState.stats || {
       cyclesRun: 0,
       videosCreated: 0,
       postedCount: 0,
@@ -30,14 +42,28 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
   const logsEndRef = useRef<HTMLDivElement>(null);
   
   // Configuration
-  const [selectedNiche, setSelectedNiche] = useState('AUTO');
-  const [intervalTime, setIntervalTime] = useState(30); // seconds
-  const [draftMode, setDraftMode] = useState(false); // Draft Mode State
+  const [selectedNiche, setSelectedNiche] = useState(initialState.selectedNiche || 'AUTO');
+  const [intervalTime, setIntervalTime] = useState(initialState.intervalTime || 30); // seconds
+  const [draftMode, setDraftMode] = useState(initialState.draftMode || false); // Draft Mode State
 
   // System Resources
   const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
   const socialKeys = apiKeys.filter(k => k.category === 'social' && k.status === 'active');
   const affiliateKeys = apiKeys.filter(k => k.category === 'affiliate' && k.status === 'active');
+
+  // --- PERSISTENCE ---
+  useEffect(() => {
+      const stateToSave = {
+          isRunning,
+          currentAction,
+          logs,
+          stats,
+          selectedNiche,
+          intervalTime,
+          draftMode
+      };
+      localStorage.setItem(AUTOPILOT_STORAGE_KEY, JSON.stringify(stateToSave));
+  }, [isRunning, currentAction, logs, stats, selectedNiche, intervalTime, draftMode]);
 
   // --- LOGGING HELPER ---
   const addLog = (action: string, detail: string, status: 'info' | 'success' | 'warning' | 'error' = 'info') => {

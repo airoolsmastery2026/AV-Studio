@@ -15,6 +15,7 @@ import BatchProcessor from './components/BatchProcessor';
 import AIChatAssistant from './components/AIChatAssistant';
 import AutoPilotDashboard from './components/AutoPilotDashboard';
 import ModelSelector from './components/ModelSelector';
+import ModelFlowDiagram from './components/ModelFlowDiagram';
 import { Zap, Link as LinkIcon, AlertTriangle, Cpu, Lock, LayoutDashboard, Settings, Layers, RotateCw, Bot, Filter, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Type, Palette, Mic, Check, BrainCircuit, ArrowRight, Menu, MessageCircle, Factory } from 'lucide-react';
 import { generateVideoPlan, classifyInput } from './services/geminiService';
 import { postVideoToSocial } from './services/socialService';
@@ -27,10 +28,10 @@ const QUEUE_STORAGE_KEY = 'av_studio_queue_v1';
 const UI_STATE_STORAGE_KEY = 'av_studio_ui_state_v1';
 const CHAT_STORAGE_KEY = 'av_studio_chat_sessions_v2'; 
 const GALLERY_STORAGE_KEY = 'av_studio_gallery_v1';
+const APP_RUNTIME_STORAGE_KEY = 'av_studio_runtime_v1'; // NEW: Persist active process
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabView>('campaign');
-  const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   
   // Mobile Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -95,11 +96,28 @@ const App: React.FC = () => {
   const [selectedNiche, setSelectedNiche] = useState<ContentNiche>(uiState.selectedNiche || 'AUTO');
   const [selectedWorkflow, setSelectedWorkflow] = useState<ContentWorkflow>(uiState.selectedWorkflow || 'AUTO');
   const [showAdvanced, setShowAdvanced] = useState(uiState.showAdvanced || false);
-  // New: Google Ecosystem Preference
   const [preferGoogleStack, setPreferGoogleStack] = useState<boolean>(false);
   
-  // --- CAMPAIGN MODE: SINGLE VS BATCH ---
-  const [campaignMode, setCampaignMode] = useState<'single' | 'batch'>('single');
+  // --- RUNTIME STATE (RESTORED FROM STORAGE) ---
+  const getRuntimeState = () => {
+      try {
+          const saved = localStorage.getItem(APP_RUNTIME_STORAGE_KEY);
+          if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return {};
+  };
+  const runtimeState = getRuntimeState();
+
+  const [campaignMode, setCampaignMode] = useState<'single' | 'batch'>(runtimeState.campaignMode || 'single');
+  // If status was loading when closed, reset to IDLE to prevent stuck spinners, but keep logs/plan
+  const initialStatus = ['ANALYZING', 'ROUTING', 'PLANNING', 'PARAPHRASING', 'RENDERING'].includes(runtimeState.status) 
+        ? AppStatus.IDLE 
+        : (runtimeState.status || AppStatus.IDLE);
+
+  const [status, setStatus] = useState<AppStatus>(initialStatus);
+  const [plan, setPlan] = useState<OrchestratorResponse | null>(runtimeState.plan || null);
+  const [error, setError] = useState<string | null>(runtimeState.error || null);
+  const [logs, setLogs] = useState<string[]>(runtimeState.logs || []);
 
   // --- NEW: VIDEO CONFIG STATE ---
   const [resolution, setResolution] = useState<VideoResolution>('1080p');
@@ -109,10 +127,6 @@ const App: React.FC = () => {
   const [voiceModel, setVoiceModel] = useState<VoiceModel>('Google Chirp');
 
   const [detectedStrategy, setDetectedStrategy] = useState<ContentWorkflow | null>(null);
-
-  const [plan, setPlan] = useState<OrchestratorResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
   
   // Modal States
   const [showConsent, setShowConsent] = useState(false);
@@ -147,6 +161,18 @@ const App: React.FC = () => {
     const stateToSave = { url, selectedNiche, selectedWorkflow, showAdvanced };
     localStorage.setItem(UI_STATE_STORAGE_KEY, JSON.stringify(stateToSave));
   }, [url, selectedNiche, selectedWorkflow, showAdvanced]);
+
+  // NEW: Save Runtime State
+  useEffect(() => {
+      const runtimeToSave = {
+          status,
+          plan,
+          error,
+          logs,
+          campaignMode
+      };
+      localStorage.setItem(APP_RUNTIME_STORAGE_KEY, JSON.stringify(runtimeToSave));
+  }, [status, plan, error, logs, campaignMode]);
 
 
   // --- APP LOGIC ---
@@ -462,11 +488,20 @@ const App: React.FC = () => {
         );
       case 'models':
         return (
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto animate-fade-in">
              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">AI Model Configuration</h2>
-                <p className="text-slate-400 text-sm">Select the brains behind your content generation.</p>
+                <h2 className="text-2xl font-bold text-white mb-2">AI Model Engine</h2>
+                <p className="text-slate-400 text-sm">Visualize and configure the neural networks powering your content.</p>
              </div>
+             
+             {/* VISUAL DIAGRAM */}
+             <ModelFlowDiagram 
+                scriptModel={scriptModel}
+                visualModel={visualModel}
+                voiceModel={voiceModel}
+             />
+
+             {/* MODEL CONFIGURATION */}
              <ModelSelector 
                 scriptModel={scriptModel} setScriptModel={setScriptModel}
                 visualModel={visualModel} setVisualModel={setVisualModel}
