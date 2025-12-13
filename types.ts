@@ -349,6 +349,7 @@ export interface AppContext {
   lastError: string | null;
   detectedStrategy?: string | null;
   knowledgeBase: KnowledgeBase; 
+  autoPilotContext?: string;
 }
 
 // BATCH FACTORY TYPES

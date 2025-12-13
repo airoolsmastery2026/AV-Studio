@@ -29,6 +29,7 @@ const UI_STATE_STORAGE_KEY = 'av_studio_ui_state_v1';
 const CHAT_STORAGE_KEY = 'av_studio_chat_sessions_v2'; 
 const GALLERY_STORAGE_KEY = 'av_studio_gallery_v1';
 const APP_RUNTIME_STORAGE_KEY = 'av_studio_runtime_v1'; // NEW: Persist active process
+const AUTOPILOT_STORAGE_KEY = 'av_studio_autopilot_state_v1';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabView>('campaign');
@@ -119,12 +120,13 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(runtimeState.error || null);
   const [logs, setLogs] = useState<string[]>(runtimeState.logs || []);
 
-  // --- NEW: VIDEO CONFIG STATE ---
+  // --- NEW: VIDEO CONFIG STATE (PERSISTED) ---
   const [resolution, setResolution] = useState<VideoResolution>('1080p');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
-  const [scriptModel, setScriptModel] = useState<ScriptModel>('Gemini 2.5 Flash');
-  const [visualModel, setVisualModel] = useState<VisualModel>('SORA');
-  const [voiceModel, setVoiceModel] = useState<VoiceModel>('Google Chirp');
+  
+  const [scriptModel, setScriptModel] = useState<ScriptModel>(uiState.scriptModel || 'Gemini 2.5 Flash');
+  const [visualModel, setVisualModel] = useState<VisualModel>(uiState.visualModel || 'SORA');
+  const [voiceModel, setVoiceModel] = useState<VoiceModel>(uiState.voiceModel || 'Google Chirp');
 
   const [detectedStrategy, setDetectedStrategy] = useState<ContentWorkflow | null>(null);
   
@@ -158,9 +160,12 @@ const App: React.FC = () => {
   }, [completedVideos]);
 
   useEffect(() => {
-    const stateToSave = { url, selectedNiche, selectedWorkflow, showAdvanced };
+    const stateToSave = { 
+        url, selectedNiche, selectedWorkflow, showAdvanced,
+        scriptModel, visualModel, voiceModel // Persist Model Selection
+    };
     localStorage.setItem(UI_STATE_STORAGE_KEY, JSON.stringify(stateToSave));
-  }, [url, selectedNiche, selectedWorkflow, showAdvanced]);
+  }, [url, selectedNiche, selectedWorkflow, showAdvanced, scriptModel, visualModel, voiceModel]);
 
   // NEW: Save Runtime State
   useEffect(() => {
@@ -181,6 +186,26 @@ const App: React.FC = () => {
   const primaryApiKey = apiKeys.find(k => k.status === 'active' && k.provider === 'google')?.key;
   const hasZaloVideo = apiKeys.some(k => k.provider === 'zalo' && k.status === 'active');
 
+  // --- HELPER: Read AutoPilot Data for Context ---
+  const getAutoPilotContext = () => {
+      try {
+          const saved = localStorage.getItem(AUTOPILOT_STORAGE_KEY);
+          if (saved) {
+              const data = JSON.parse(saved);
+              const stats = data.stats || {};
+              const logs = data.logs || [];
+              const recentLogs = logs.slice(0, 8).map((l: any) => `[${l.timestamp}] ${l.action}: ${l.detail}`).join('\n');
+              return `
+STATUS: ${data.isRunning ? 'RUNNING' : 'STOPPED'} | ACTION: ${data.currentAction}
+STATS: Cycles=${stats.cyclesRun}, Videos=${stats.videosCreated}, Posted=${stats.postedCount}
+RECENT LOGS:
+${recentLogs}
+              `.trim();
+          }
+      } catch(e) { return "AutoPilot Data Unavailable"; }
+      return "Not started yet";
+  };
+
   const appContext: AppContext = {
     activeTab,
     status,
@@ -188,7 +213,8 @@ const App: React.FC = () => {
     activeKeys: activeKeysCount,
     lastError: error,
     detectedStrategy: detectedStrategy,
-    knowledgeBase: knowledgeBase
+    knowledgeBase: knowledgeBase,
+    autoPilotContext: getAutoPilotContext()
   };
 
   const addLog = (msg: string) => {
@@ -506,6 +532,8 @@ const App: React.FC = () => {
                 scriptModel={scriptModel} setScriptModel={setScriptModel}
                 visualModel={visualModel} setVisualModel={setVisualModel}
                 voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+                resolution={resolution} setResolution={setResolution}
+                aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
              />
           </div>
         );
@@ -516,9 +544,6 @@ const App: React.FC = () => {
              setApiKeys={setApiKeys}
              knowledgeBase={knowledgeBase}
              setKnowledgeBase={setKnowledgeBase}
-             scriptModel={scriptModel} setScriptModel={setScriptModel}
-             visualModel={visualModel} setVisualModel={setVisualModel}
-             voiceModel={voiceModel} setVoiceModel={setVoiceModel}
           />
         );
       case 'campaign':
@@ -663,7 +688,7 @@ const App: React.FC = () => {
                            <div className="flex items-center justify-between mb-2">
                                <h5 className="text-[10px] font-bold text-primary flex items-center gap-1"><Cpu size={10} /> AI MODELS (Quick View)</h5>
                                <button 
-                                  onClick={() => setActiveTab('settings')}
+                                  onClick={() => setActiveTab('models')}
                                   className="text-[10px] text-blue-400 hover:text-white flex items-center gap-1 underline"
                                >
                                   Full Config <ArrowRight size={10} />

@@ -8,21 +8,13 @@ import {
   Youtube, ShoppingBag, MessageCircle, Facebook, Instagram, Twitter, Globe, Banknote, CreditCard, ExternalLink, Info, Zap, Smartphone, TrendingUp, Image, Images, Linkedin, Send, Pin, ShoppingCart, Truck, MapPin, Video, MonitorPlay
 } from 'lucide-react';
 import NeonButton from './NeonButton';
-import { ApiKeyConfig, KnowledgeBase, ScriptModel, VisualModel, VoiceModel } from '../types';
-import ModelSelector from './ModelSelector'; // Reuse the component UI but embedded
+import { ApiKeyConfig, KnowledgeBase } from '../types';
 
 interface SettingsDashboardProps {
   apiKeys: ApiKeyConfig[];
   setApiKeys: (keys: ApiKeyConfig[]) => void;
   knowledgeBase: KnowledgeBase;
   setKnowledgeBase: (kb: KnowledgeBase) => void;
-  // Model Props
-  scriptModel: ScriptModel;
-  setScriptModel: (model: ScriptModel) => void;
-  visualModel: VisualModel;
-  setVisualModel: (model: VisualModel) => void;
-  voiceModel: VoiceModel;
-  setVoiceModel: (model: VoiceModel) => void;
 }
 
 interface ProviderConfig {
@@ -49,7 +41,6 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       inputLabel: 'Gemini API Key',
       keyPlaceholder: 'AIzaSy...'
     },
-    // ... (Existing providers data retained but omitted for brevity in XML if unchanged, but I'll include key parts for safety)
     { 
         id: 'openai', 
         name: 'OpenAI (ChatGPT 5)', 
@@ -167,12 +158,9 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   apiKeys, 
   setApiKeys,
   knowledgeBase,
-  setKnowledgeBase,
-  scriptModel, setScriptModel,
-  visualModel, setVisualModel,
-  voiceModel, setVoiceModel
+  setKnowledgeBase
 }) => {
-  const [activeTab, setActiveTab] = useState<'brain' | 'vault' | 'models' | 'system'>('brain');
+  const [activeTab, setActiveTab] = useState<'brain' | 'vault' | 'system'>('brain');
   
   // Vault specific states
   const [activeVaultTab, setActiveVaultTab] = useState<'model'|'social'|'affiliate'|'storage'>('model');
@@ -245,7 +233,6 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
         {[
           { id: 'brain', label: 'AI Brain & Learning', icon: Brain },
           { id: 'vault', label: 'API Vault (Kết nối)', icon: Shield },
-          { id: 'models', label: 'AI Model Config', icon: Cpu },
           { id: 'system', label: 'System Config', icon: Terminal },
         ].map(tab => (
           <button
@@ -514,15 +501,6 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
           </div>
         )}
 
-        {/* TAB: MODELS (MERGED) */}
-        {activeTab === 'models' && (
-            <ModelSelector 
-                scriptModel={scriptModel} setScriptModel={setScriptModel}
-                visualModel={visualModel} setVisualModel={setVisualModel}
-                voiceModel={voiceModel} setVoiceModel={setVoiceModel}
-            />
-        )}
-
         {/* TAB: SYSTEM */}
         {activeTab === 'system' && (
            <div className="flex flex-col items-center justify-center h-64 text-slate-500">
@@ -539,7 +517,6 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 const SettingsIcon = ({ activeTab }: { activeTab: string }) => {
   if (activeTab === 'brain') return <Brain size={32} className="text-purple-500" />;
   if (activeTab === 'vault') return <Shield size={32} className="text-green-500" />;
-  if (activeTab === 'models') return <Cpu size={32} className="text-blue-500" />;
   return <Terminal size={32} className="text-slate-500" />;
 }
 

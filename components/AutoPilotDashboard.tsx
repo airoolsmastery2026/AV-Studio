@@ -120,25 +120,29 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
         setStats(prev => ({ ...prev, cyclesRun: prev.cyclesRun + 1 }));
 
         try {
-            // 2. HUNTING PHASE
+            // 2. HUNTING PHASE (UPGRADED INTELLIGENCE)
             // Logic: Pick a niche. If AUTO, rotate through high-value keywords.
             let targetNiche = selectedNiche;
             if (selectedNiche === 'AUTO') {
-                const niches = [
-                    'AI Video Generators', 'AI Writing Tools', 'No-Code Builders',
-                    'Crypto Trading Bots', 'Smart Home Gadgets', 'Biohacking Gear',
-                    'SaaS Lifetime Deals', 'Personal Finance Apps', 'Gaming Accessories',
-                    'Travel Hacks', 'Kitchen Gadgets', 'Pet Tech'
+                const trendingNiches = [
+                    'Trending AI Video Generators 2024', 
+                    'Best AI Writing Tools for SEO', 
+                    'No-Code AI App Builders',
+                    'AI Trading Bots Crypto', 
+                    'Smart Home AI Gadgets', 
+                    'High Ticket AI SaaS Affiliate',
+                    'AI Avatar Generators',
+                    'Productivity AI Extensions'
                 ];
                 // Deterministic rotation based on cycle count to ensure variety
-                targetNiche = niches[stats.cyclesRun % niches.length];
-                addLog("AUTO_NICHE", `🤖 Smart Scout locked target: "${targetNiche}"`, "info");
+                targetNiche = trendingNiches[stats.cyclesRun % trendingNiches.length];
+                addLog("AUTO_SCOUT", `🤖 Targeting High-Growth Sector: "${targetNiche}"`, "info");
             }
 
-            const networkList = affiliateKeys.length > 0 ? affiliateKeys.map(k => k.provider.toUpperCase()) : ['AMAZON', 'CLICKBANK', 'SHOPEE', 'TIKTOK_SHOP'];
+            const networkList = affiliateKeys.length > 0 ? affiliateKeys.map(k => k.provider.toUpperCase()) : ['AMAZON', 'CLICKBANK', 'SHOPEE', 'DIGISTORE24'];
             
             // Artificial delay for realism
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 1200));
             const huntResult = await huntAffiliateProducts(googleKey.key, targetNiche, networkList);
             
             if (!huntResult || huntResult.products.length === 0) {
@@ -160,31 +164,43 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
             // Mark as processed
             processedLinks.current.add(bestProduct.affiliate_link);
 
-            addLog("WINNER_FOUND", `💎 PICK: ${bestProduct.product_name} (${bestProduct.opportunity_score}/100)`, "success");
+            // INTELLIGENT REPORTING
+            const isHighTicket = bestProduct.commission_est.includes('$') && parseInt(bestProduct.commission_est.replace(/\D/g, '')) > 50;
+            const isAiTool = bestProduct.product_name.toLowerCase().includes('ai') || targetNiche.toLowerCase().includes('ai');
+
+            if (isAiTool) {
+                addLog("TREND_ALERT", `🔥 TREND DETECTED: ${bestProduct.product_name} in ${targetNiche}`, "warning");
+            }
+            
+            if (isHighTicket) {
+                addLog("COMMISSION_INTEL", `💰 High Yield Alert: ${bestProduct.commission_est} Commission`, "success");
+            } else {
+                addLog("WINNER_FOUND", `💎 Selected: ${bestProduct.product_name} (${bestProduct.opportunity_score}/100)`, "success");
+            }
 
             // 3. PLANNING PHASE
             setCurrentAction("PLANNING");
-            const angle = bestProduct.content_angle || "Review & Tutorial";
-            addLog("STRATEGY", `Deploying Angle: "${angle}"`, "info");
+            const angle = bestProduct.content_angle || "Viral Review & Demo";
+            addLog("STRATEGY_LOCK", `Deploying Content Strategy: "${angle}"`, "info");
             
             const metadata: SourceMetadata = {
                 url: bestProduct.affiliate_link,
                 type: 'product',
                 detected_strategy: 'REVIEW_TUTORIAL', 
                 manual_niche: 'AUTO',
-                notes: `Auto-Hunter Strategy: ${bestProduct.reason_to_promote}. Angle: ${angle}. Comm: ${bestProduct.commission_est}`,
-                prefer_google_stack: targetNiche.toLowerCase().includes('ai') || bestProduct.product_name.toLowerCase().includes('google'),
+                notes: `Auto-Hunter Intel: Promote "${bestProduct.product_name}" as a ${angle}. Focus on commission: ${bestProduct.commission_est}. Reason: ${bestProduct.reason_to_promote}`,
+                prefer_google_stack: bestProduct.product_name.toLowerCase().includes('google'), // Only use Google stack for Google products, prefer SORA otherwise
                 video_config: {
                     resolution: '1080p',
                     aspectRatio: '9:16',
                     scriptModel: 'Gemini 2.5 Flash',
-                    visualModel: targetNiche.toLowerCase().includes('ai') ? 'VEO' : 'SORA',
+                    visualModel: 'SORA', // Updated to SORA
                     voiceModel: 'Google Chirp'
                 }
             };
 
             const plan = await generateVideoPlan(googleKey.key, metadata);
-            addLog("SCRIPTING", "Script & Scenes generated.", "success");
+            addLog("SCRIPTING", `Script generated. Hooks: ${plan.deep_analysis?.viral_dna?.length || 0}`, "success");
 
             // 4. PRODUCTION PHASE (Simulated with progress updates)
             setCurrentAction("RENDERING");
@@ -415,7 +431,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                                disabled={isRunning}
                                className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 px-3 text-xs text-white focus:border-primary disabled:opacity-50"
                            >
-                               <option value="AUTO">🤖 AUTO (Smart Rotation)</option>
+                               <option value="AUTO">🤖 AUTO (Smart AI Rotation)</option>
                                <optgroup label="🔥 Trending High-Ticket">
                                    <option value="AI SaaS & Tools">🧠 AI SaaS & Tools</option>
                                    <option value="Crypto & Finance">💰 Crypto & Finance</option>

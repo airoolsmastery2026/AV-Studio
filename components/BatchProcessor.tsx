@@ -113,17 +113,9 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
     setIsProcessing(true);
     
     // Process sequentially to avoid rate limits
-    // Note: We use 'jobs' state ref via a loop to ensure we pick up the latest, but in React
-    // we need to be careful. Here we iterate over the *current* list at start time.
-    // Since processJob updates state, it's fine.
-    // Improvement: Filter inside the loop to avoid processing jobs that got deleted/changed (if interactive)
-    // but simplified here for stability.
-    
     const queue = jobs.filter(j => j.status === 'queued' || j.status === 'failed'); // Retry failed ones too if user clicks start
 
     for (const job of queue) {
-        // Check if job still exists and is queued (in case user cleared it mid-process)
-        // We can't easily check live state inside async loop without refs, but this is acceptable for now.
         await processJob(job, googleKey.key);
     }
 
@@ -143,7 +135,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
                 Batch Video Factory
             </h2>
             <p className="text-slate-400 text-sm md:text-base">
-                Nhập danh sách URL hoặc Chủ đề. Hệ thống sẽ tự động Phân tích &rarr; Viết kịch bản &rarr; Tạo ảnh &rarr; Dựng video &rarr; Lên lịch đăng.
+                Nhập danh sách URL hoặc Chủ đề. Hệ thống sẽ tự động Phân tích {'->'} Viết kịch bản {'->'} Tạo ảnh {'->'} Dựng video {'->'} Lên lịch đăng.
             </p>
        </div>
 

@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { BrainCircuit, Check, Palette, Mic, Cpu, Sparkles, Zap } from 'lucide-react';
-import { ScriptModel, VisualModel, VoiceModel } from '../types';
+import { BrainCircuit, Check, Palette, Mic, Cpu, Sparkles, Zap, MonitorPlay, Ratio, Scan } from 'lucide-react';
+import { ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 
 interface ModelSelectorProps {
   scriptModel: ScriptModel;
@@ -10,16 +10,71 @@ interface ModelSelectorProps {
   setVisualModel: (model: VisualModel) => void;
   voiceModel: VoiceModel;
   setVoiceModel: (model: VoiceModel) => void;
+  resolution: VideoResolution;
+  setResolution: (res: VideoResolution) => void;
+  aspectRatio: AspectRatio;
+  setAspectRatio: (ratio: AspectRatio) => void;
 }
 
 const ModelSelector: React.FC<ModelSelectorProps> = ({
   scriptModel, setScriptModel,
   visualModel, setVisualModel,
-  voiceModel, setVoiceModel
+  voiceModel, setVoiceModel,
+  resolution, setResolution,
+  aspectRatio, setAspectRatio
 }) => {
   return (
     <div className="animate-fade-in space-y-8">
       
+      {/* GLOBAL SPECS */}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
+          <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2 mb-4">
+              <MonitorPlay size={16} className="text-primary" /> Output Specifications
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-bold mb-2 block flex items-center gap-1">
+                      <Scan size={12} /> Resolution
+                  </label>
+                  <div className="flex gap-2">
+                      {['720p', '1080p', '4K'].map((res) => (
+                          <button
+                              key={res}
+                              onClick={() => setResolution(res as VideoResolution)}
+                              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
+                                  resolution === res 
+                                  ? 'bg-primary/20 border-primary text-white shadow-[0_0_10px_rgba(14,165,164,0.2)]' 
+                                  : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
+                              }`}
+                          >
+                              {res}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+              <div>
+                  <label className="text-[10px] text-slate-500 uppercase font-bold mb-2 block flex items-center gap-1">
+                      <Ratio size={12} /> Aspect Ratio
+                  </label>
+                  <div className="flex gap-2">
+                      {['9:16', '16:9', '1:1'].map((ratio) => (
+                          <button
+                              key={ratio}
+                              onClick={() => setAspectRatio(ratio as AspectRatio)}
+                              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
+                                  aspectRatio === ratio 
+                                  ? 'bg-primary/20 border-primary text-white shadow-[0_0_10px_rgba(14,165,164,0.2)]' 
+                                  : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
+                              }`}
+                          >
+                              {ratio}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* SCRIPT INTEL */}
           <div className="space-y-4">

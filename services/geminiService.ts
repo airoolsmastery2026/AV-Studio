@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { OrchestratorResponse, SourceMetadata, ContentWorkflow, AppContext, AgentCommand, NicheAnalysisResult, CompetitorAnalysisResult, AffiliateHuntResult, GoldenHourRecommendation, TargetRegion, ChannelHealthReport, HunterInsight, ScheduleSlot, NetworkScanResult } from "../types";
 
@@ -656,7 +655,8 @@ export const sendChatToAssistant = async (
        status: appContext.status,
        urlInput: appContext.urlInput,
        activeKeys: appContext.activeKeys,
-       lastError: appContext.lastError
+       lastError: appContext.lastError,
+       autoPilotContext: appContext.autoPilotContext // Inject AutoPilot logs here
   }, null, 2);
 
   const memoryStr = JSON.stringify(appContext.knowledgeBase, null, 2);
