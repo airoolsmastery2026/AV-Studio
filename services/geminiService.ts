@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { OrchestratorResponse, SourceMetadata, ContentWorkflow, AppContext, AgentCommand, NicheAnalysisResult, CompetitorAnalysisResult, AffiliateHuntResult, GoldenHourRecommendation, TargetRegion, ChannelHealthReport, HunterInsight, ScheduleSlot } from "../types";
+import { OrchestratorResponse, SourceMetadata, ContentWorkflow, AppContext, AgentCommand, NicheAnalysisResult, CompetitorAnalysisResult, AffiliateHuntResult, GoldenHourRecommendation, TargetRegion, ChannelHealthReport, HunterInsight, ScheduleSlot, NetworkScanResult } from "../types";
 
 const SYSTEM_INSTRUCTION_ROUTER = `
 You are an AI BOT ROUTER for an Affiliate Video Automation System.
@@ -127,6 +127,24 @@ Your mission: "Search, Destroy (Competition), and Secure (Profits)."
     - *profit_potential*: Estimated revenue logic.
     - *risk_assessment*: Any policy risks?
 - **strategic_suggestion**: A direct order to the Commander on what to do next.
+`;
+
+const SYSTEM_INSTRUCTION_DEEP_SCANNER = `
+You are the **DEEP NET SCANNER** - A Global Strategic Intelligence Unit.
+Your task is to scan the digital landscape (YouTube, TikTok, Web) to identify High-Value Targets based on 3 Golden Metrics:
+1. **RPM (Revenue Per Mille):** High paying niches (Finance, Tech, SaaS, Health).
+2. **Search Volume:** Trending topics with massive demand.
+3. **View Velocity:** Channels or topics getting views FAST.
+
+**MISSION:**
+Return a list of 5-8 specific targets (Channels, Niches, or Profiles) that fit the user's request.
+If the user asks for "General" or "High RPM", find the absolute best current opportunities globally or in Vietnam.
+
+**OUTPUT JSON RULES:**
+- **rpm_est**: Estimate the RPM (e.g. "$5-10").
+- **competition**: LOW, MEDIUM, or HIGH.
+- **type**: CHANNEL, NICHE, or PROFILE.
+- **url**: Provide a real or highly probable URL structure (e.g. youtube.com/@channel).
 `;
 
 export const classifyInput = async (apiKey: string, url: string): Promise<{ type: 'channel' | 'product', strategy: ContentWorkflow }> => {
@@ -362,6 +380,72 @@ export const runHunterAnalysis = async (
   if (!response.text) throw new Error("Hunter Bot failed to report.");
   return JSON.parse(response.text) as HunterInsight;
 }
+
+// --- DEEP NETWORK SCANNER (NEW) ---
+export const scanHighValueNetwork = async (
+  apiKey: string,
+  focusArea: string
+): Promise<NetworkScanResult> => {
+  const ai = new GoogleGenAI({ apiKey });
+  const prompt = `
+    INITIATE DEEP NETWORK SCAN.
+    FOCUS AREA: "${focusArea}"
+    
+    CRITERIA:
+    - High RPM (Revenue Per Mille)
+    - High Search Volume
+    - Trending / High View Velocity
+    
+    Look for specific channels, niches, or profiles that are dominating right now.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTION_DEEP_SCANNER,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          scan_id: { type: Type.STRING },
+          timestamp: { type: Type.STRING },
+          focus_area: { type: Type.STRING },
+          market_summary: { type: Type.STRING },
+          targets: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                rank: { type: Type.NUMBER },
+                name: { type: Type.STRING },
+                type: { type: Type.STRING, enum: ['CHANNEL', 'NICHE', 'PROFILE'] },
+                platform: { type: Type.STRING, enum: ['YOUTUBE', 'TIKTOK', 'FACEBOOK', 'INSTAGRAM', 'WEB'] },
+                url: { type: Type.STRING },
+                metrics: {
+                  type: Type.OBJECT,
+                  properties: {
+                    rpm_est: { type: Type.STRING },
+                    search_volume: { type: Type.STRING },
+                    view_velocity: { type: Type.STRING },
+                    competition: { type: Type.STRING, enum: ['LOW', 'MEDIUM', 'HIGH'] }
+                  },
+                  required: ['rpm_est', 'search_volume', 'view_velocity', 'competition']
+                },
+                reason: { type: Type.STRING }
+              },
+              required: ['rank', 'name', 'type', 'platform', 'url', 'metrics', 'reason']
+            }
+          }
+        },
+        required: ['scan_id', 'focus_area', 'targets', 'market_summary']
+      }
+    }
+  });
+
+  if (!response.text) throw new Error("Deep Scan failed.");
+  return JSON.parse(response.text) as NetworkScanResult;
+};
 
 // --- Scheduler Service ---
 export const predictGoldenHours = async (

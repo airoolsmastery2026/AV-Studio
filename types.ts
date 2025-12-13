@@ -188,6 +188,30 @@ export interface HunterInsight {
   strategic_suggestion: string;
 }
 
+// NEW: DEEP NETWORK SCAN RESULT
+export interface NetworkScanTarget {
+  rank: number;
+  name: string;
+  type: 'CHANNEL' | 'NICHE' | 'PROFILE';
+  platform: 'YOUTUBE' | 'TIKTOK' | 'FACEBOOK' | 'INSTAGRAM' | 'WEB';
+  url: string;
+  metrics: {
+    rpm_est: string; // e.g. "$15-20"
+    search_volume: string; // "High", "1M+"
+    view_velocity: string; // "Trending", "Stable"
+    competition: 'LOW' | 'MEDIUM' | 'HIGH';
+  };
+  reason: string;
+}
+
+export interface NetworkScanResult {
+  scan_id: string;
+  timestamp: string;
+  focus_area: string;
+  targets: NetworkScanTarget[];
+  market_summary: string;
+}
+
 export interface WinningProduct {
   name: string;
   reason: string;

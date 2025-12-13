@@ -3,11 +3,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ScanEye, Crosshair, Radar, Target, 
   Send, Lock, Unlock, TrendingUp, 
-  Zap, BarChart2, Radio, Trophy, Activity, Loader2, StopCircle
+  Zap, BarChart2, Radio, Trophy, Activity, Loader2, StopCircle, Globe, Search, Link as LinkIcon
 } from 'lucide-react';
-import { ApiKeyConfig, HunterInsight } from '../types';
+import { ApiKeyConfig, HunterInsight, NetworkScanResult } from '../types';
 import NeonButton from './NeonButton';
-import { runHunterAnalysis } from '../services/geminiService';
+import { runHunterAnalysis, scanHighValueNetwork } from '../services/geminiService';
 
 interface AnalyticsDashboardProps {
   apiKeys: ApiKeyConfig[];
@@ -23,16 +23,21 @@ const AUTO_TARGETS = [
 ];
 
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ apiKeys, onDeployStrategy, onSendReportToChat }) => {
-  // Mode: Manual vs Auto
+  // Mode: Manual vs Auto vs Deep Scan
+  const [activeView, setActiveView] = useState<'standard' | 'deep_scan'>('standard');
   const [isAutoRecon, setIsAutoRecon] = useState(false);
   const [missionInput, setMissionInput] = useState('');
   
-  // State
+  // Standard Scan State
   const [status, setStatus] = useState<'idle' | 'hunting' | 'analyzing' | 'complete'>('idle');
   const [insight, setInsight] = useState<HunterInsight | null>(null);
   const [winner, setWinner] = useState<HunterInsight | null>(null); // The Best Result found so far
-  const [showHidden, setShowHidden] = useState(false);
   const [scanCount, setScanCount] = useState(0);
+
+  // Deep Scan State
+  const [deepScanStatus, setDeepScanStatus] = useState<'idle' | 'scanning' | 'complete'>('idle');
+  const [deepScanFocus, setDeepScanFocus] = useState('High RPM & Trending');
+  const [networkResult, setNetworkResult] = useState<NetworkScanResult | null>(null);
 
   // Live Logs
   const [logs, setLogs] = useState<{time: string, msg: string, color: string}[]>([]);
@@ -59,7 +64,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ apiKeys, onDepl
     await executeScan(missionInput);
   };
 
-  // --- CORE SCAN LOGIC ---
+  // --- CORE SCAN LOGIC (STANDARD) ---
   const executeScan = async (target: string) => {
     const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
     if (!googleKey) {
@@ -102,6 +107,28 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ apiKeys, onDepl
         addLog(`Error: ${e.message}`, "text-red-400");
         setStatus('idle');
     }
+  };
+
+  // --- DEEP NET SCAN LOGIC ---
+  const handleDeepScan = async () => {
+      const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
+      if (!googleKey) {
+          alert("Cần Google API Key.");
+          return;
+      }
+
+      setDeepScanStatus('scanning');
+      setNetworkResult(null);
+      
+      try {
+          const result = await scanHighValueNetwork(googleKey.key, deepScanFocus);
+          setNetworkResult(result);
+          setDeepScanStatus('complete');
+      } catch (e) {
+          console.error(e);
+          alert("Deep Scan failed.");
+          setDeepScanStatus('idle');
+      }
   };
 
   // --- AUTO RECON LOOP ---
@@ -175,12 +202,23 @@ ${data.key_metrics.map(m => `- ${m.label}: ${m.value} (${m.trend})`).join('\n')}
                 Trung tâm trinh sát tự động. Bot tự động săn lùng và tìm ra "The Winner".
             </p>
          </div>
-         <div className="flex items-center gap-3">
-             <div className="text-right hidden md:block">
-                 <div className="text-[10px] font-mono text-slate-500 uppercase">Scans Performed</div>
-                 <div className="text-xl font-mono text-white font-bold">{scanCount}</div>
+         <div className="flex items-center gap-2">
+             {/* VIEW TOGGLE */}
+             <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+                 <button 
+                    onClick={() => setActiveView('standard')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeView === 'standard' ? 'bg-slate-900 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                 >
+                    Standard Scan
+                 </button>
+                 <button 
+                    onClick={() => setActiveView('deep_scan')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${activeView === 'deep_scan' ? 'bg-purple-900/50 text-purple-300 shadow border border-purple-500/30' : 'text-slate-400 hover:text-white'}`}
+                 >
+                    <Globe size={12} /> Deep Net Scanner
+                 </button>
              </div>
-             
+
              <button 
                 onClick={toggleAutoRecon}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
@@ -188,13 +226,15 @@ ${data.key_metrics.map(m => `- ${m.label}: ${m.value} (${m.trend})`).join('\n')}
                     ? 'bg-red-500/10 border-red-500 text-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]' 
                     : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
                 }`}
+                disabled={activeView === 'deep_scan'} // Disable auto recon when in deep scan mode
              >
                  {isAutoRecon ? <StopCircle size={18} /> : <Activity size={18} />}
-                 {isAutoRecon ? "STOP AUTO-RECON" : "ENABLE AUTO-RECON"}
+                 <span className="hidden md:inline">{isAutoRecon ? "STOP AUTO" : "AUTO-RECON"}</span>
              </button>
          </div>
       </div>
 
+      {activeView === 'standard' && (
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
           
           {/* LEFT: COMMAND TERMINAL & LIVE FEED (Span 4) */}
@@ -373,8 +413,151 @@ ${data.key_metrics.map(m => `- ${m.label}: ${m.value} (${m.trend})`).join('\n')}
                   </div>
               )}
           </div>
-
       </div>
+      )}
+
+      {/* NEW VIEW: DEEP NET SCANNER */}
+      {activeView === 'deep_scan' && (
+          <div className="flex-1 animate-fade-in flex flex-col gap-6">
+              
+              {/* DEEP SCAN CONTROL */}
+              <div className="bg-slate-900/50 border border-purple-500/20 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-center">
+                  <div className="flex-1 w-full">
+                      <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                          <Globe className="text-purple-500" size={24} /> DEEP NETWORK SCANNER
+                      </h3>
+                      <p className="text-slate-400 text-sm mb-4">
+                          Quét toàn bộ không gian mạng để tìm các kênh, ngách và tài khoản đang có chỉ số Views & RPM đột biến.
+                      </p>
+                      
+                      <div className="flex gap-2">
+                          <input 
+                              type="text" 
+                              value={deepScanFocus}
+                              onChange={(e) => setDeepScanFocus(e.target.value)}
+                              placeholder="Nhập trọng tâm (VD: High RPM, Tech, Crypto, Viral...)"
+                              className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none shadow-inner"
+                          />
+                          <NeonButton 
+                              onClick={handleDeepScan} 
+                              disabled={deepScanStatus === 'scanning'}
+                              className="min-w-[150px]"
+                          >
+                              {deepScanStatus === 'scanning' ? (
+                                  <span className="flex items-center gap-2"><Loader2 className="animate-spin" /> Scanning...</span>
+                              ) : (
+                                  <span className="flex items-center gap-2"><Search size={18} /> Deep Scan</span>
+                              )}
+                          </NeonButton>
+                      </div>
+                  </div>
+                  
+                  {/* Status Display */}
+                  <div className="w-full md:w-auto flex flex-col items-center justify-center p-4 bg-black/40 rounded-xl border border-slate-800 min-w-[200px]">
+                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">SCAN STATUS</div>
+                      <div className={`text-2xl font-mono font-bold ${deepScanStatus === 'scanning' ? 'text-yellow-400 animate-pulse' : deepScanStatus === 'complete' ? 'text-green-400' : 'text-slate-400'}`}>
+                          {deepScanStatus === 'idle' && "READY"}
+                          {deepScanStatus === 'scanning' && "SCANNING..."}
+                          {deepScanStatus === 'complete' && "DONE"}
+                      </div>
+                  </div>
+              </div>
+
+              {/* SCAN RESULTS TABLE */}
+              {networkResult ? (
+                  <div className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
+                      <div className="p-4 border-b border-slate-800 bg-slate-950/50 flex justify-between items-center">
+                          <div>
+                              <h4 className="font-bold text-white text-sm">Targets Identified</h4>
+                              <p className="text-xs text-slate-500">Focus: {networkResult.focus_area} • ID: {networkResult.scan_id.substring(0,8)}</p>
+                          </div>
+                          <span className="text-xs font-mono text-purple-400 bg-purple-900/20 px-2 py-1 rounded border border-purple-500/20">
+                              {networkResult.targets.length} Results Found
+                          </span>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse">
+                              <thead>
+                                  <tr className="bg-slate-950 text-xs text-slate-500 uppercase border-b border-slate-800">
+                                      <th className="p-4 font-bold">Rank</th>
+                                      <th className="p-4 font-bold">Target Name</th>
+                                      <th className="p-4 font-bold">Type</th>
+                                      <th className="p-4 font-bold">RPM Est.</th>
+                                      <th className="p-4 font-bold">Search Vol.</th>
+                                      <th className="p-4 font-bold">Competition</th>
+                                      <th className="p-4 font-bold text-right">Action</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="text-sm text-slate-300">
+                                  {networkResult.targets.map((target, idx) => (
+                                      <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
+                                          <td className="p-4">
+                                              <span className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center font-mono font-bold text-white text-xs">
+                                                  #{target.rank}
+                                              </span>
+                                          </td>
+                                          <td className="p-4">
+                                              <div className="font-bold text-white">{target.name}</div>
+                                              <div className="text-[10px] text-slate-500 truncate max-w-[200px]">{target.reason}</div>
+                                          </td>
+                                          <td className="p-4">
+                                              <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                                                  {target.type}
+                                              </span>
+                                          </td>
+                                          <td className="p-4">
+                                              <span className="text-green-400 font-mono font-bold">{target.metrics.rpm_est}</span>
+                                          </td>
+                                          <td className="p-4">
+                                              <div className="flex items-center gap-1">
+                                                  <TrendingUp size={12} className="text-blue-400" />
+                                                  {target.metrics.search_volume}
+                                              </div>
+                                          </td>
+                                          <td className="p-4">
+                                              <span className={`text-[10px] font-bold ${
+                                                  target.metrics.competition === 'LOW' ? 'text-green-500' :
+                                                  target.metrics.competition === 'MEDIUM' ? 'text-yellow-500' : 'text-red-500'
+                                              }`}>
+                                                  {target.metrics.competition}
+                                              </span>
+                                          </td>
+                                          <td className="p-4 text-right">
+                                              <div className="flex justify-end gap-2">
+                                                  <button 
+                                                      onClick={() => window.open(`https://${target.url}`, '_blank')}
+                                                      className="p-1.5 bg-slate-800 text-slate-400 hover:text-white rounded hover:bg-slate-700"
+                                                      title="Open Link"
+                                                  >
+                                                      <LinkIcon size={14} />
+                                                  </button>
+                                                  <button 
+                                                      onClick={() => onDeployStrategy(target.url, target.type === 'CHANNEL' ? 'clone' : 'review')}
+                                                      className="p-1.5 bg-purple-900/30 text-purple-300 border border-purple-500/30 hover:bg-purple-500 hover:text-white rounded transition-colors text-xs font-bold px-3"
+                                                  >
+                                                      Attack
+                                                  </button>
+                                              </div>
+                                          </td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+              ) : (
+                  <div className="flex-1 bg-slate-900/20 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center p-12 text-center">
+                      <Globe size={64} className="text-slate-800 mb-4" />
+                      <h4 className="text-lg font-bold text-slate-500">Ready to Scan</h4>
+                      <p className="text-slate-600 text-sm max-w-md mt-2">
+                          Nhập chủ đề hoặc từ khóa vào thanh tìm kiếm phía trên để bắt đầu quét toàn bộ mạng lưới và tìm kiếm cơ hội High-RPM.
+                      </p>
+                  </div>
+              )}
+          </div>
+      )}
+
     </div>
   );
 };
