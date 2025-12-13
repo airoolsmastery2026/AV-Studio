@@ -119,7 +119,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
                 Batch Video Factory
             </h2>
             <p className="text-slate-400 text-sm md:text-base">
-                Nhập danh sách URL hoặc Chủ đề. Hệ thống sẽ tự động Phân tích -> Viết kịch bản -> Tạo ảnh -> Dựng video -> Lên lịch đăng.
+                Nhập danh sách URL hoặc Chủ đề. Hệ thống sẽ tự động Phân tích &rarr; Viết kịch bản &rarr; Tạo ảnh &rarr; Dựng video &rarr; Lên lịch đăng.
             </p>
        </div>
 
