@@ -1,0 +1,5 @@
+{
+  "name": "AV Studio",
+  "description": "A 1-Click AutoPilot video production suite that analyzes public metadata to create paraphrased scripts and render plans without downloading original content.",
+  "requestFramePermissions": []
+}
