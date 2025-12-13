@@ -567,7 +567,7 @@ const App: React.FC = () => {
                                <div className="flex items-center justify-between">
                                   <label className="text-[10px] text-slate-500 flex items-center gap-1"><Type size={10}/> Script:</label>
                                   <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700 truncate max-w-[120px]">{scriptModel}</span>
-                               </div>
+                                </div>
                                <div className="flex items-center justify-between">
                                   <label className="text-[10px] text-slate-500 flex items-center gap-1"><Palette size={10}/> Visual:</label>
                                   <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700 truncate max-w-[120px]">{visualModel}</span>
