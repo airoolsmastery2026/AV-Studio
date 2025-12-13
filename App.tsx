@@ -525,6 +525,8 @@ ${recentLogs}
                 scriptModel={scriptModel}
                 visualModel={visualModel}
                 voiceModel={voiceModel}
+                resolution={resolution}
+                aspectRatio={aspectRatio}
              />
 
              {/* MODEL CONFIGURATION */}
