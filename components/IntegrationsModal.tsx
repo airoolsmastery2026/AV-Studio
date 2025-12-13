@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Key, Save, Server, Shield, X, Youtube, Database, Plus, Trash2, 
@@ -176,7 +177,7 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
     { 
       id: 'digistore24', 
       name: 'Digistore24', 
-      url: 'https://www.digistore24.com/account/api_key', 
+      url: 'https://www.digistore24.com/manager/account/details', 
       icon: CreditCard, 
       desc: 'Digital Products & CPO Commissions',
       instructions: '1. Vào Settings -> Account Access.\n2. Quan trọng: Thêm IP hiện tại vào "IP Access" (Whitelist).\n3. Tạo API Key quyền Read/Write để theo dõi CPO.',
