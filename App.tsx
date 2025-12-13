@@ -565,7 +565,7 @@ const App: React.FC = () => {
                            >
                               <span className="flex items-center gap-2 truncate">
                                 <Sparkles size={14} className={preferGoogleStack ? "text-yellow-400" : ""} />
-                                Google Native Mode
+                                Prefer Google Stack (Gemini, Veo)
                               </span>
                               <div className={`w-8 h-4 rounded-full p-0.5 transition-colors shrink-0 ${preferGoogleStack ? 'bg-blue-500' : 'bg-slate-700'}`}>
                                 <div className={`w-3 h-3 bg-white rounded-full transition-transform ${preferGoogleStack ? 'translate-x-4' : ''}`}></div>

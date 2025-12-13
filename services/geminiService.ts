@@ -180,13 +180,13 @@ export const generateVideoPlan = async (
     **CONFIGURATION:**
     - Selected Strategy: ${effectiveStrategy}
     - Niche Context: ${metadata.manual_niche || 'Auto-detect'}
-    - PREFER GOOGLE STACK: ${metadata.prefer_google_stack ? "TRUE (Force VEO/IMAGEN for visuals)" : "FALSE"}
+    - PREFER GOOGLE STACK: ${metadata.prefer_google_stack ? "TRUE (Force visual model choices to be VEO or IMAGEN)" : "FALSE"}
     
     **TECHNICAL REQUIREMENTS (Strict):**
     - Resolution: ${videoConfig.resolution}
     - Aspect Ratio: ${videoConfig.aspectRatio}
-    - Visual Model Preference: ${videoConfig.visualModel} (Use this in 'model_choice' field for scenes)
-    - Voice Model: ${videoConfig.voiceModel}
+    - Visual Model Preference: ${metadata.prefer_google_stack ? 'VEO (or IMAGEN)' : videoConfig.visualModel} (Use this in 'model_choice' field for scenes)
+    - Voice Model: ${metadata.prefer_google_stack ? 'Google Chirp' : videoConfig.voiceModel}
 
     **GOAL:** Create a short video (Duration ~30-60s) optimized for ${videoConfig.aspectRatio} format.
     **REQUIRED:** Return JSON matching the schema.
