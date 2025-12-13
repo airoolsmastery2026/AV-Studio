@@ -423,7 +423,7 @@ const App: React.FC = () => {
       case 'campaign':
       default:
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
             <div className="lg:col-span-1 space-y-4 md:space-y-6">
               <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 p-4 md:p-6 rounded-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
@@ -461,37 +461,37 @@ const App: React.FC = () => {
                         
                         {/* Section 1: Classification */}
                         <div className="grid grid-cols-2 gap-3">
-                            <div>
-                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Chủ đề (Niche)</label>
-                            <select 
-                                value={selectedNiche}
-                                onChange={(e) => setSelectedNiche(e.target.value as ContentNiche)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-1.5 px-2 text-xs text-white focus:outline-none focus:border-primary"
-                            >
-                                <option value="AUTO">🤖 Tự động</option>
-                                <option value="TECH">💻 Công nghệ</option>
-                                <option value="BEAUTY">💄 Làm đẹp</option>
-                                <option value="FINANCE">💰 Tài chính</option>
-                                <option value="CRYPTO">🪙 Crypto</option>
-                                <option value="NEWS">📰 Tin tức</option>
-                                <option value="ENTERTAINMENT">🎬 Giải trí</option>
-                            </select>
+                            <div className="col-span-1">
+                              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Chủ đề</label>
+                              <select 
+                                  value={selectedNiche}
+                                  onChange={(e) => setSelectedNiche(e.target.value as ContentNiche)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-2 text-xs text-white focus:outline-none focus:border-primary"
+                              >
+                                  <option value="AUTO">🤖 Auto</option>
+                                  <option value="TECH">💻 Tech</option>
+                                  <option value="BEAUTY">💄 Beauty</option>
+                                  <option value="FINANCE">💰 Finance</option>
+                                  <option value="CRYPTO">🪙 Crypto</option>
+                                  <option value="NEWS">📰 News</option>
+                                  <option value="ENTERTAINMENT">🎬 Fun</option>
+                              </select>
                             </div>
-                            <div>
-                            <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Luồng (Workflow)</label>
-                            <select 
-                                value={selectedWorkflow}
-                                onChange={(e) => setSelectedWorkflow(e.target.value as ContentWorkflow)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg py-1.5 px-2 text-xs text-white focus:outline-none focus:border-primary"
-                            >
-                                <option value="AUTO">🤖 Tự động</option>
-                                <option value="VIRAL_CLONE">🔥 Viral Clone</option>
-                                <option value="REVIEW_TUTORIAL">⭐ Review & HDSD</option>
-                                <option value="NEWS_SUMMARY">📢 Điểm tin nhanh</option>
-                                <option value="STORYTELLING">📖 Kể chuyện</option>
-                                <option value="EDUCATIONAL">🎓 Giáo dục</option>
-                                <option value="REACTION">😲 Reaction</option>
-                            </select>
+                            <div className="col-span-1">
+                              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Luồng</label>
+                              <select 
+                                  value={selectedWorkflow}
+                                  onChange={(e) => setSelectedWorkflow(e.target.value as ContentWorkflow)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-2 text-xs text-white focus:outline-none focus:border-primary"
+                              >
+                                  <option value="AUTO">🤖 Auto</option>
+                                  <option value="VIRAL_CLONE">🔥 Clone</option>
+                                  <option value="REVIEW_TUTORIAL">⭐ Review</option>
+                                  <option value="NEWS_SUMMARY">📢 News</option>
+                                  <option value="STORYTELLING">📖 Story</option>
+                                  <option value="EDUCATIONAL">🎓 Edu</option>
+                                  <option value="REACTION">😲 React</option>
+                              </select>
                             </div>
                         </div>
 
@@ -504,11 +504,11 @@ const App: React.FC = () => {
                                   <select 
                                       value={aspectRatio}
                                       onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
-                                      className="w-full bg-slate-900 border border-slate-700 rounded-lg py-1.5 px-2 text-xs text-white focus:outline-none"
+                                      className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-2 text-xs text-white focus:outline-none"
                                   >
-                                      <option value="9:16">9:16 (TikTok/Shorts)</option>
-                                      <option value="16:9">16:9 (YouTube)</option>
-                                      <option value="1:1">1:1 (Facebook/Insta)</option>
+                                      <option value="9:16">9:16</option>
+                                      <option value="16:9">16:9</option>
+                                      <option value="1:1">1:1</option>
                                   </select>
                                </div>
                                <div>
@@ -516,11 +516,11 @@ const App: React.FC = () => {
                                   <select 
                                       value={resolution}
                                       onChange={(e) => setResolution(e.target.value as VideoResolution)}
-                                      className="w-full bg-slate-900 border border-slate-700 rounded-lg py-1.5 px-2 text-xs text-white focus:outline-none"
+                                      className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 px-2 text-xs text-white focus:outline-none"
                                   >
-                                      <option value="720p">720p (Nhanh)</option>
-                                      <option value="1080p">1080p (Chuẩn)</option>
-                                      <option value="4K">4K (Cao cấp)</option>
+                                      <option value="720p">720p</option>
+                                      <option value="1080p">1080p</option>
+                                      <option value="4K">4K</option>
                                   </select>
                                </div>
                            </div>
@@ -534,21 +534,21 @@ const App: React.FC = () => {
                                   onClick={() => setActiveTab('models')}
                                   className="text-[10px] text-blue-400 hover:text-white flex items-center gap-1 underline"
                                >
-                                  Full Config <ArrowRight size={10} />
+                                  Config <ArrowRight size={10} />
                                </button>
                            </div>
                            <div className="space-y-2">
                                <div className="flex items-center justify-between">
                                   <label className="text-[10px] text-slate-500 flex items-center gap-1"><Type size={10}/> Script:</label>
-                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700">{scriptModel}</span>
+                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700 truncate max-w-[120px]">{scriptModel}</span>
                                </div>
                                <div className="flex items-center justify-between">
                                   <label className="text-[10px] text-slate-500 flex items-center gap-1"><Palette size={10}/> Visual:</label>
-                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700">{visualModel}</span>
+                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700 truncate max-w-[120px]">{visualModel}</span>
                                </div>
                                <div className="flex items-center justify-between">
                                   <label className="text-[10px] text-slate-500 flex items-center gap-1"><Mic size={10}/> Voice:</label>
-                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700">{voiceModel}</span>
+                                  <span className="text-[10px] text-white font-mono bg-slate-900 px-1.5 rounded border border-slate-700 truncate max-w-[120px]">{voiceModel}</span>
                                </div>
                            </div>
                         </div>
@@ -563,11 +563,11 @@ const App: React.FC = () => {
                                 : 'bg-slate-900 border-slate-700 text-slate-500'
                               }`}
                            >
-                              <span className="flex items-center gap-2">
+                              <span className="flex items-center gap-2 truncate">
                                 <Sparkles size={14} className={preferGoogleStack ? "text-yellow-400" : ""} />
-                                Google Native Mode (Force Veo/Imagen)
+                                Google Native Mode
                               </span>
-                              <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${preferGoogleStack ? 'bg-blue-500' : 'bg-slate-700'}`}>
+                              <div className={`w-8 h-4 rounded-full p-0.5 transition-colors shrink-0 ${preferGoogleStack ? 'bg-blue-500' : 'bg-slate-700'}`}>
                                 <div className={`w-3 h-3 bg-white rounded-full transition-transform ${preferGoogleStack ? 'translate-x-4' : ''}`}></div>
                               </div>
                            </button>
@@ -585,7 +585,7 @@ const App: React.FC = () => {
                        {status !== AppStatus.IDLE && status !== AppStatus.COMPLETE && status !== AppStatus.ERROR ? (
                          <span className="flex items-center gap-2">
                            <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-                           Smart Routing...
+                           Routing...
                          </span>
                        ) : (
                          <>
@@ -596,7 +596,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-black border border-slate-800 rounded-xl p-4 h-48 md:h-64 overflow-hidden flex flex-col">
+              <div className="bg-black border border-slate-800 rounded-xl p-4 h-40 md:h-64 overflow-hidden flex flex-col">
                 <div className="flex justify-between items-center mb-2 border-b border-slate-800 pb-2">
                    <span className="text-xs font-mono text-slate-500 flex items-center gap-2">
                      <Cpu size={12} /> SYSTEM LOGS
@@ -626,34 +626,34 @@ const App: React.FC = () => {
               {status === AppStatus.COMPLETE && plan ? (
                 <PlanResult data={plan} />
               ) : (
-                <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/20 p-8">
+                <div className="h-full min-h-[300px] md:min-h-[400px] flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/20 p-6 md:p-8">
                    {status !== AppStatus.IDLE && status !== AppStatus.COMPLETE && status !== AppStatus.ERROR ? (
                      <div className="max-w-md space-y-6 animate-fade-in">
-                        <div className="relative w-24 h-24 mx-auto">
+                        <div className="relative w-20 h-20 md:w-24 md:h-24 mx-auto">
                           <div className="absolute inset-0 border-t-4 border-primary rounded-full animate-spin"></div>
                           <div className="absolute inset-2 border-b-4 border-accent rounded-full animate-spin-slow"></div>
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <Bot size={32} className="text-white animate-pulse" />
+                            <Bot size={28} className="text-white animate-pulse" />
                           </div>
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold text-white mb-2">
+                          <h3 className="text-lg md:text-xl font-bold text-white mb-2">
                             {status === AppStatus.ROUTING && "AI Router Đang Phân Loại..."}
                             {status === AppStatus.ANALYZING && "Quét Metadata & Insight..."}
                             {status === AppStatus.PLANNING && "Lập Chiến Lược Nội Dung..."}
                             {status === AppStatus.PARAPHRASING && "Viết Kịch Bản Chuyển Đổi..."}
                             {status === AppStatus.RENDERING && "Dựng Video Demo..."}
                           </h3>
-                          <p className="text-slate-400 text-sm">Hệ thống đang tự động tối ưu hoá nội dung dựa trên loại liên kết bạn cung cấp.</p>
+                          <p className="text-slate-400 text-xs md:text-sm">Hệ thống đang tự động tối ưu hoá nội dung dựa trên loại liên kết bạn cung cấp.</p>
                         </div>
                      </div>
                    ) : (
                      <div className="text-slate-600 max-w-sm">
-                       <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-800">
-                          <LayoutDashboard size={32} />
+                       <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-800">
+                          <LayoutDashboard size={28} />
                        </div>
-                       <h3 className="text-lg font-medium text-slate-400 mb-2">Sẵn sàng nhận lệnh</h3>
-                       <p className="text-sm">Nhập URL sản phẩm hoặc kênh, Smart Bot sẽ lo phần còn lại.</p>
+                       <h3 className="text-base md:text-lg font-medium text-slate-400 mb-2">Sẵn sàng nhận lệnh</h3>
+                       <p className="text-xs md:text-sm">Nhập URL sản phẩm hoặc kênh, Smart Bot sẽ lo phần còn lại.</p>
                      </div>
                    )}
                 </div>
@@ -665,7 +665,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-primary/30">
+    <div className="flex min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-primary/30 overflow-x-hidden">
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -674,31 +674,31 @@ const App: React.FC = () => {
       />
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
         {/* Mobile Header */}
-        <div className="md:hidden p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center sticky top-0 z-30 shadow-md">
-          <div className="flex items-center gap-3">
+        <div className="md:hidden p-3 bg-slate-950 border-b border-slate-800 flex justify-between items-center sticky top-0 z-30 shadow-md">
+          <div className="flex items-center gap-2">
              <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-300 hover:text-white p-1 rounded-md hover:bg-slate-900">
-                <Menu size={24} />
+                <Menu size={20} />
              </button>
-             <span className="font-bold text-primary text-lg">AV Studio</span>
+             <span className="font-bold text-primary text-base">AV Studio</span>
           </div>
-          <div className={`w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center ${activeKeysCount > 0 ? 'bg-green-500/10' : 'bg-slate-900'}`}>
-             <div className={`w-2 h-2 rounded-full ${activeKeysCount > 0 ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`}></div>
+          <div className={`w-6 h-6 rounded-full border border-slate-700 flex items-center justify-center ${activeKeysCount > 0 ? 'bg-green-500/10' : 'bg-slate-900'}`}>
+             <div className={`w-1.5 h-1.5 rounded-full ${activeKeysCount > 0 ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`}></div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8 scroll-smooth">
           <div className="max-w-6xl mx-auto">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <div>
-                <h2 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2 leading-tight">
+                <h2 className="text-lg md:text-3xl font-bold text-white mb-1 md:mb-2 leading-tight truncate">
                   {activeTab === 'campaign' && "Smart Campaign Wizard"}
                   {activeTab === 'batch_factory' && "Batch Video Production"}
-                  {activeTab === 'analytics' && "Strategic Intelligence Hub"}
-                  {activeTab === 'risk_center' && "Channel Health & Risk Center"}
+                  {activeTab === 'analytics' && "Strategic Intelligence"}
+                  {activeTab === 'risk_center' && "Channel Risk Center"}
                   {activeTab === 'marketplace' && "AI Affiliate Hub"}
                   {activeTab === 'settings' && "System Control Center"}
-                  {activeTab === 'queue' && "Social Scheduler Command"}
+                  {activeTab === 'queue' && "Social Scheduler"}
                   {activeTab === 'models' && "AI Model Orchestration"}
                   {activeTab === 'auto_pilot' && "Infinity Auto-Pilot"}
                 </h2>
@@ -728,17 +728,17 @@ const App: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
                 <button 
                   onClick={() => setActiveTab('settings')}
-                  className="flex-1 md:flex-none px-3 py-2 md:py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                  className="px-3 py-2 md:py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <Settings size={14} /> <span className="inline">Cấu hình Vault</span>
                 </button>
-                <div className="h-4 w-px bg-slate-800 mx-2 hidden md:block"></div>
+                <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block"></div>
                 <button 
                   onClick={() => setActiveTab('settings')}
-                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-3 py-2 md:py-1.5 border rounded-lg transition-all whitespace-nowrap ${
+                  className={`flex items-center justify-center gap-2 px-3 py-2 md:py-1.5 border rounded-lg transition-all whitespace-nowrap ${
                     activeKeysCount > 0 
                       ? 'bg-slate-950 border-slate-800 text-slate-300 hover:border-green-500/50' 
                       : 'bg-red-900/20 border-red-500/50 text-red-400 animate-pulse'
