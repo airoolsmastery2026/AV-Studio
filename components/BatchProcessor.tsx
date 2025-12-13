@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Factory, Play, AlertCircle, CheckCircle, Loader2, FileText, Image as ImageIcon, Video, Clock } from 'lucide-react';
-import { ApiKeyConfig, BatchJobItem, SourceMetadata, PostingJob } from '../types';
+import { ApiKeyConfig, BatchJobItem, SourceMetadata, PostingJob, ContentWorkflow } from '../types';
 import NeonButton from './NeonButton';
 import { classifyInput, generateVideoPlan } from '../services/geminiService';
 
@@ -67,7 +67,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
       const metadata: SourceMetadata = {
           url: job.input,
           type: analysis.type,
-          detected_strategy: analysis.strategy
+          detected_strategy: analysis.strategy as ContentWorkflow
       };
 
       const plan = await generateVideoPlan(apiKey, metadata);

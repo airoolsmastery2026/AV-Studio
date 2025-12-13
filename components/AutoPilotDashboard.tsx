@@ -46,6 +46,10 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
   const [intervalTime, setIntervalTime] = useState(initialState.intervalTime || 30); // seconds
   const [draftMode, setDraftMode] = useState(initialState.draftMode || false); // Draft Mode State
 
+  // Internal Memory for Duplicate Prevention (Session based)
+  const processedLinks = useRef<Set<string>>(new Set());
+  const errorCount = useRef<number>(0);
+
   // System Resources
   const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
   const socialKeys = apiKeys.filter(k => k.category === 'social' && k.status === 'active');
@@ -108,14 +112,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
             return;
         }
         
-        // Determine if we are effectively in draft mode (Explicit or No Keys)
         const effectiveDraftMode = draftMode || socialKeys.length === 0;
-
-        if (!effectiveDraftMode && socialKeys.length === 0) {
-            addLog("SYSTEM_CHECK", "Warning: No Social Keys. Forced into Draft Mode.", "warning");
-        } else if (draftMode) {
-            addLog("SYSTEM_CHECK", "Running in DRAFT MODE (No Posting).", "info");
-        }
 
         // START CYCLE
         setCurrentAction("HUNTING");
@@ -124,76 +121,82 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
 
         try {
             // 2. HUNTING PHASE
-            addLog("HUNTING", `Initiating Deep Scan for niche: ${selectedNiche}...`, "info");
-            await new Promise(r => setTimeout(r, 1500)); 
-
-            // Determine Target Niche (Round Robin if AUTO)
+            // Logic: Pick a niche. If AUTO, rotate through high-value keywords.
             let targetNiche = selectedNiche;
             if (selectedNiche === 'AUTO') {
-                // Priority Queue for AI & High-Tech
                 const niches = [
-                    'AI Video Generators', 'AI Writing Assistants', 'No-Code AI Builders', // Priority
-                    'Crypto Trading Bots', 'Smart Home Tech', 'Biohacking Supplements',
-                    'High-Ticket SaaS', 'Personal Finance Apps'
+                    'AI Video Generators', 'AI Writing Tools', 'No-Code Builders',
+                    'Crypto Trading Bots', 'Smart Home Gadgets', 'Biohacking Gear',
+                    'SaaS Lifetime Deals', 'Personal Finance Apps', 'Gaming Accessories',
+                    'Travel Hacks', 'Kitchen Gadgets', 'Pet Tech'
                 ];
-                targetNiche = niches[Math.floor(Math.random() * niches.length)];
+                // Deterministic rotation based on cycle count to ensure variety
+                targetNiche = niches[stats.cyclesRun % niches.length];
                 addLog("AUTO_NICHE", `🤖 Smart Scout locked target: "${targetNiche}"`, "info");
             }
 
-            // Call Hunter API (Smart Hunt)
-            const networkList = affiliateKeys.length > 0 ? affiliateKeys.map(k => k.provider.toUpperCase()) : ['AMAZON', 'CLICKBANK', 'SHOPEE', 'TIKTOK_SHOP', 'IMPACT', 'PARTNERSTACK'];
+            const networkList = affiliateKeys.length > 0 ? affiliateKeys.map(k => k.provider.toUpperCase()) : ['AMAZON', 'CLICKBANK', 'SHOPEE', 'TIKTOK_SHOP'];
             
+            // Artificial delay for realism
+            await new Promise(r => setTimeout(r, 1000));
             const huntResult = await huntAffiliateProducts(googleKey.key, targetNiche, networkList);
+            
             if (!huntResult || huntResult.products.length === 0) {
                 throw new Error("No products found in this sector.");
             }
             
-            // SMART SELECTION LOGIC: Sort by Opportunity Score
-            addLog("ANALYZING", `Scanned ${huntResult.products.length} candidates. Calculating Potential...`, "info");
-            await new Promise(r => setTimeout(r, 1000));
-
-            const sortedProducts = [...huntResult.products].sort((a, b) => b.opportunity_score - a.opportunity_score);
-            const bestProduct = sortedProducts[0];
-
-            // High Ticket Detection Logic
-            const isHighTicket = bestProduct.commission_est.includes('$') && (parseInt(bestProduct.commission_est.replace(/\D/g, '')) > 50 || bestProduct.commission_est.toLowerCase().includes('recurring'));
+            // SMART SELECTION: Filter out already processed products
+            const freshProducts = huntResult.products.filter(p => !processedLinks.current.has(p.affiliate_link));
             
-            addLog("WINNER_FOUND", `💎 TOP PICK: ${bestProduct.product_name}`, "success");
-            
-            if (isHighTicket) {
-                addLog("MONEY_ALERT", `💰 HIGH TICKET DETECTED: ${bestProduct.commission_est}`, "warning");
-            } else {
-                addLog("METRICS", `Score: ${bestProduct.opportunity_score}/100 | Comm: ${bestProduct.commission_est}`, "info");
+            if (freshProducts.length === 0) {
+                 addLog("SKIPPING", "All found products have been processed recently. Skipping to next niche.", "warning");
+                 throw new Error("Duplicate prevention triggered.");
             }
+
+            // Sort by Opportunity Score
+            const sortedProducts = freshProducts.sort((a, b) => b.opportunity_score - a.opportunity_score);
+            const bestProduct = sortedProducts[0];
+            
+            // Mark as processed
+            processedLinks.current.add(bestProduct.affiliate_link);
+
+            addLog("WINNER_FOUND", `💎 PICK: ${bestProduct.product_name} (${bestProduct.opportunity_score}/100)`, "success");
 
             // 3. PLANNING PHASE
             setCurrentAction("PLANNING");
-            addLog("STRATEGY", `Deploying Strategy: "${bestProduct.content_angle}"`, "info");
+            const angle = bestProduct.content_angle || "Review & Tutorial";
+            addLog("STRATEGY", `Deploying Angle: "${angle}"`, "info");
             
             const metadata: SourceMetadata = {
                 url: bestProduct.affiliate_link,
                 type: 'product',
                 detected_strategy: 'REVIEW_TUTORIAL', 
                 manual_niche: 'AUTO',
-                manual_workflow: 'REVIEW_TUTORIAL',
-                notes: `Auto-Hunter Strategy: ${bestProduct.reason_to_promote}. Focus angle: ${bestProduct.content_angle}. Commission: ${bestProduct.commission_est}`,
-                prefer_google_stack: targetNiche.includes('AI') || bestProduct.product_name.includes('Google'), // Auto-prefer Google stack for AI topics
+                notes: `Auto-Hunter Strategy: ${bestProduct.reason_to_promote}. Angle: ${angle}. Comm: ${bestProduct.commission_est}`,
+                prefer_google_stack: targetNiche.toLowerCase().includes('ai') || bestProduct.product_name.toLowerCase().includes('google'),
                 video_config: {
                     resolution: '1080p',
                     aspectRatio: '9:16',
                     scriptModel: 'Gemini 2.5 Flash',
-                    visualModel: targetNiche.includes('AI') ? 'VEO' : 'SORA', // Use VEO for AI/Tech
+                    visualModel: targetNiche.toLowerCase().includes('ai') ? 'VEO' : 'SORA',
                     voiceModel: 'Google Chirp'
                 }
             };
 
             const plan = await generateVideoPlan(googleKey.key, metadata);
-            addLog("SCRIPTING", "Script & Scenes generated successfully.", "success");
+            addLog("SCRIPTING", "Script & Scenes generated.", "success");
 
-            // 4. PRODUCTION PHASE
+            // 4. PRODUCTION PHASE (Simulated with progress updates)
             setCurrentAction("RENDERING");
-            addLog("PRODUCTION", `Simulating Asset Generation (${metadata.video_config?.visualModel})...`, "info");
-            await new Promise(r => setTimeout(r, 3000)); // Sim Rendering Time
+            const visualModel = metadata.video_config?.visualModel || "AI";
+            addLog("PRODUCTION", `Initializing ${visualModel} Render Engine...`, "info");
+            
+            // Simulate granular progress
+            const renderSteps = ["Generating Visuals...", "Synthesizing Audio...", "Compositing Scenes...", "Finalizing Render..."];
+            for (const step of renderSteps) {
+                await new Promise(r => setTimeout(r, 800)); // 800ms per step
+                addLog("RENDER_PROGRESS", step, "info");
+            }
             
             setStats(prev => ({ ...prev, videosCreated: prev.videosCreated + 1 }));
 
@@ -204,30 +207,40 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
             let platformId = '';
             let postSuccess = false;
             
+            // Calculate Organic Scheduled Time (Jitter)
+            // Add random delay between 2 minutes and 45 minutes to look natural
+            const randomDelayMinutes = Math.floor(Math.random() * 43) + 2; 
+            const scheduledTime = Date.now() + (randomDelayMinutes * 60 * 1000);
+            
             if (!effectiveDraftMode && socialKeys.length > 0) {
-                // Pick a random account or cycle through
                 const account = socialKeys[Math.floor(Math.random() * socialKeys.length)];
                 targetPlatform = `${account.alias} (${account.provider})`;
                 platformId = account.id;
-                addLog("ROUTING", `Selected Account: ${targetPlatform}`, "info");
                 
-                addLog("UPLOADING", `Uploading to ${targetPlatform}...`, "info");
+                // Simulation: 80% chance to schedule for "Organic" timing, 20% immediate
+                const shouldPostNow = Math.random() > 0.8;
                 
-                // EXECUTE REAL SIMULATION via Service
-                const result = await postVideoToSocial(account, { 
-                    title: plan.generated_content?.title || `Auto: ${bestProduct.product_name}`, 
-                    caption: (plan.generated_content?.description || "") + `\n\n👉 Link: ${bestProduct.affiliate_link}` 
-                });
-
-                if (result.success) {
-                    addLog("PUBLISHED", `Content live! ID: ${result.postId}`, "success");
-                    postSuccess = true;
+                if (shouldPostNow) {
+                     addLog("ROUTING", `Instant Post to: ${targetPlatform}`, "info");
+                     const result = await postVideoToSocial(account, { 
+                        title: plan.generated_content?.title || `Auto: ${bestProduct.product_name}`, 
+                        caption: (plan.generated_content?.description || "") + `\n\n👉 Link: ${bestProduct.affiliate_link}` 
+                    });
+                    
+                    if (result.success) {
+                        addLog("PUBLISHED", `Content live! ID: ${result.postId}`, "success");
+                        postSuccess = true;
+                    } else {
+                        addLog("ERROR", `Failed to post: ${result.error}`, "error");
+                    }
                 } else {
-                    addLog("ERROR", `Failed to post to ${account.provider}: ${result.error}`, "error");
+                     addLog("SCHEDULING", `Scheduling for ${randomDelayMinutes} mins later (Organic Growth)`, "info");
+                     // We mark success here because scheduling is the intended action
+                     postSuccess = true; 
                 }
 
             } else {
-                addLog("DRAFTING", "Skipping upload. Saving to queue...", "warning");
+                addLog("DRAFTING", "Saving to queue (Draft Mode).", "warning");
                 await new Promise(r => setTimeout(r, 500));
             }
 
@@ -238,19 +251,20 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                 caption: (plan.generated_content?.description || "") + `\n\n👉 Link: ${bestProduct.affiliate_link}`,
                 hashtags: plan.generated_content?.hashtags || [],
                 platforms: platformId ? [platformId] : [],
-                scheduled_time: Date.now(),
-                status: postSuccess ? 'published' : (effectiveDraftMode ? 'draft' : 'failed')
+                scheduled_time: scheduledTime,
+                status: (postSuccess && !effectiveDraftMode) ? 'scheduled' : 'draft', // If we "scheduled", status is scheduled
+                thumbnail_url: "https://via.placeholder.com/1080x1920?text=Auto+Gen"
             };
             
             onAddToQueue(job);
 
-            // SAVE COMPLETED VIDEO
-            if (onVideoGenerated && (postSuccess || effectiveDraftMode)) {
+            // SAVE COMPLETED VIDEO TO LIBRARY
+            if (onVideoGenerated) {
                 onVideoGenerated({
                     id: crypto.randomUUID(),
                     title: job.content_title,
                     description: job.caption,
-                    thumbnailUrl: "https://placehold.co/1080x1920/black/white?text=" + encodeURIComponent(job.content_title.substring(0,20)),
+                    thumbnailUrl: `https://placehold.co/1080x1920/1e293b/FFF?text=${encodeURIComponent(bestProduct.product_name.substring(0,15))}`,
                     platform: targetPlatform,
                     niche: targetNiche,
                     createdAt: Date.now(),
@@ -258,20 +272,29 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                 });
             }
 
-            if (effectiveDraftMode) {
-                addLog("DRAFT_SAVED", `Content saved to Drafts. ID: ${job.id.substring(0,8)}`, "success");
-            } else if (postSuccess) {
+            if (postSuccess && !effectiveDraftMode) {
                 setStats(prev => ({ ...prev, postedCount: prev.postedCount + 1 }));
             }
 
+            // Reset error count on success
+            errorCount.current = 0;
+
         } catch (error: any) {
             addLog("ERROR", error.message || "Cycle failed", "error");
+            errorCount.current += 1;
         }
 
-        // 6. COOLDOWN
+        // 6. COOLDOWN (Exponential Backoff if errors)
         setCurrentAction("COOLDOWN");
-        const cooldown = Math.max(10, intervalTime); // Ensure at least 10s cooldown
-        addLog("SLEEP", `Cooling down for ${cooldown} seconds...`, "info");
+        
+        let cooldown = Math.max(10, intervalTime);
+        if (errorCount.current > 0) {
+            // If errors, wait longer: 30s, 60s, 120s...
+            cooldown = Math.min(300, 30 * Math.pow(2, errorCount.current - 1));
+            addLog("BACKOFF", `Error detected. Pausing for ${cooldown}s...`, "warning");
+        } else {
+            addLog("SLEEP", `Cooling down for ${cooldown} seconds...`, "info");
+        }
         
         loopTimeout = setTimeout(runCycle, cooldown * 1000);
     };
@@ -287,6 +310,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
      setIsRunning(!isRunning);
      if (!isRunning) {
          addLog("SYSTEM", "Auto-Pilot Engine INITIALIZED.", "success");
+         errorCount.current = 0; // Reset errors on fresh start
      } else {
          addLog("SYSTEM", "Auto-Pilot STOPPED by User.", "warning");
          setCurrentAction("IDLE");
@@ -300,7 +324,6 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
     return `${h}h ${m}m ${s}s`;
   };
 
-  // Download Handler for Gallery
   const handleDownloadVideo = (video: any) => {
       const content = JSON.stringify(video, null, 2);
       const blob = new Blob([content], { type: 'application/json' });
@@ -333,7 +356,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                            {isRunning && <span className="inline-block w-3 h-3 bg-green-500 rounded-full animate-ping"></span>}
                        </h2>
                        <p className="text-slate-400 font-mono text-sm mt-1">
-                           Autonomous Affiliate Video Production System v2.5
+                           Autonomous Affiliate Video Production System v3.0 (Smart Schedule)
                        </p>
                    </div>
                </div>
@@ -359,6 +382,18 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                    </button>
                </div>
            </div>
+           
+           {/* Visual Progress Bar (When Running) */}
+            {isRunning && (
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-800">
+                    <div className={`h-full ${
+                        currentAction === 'HUNTING' ? 'bg-blue-500 w-1/4' : 
+                        currentAction === 'PLANNING' ? 'bg-purple-500 w-2/4' : 
+                        currentAction === 'RENDERING' ? 'bg-yellow-500 w-3/4' : 
+                        currentAction === 'PUBLISHING' ? 'bg-green-500 w-full' : 'bg-slate-600 w-full'
+                    } transition-all duration-1000 ease-in-out`}></div>
+                </div>
+            )}
        </div>
 
        {/* STATS & CONFIG GRID */}
@@ -380,7 +415,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                                disabled={isRunning}
                                className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 px-3 text-xs text-white focus:border-primary disabled:opacity-50"
                            >
-                               <option value="AUTO">🤖 AUTO (Smart Scout)</option>
+                               <option value="AUTO">🤖 AUTO (Smart Rotation)</option>
                                <optgroup label="🔥 Trending High-Ticket">
                                    <option value="AI SaaS & Tools">🧠 AI SaaS & Tools</option>
                                    <option value="Crypto & Finance">💰 Crypto & Finance</option>
@@ -395,24 +430,11 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                                    <option value="Pet Care">🐶 Pet Care</option>
                                    <option value="Kitchen & Cooking">🍳 Kitchen & Cooking</option>
                                </optgroup>
-                               <optgroup label="🌱 Lifestyle & Growth">
-                                   <option value="Self Improvement">📚 Self Improvement</option>
-                                   <option value="Fitness & Yoga">🧘 Fitness & Yoga</option>
-                                   <option value="Travel & Lifestyle">✈️ Travel & Lifestyle</option>
-                                   <option value="Sustainable Living">🌿 Sustainable Living</option>
-                                   <option value="Survival & Gear">🏕️ Survival & Gear</option>
-                               </optgroup>
-                               <optgroup label="🎨 Creative & Skills">
-                                   <option value="AI Art & Design">🎨 AI Art & Design</option>
-                                   <option value="DIY & Crafts">🔨 DIY & Crafts</option>
-                                   <option value="Gaming & Esports">🎮 Gaming & Esports</option>
-                                   <option value="No-Code Dev">💻 No-Code Dev</option>
-                               </optgroup>
                            </select>
                        </div>
                        
                        <div>
-                           <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Loop Interval (sec)</label>
+                           <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Min Cooldown (sec)</label>
                            <input 
                                type="number"
                                min="10"
@@ -421,7 +443,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                                disabled={isRunning}
                                className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 px-3 text-xs text-white font-mono disabled:opacity-50" 
                            />
-                           <p className="text-[9px] text-slate-600 mt-1">Minimum 10s cooldown.</p>
+                           <p className="text-[9px] text-slate-600 mt-1">Calculated pause between videos.</p>
                        </div>
 
                        {/* Draft Mode Toggle */}
@@ -431,7 +453,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                                    <FileText size={14} className={draftMode ? "text-yellow-500" : "text-slate-500"} />
                                    <div>
                                        <span className="text-[10px] font-bold text-white block">Draft Mode</span>
-                                       <span className="text-[9px] text-slate-500 block">Save only, no posting</span>
+                                       <span className="text-[9px] text-slate-500 block">Queue only, no posting</span>
                                    </div>
                                </div>
                                <button 
@@ -536,7 +558,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                </div>
            ) : (
                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                   {completedVideos.map((video) => (
+                   {completedVideos.slice(0, 12).map((video) => (
                        <div key={video.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group hover:border-primary/50 transition-all duration-300">
                            {/* Thumbnail / Video Placeholder */}
                            <div className="relative aspect-[9/16] bg-black group">
