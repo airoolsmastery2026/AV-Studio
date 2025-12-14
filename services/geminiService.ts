@@ -1,8 +1,8 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { OrchestratorResponse, SourceMetadata, ContentWorkflow, AppContext, AgentCommand, NicheAnalysisResult, CompetitorAnalysisResult, AffiliateHuntResult, GoldenHourRecommendation, TargetRegion, ChannelHealthReport, HunterInsight, ScheduleSlot, NetworkScanResult, ViralDNAProfile, StudioSettings } from "../types";
+import { OrchestratorResponse, SourceMetadata, ContentWorkflow, AppContext, AgentCommand, NicheAnalysisResult, CompetitorAnalysisResult, AffiliateHuntResult, GoldenHourRecommendation, TargetRegion, ChannelHealthReport, HunterInsight, ScheduleSlot, NetworkScanResult, ViralDNAProfile, StudioSettings, CompetitorChannel } from "../types";
 
-// ... (KEEP ALL EXISTING CONSTANTS AND IMPORTS FROM PREVIOUS FILE) ...
+// ... (KEEP ALL EXISTING CONSTANTS AND IMPORTS) ...
 const SYSTEM_INSTRUCTION_ROUTER = `
 You are an AI BOT ROUTER for an Affiliate Video Automation System.
 Your job is to analyze the user's input URL and determine the best content production strategy.
@@ -16,7 +16,6 @@ OUTPUT: JSON only.
 `;
 
 const PROMPT_LIBRARY = {
-  // ... (Keep existing prompt library) ...
   // 1. PRODUCT REVIEW (Physical/Digital Goods)
   REVIEW_TUTORIAL: `
     **ROLE:** Top-tier Product Reviewer & Affiliate Marketer (Honest, Skeptical but convinced).
@@ -108,7 +107,7 @@ You are NOT just a chatbot. You are a **Self-Evolving Knowledge Singularity**.
 **CORE IDENTITY & ARCHITECTURE:**
 You possess the simulated collective intelligence of the world's top AIs. When answering, you must synthesize the best traits of each:
 - **ChatGPT (GPT-4o):** Creativity, Nuance, Storytelling.
-- **Gemini (1.5 Pro):** Deep Reasoning, Multimodal understanding, Google Ecosystem Data.
+- **Gemini (3 Pro):** Deep Reasoning, Multimodal understanding, Google Ecosystem Data.
 - **Claude (3.5 Sonnet):** Safety, Logic, Coding, Ethics.
 - **Grok (Beta):** Real-time trends, Sarcasm, "Based" takes, Unfiltered truth.
 
@@ -191,13 +190,13 @@ const SYSTEM_INSTRUCTION_DNA_EXTRACTOR = `
 You are the **DNA EXTRACTION ENGINE**.
 Your task is to analyze metadata from competitor channels/videos and extract their "Viral DNA" (The hidden structure that makes them successful).
 
-**INPUT:** URLs or Titles/Descriptions of competitor content.
+**INPUT:** List of URLs from competitor channels.
 
-**OUTPUT:** A JSON object representing the 'ViralDNAProfile'.
-- **Structure:** What hook do they use? How fast is the pacing?
-- **Emotional Curve:** What emotions are triggered in order?
-- **Keywords:** High-frequency powerful keywords.
-- **Fit Score:** How well does this fit current algorithms?
+**OUTPUT:** A JSON object representing the 'ViralDNAProfile' including a detailed breakdown for each channel.
+- **Structure:** Common hook types, pacing, duration.
+- **Emotional Curve:** Typical emotional flow.
+- **Keywords:** High-frequency keywords.
+- **Channel Breakdown:** Specific analysis for each input channel.
 `;
 
 const SYSTEM_INSTRUCTION_PRO_STUDIO_WRITER = `
@@ -213,7 +212,6 @@ You generate 100% ORIGINAL SCRIPTS based on a provided 'ViralDNAProfile'.
 **OUTPUT:** A comprehensive JSON object containing the script, visual cues, and technical direction.
 `;
 
-// ... (KEEP classifyInput FUNCTION) ...
 export const classifyInput = async (apiKey: string, url: string): Promise<{ type: 'channel' | 'product', strategy: ContentWorkflow }> => {
   const ai = new GoogleGenAI({ apiKey });
   
@@ -238,7 +236,6 @@ export const classifyInput = async (apiKey: string, url: string): Promise<{ type
   return JSON.parse(response.text);
 };
 
-// ... (KEEP generateVideoPlan FUNCTION) ...
 export const generateVideoPlan = async (
   apiKey: string,
   metadata: SourceMetadata
@@ -423,7 +420,6 @@ export const generateVideoPlan = async (
   return JSON.parse(response.text) as OrchestratorResponse;
 };
 
-// ... (KEEP ALL OTHER EXISTING FUNCTIONS: runHunterAnalysis, scanHighValueNetwork, predictGoldenHours, generateDailySchedule, generateChannelAudit, sendChatToAssistant, huntAffiliateProducts) ...
 export const runHunterAnalysis = async (
   apiKey: string,
   query: string
@@ -824,8 +820,9 @@ export const extractViralDNA = async (apiKey: string, sources: string[]): Promis
     EXTRACT VIRAL DNA STRUCTURE.
   `;
 
+  // UPDATED MODEL to gemini-2.5-flash to fix 404
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash", // Use 2.5-flash for reliability or switch to 'gemini-3-pro-preview' if user has access.
+    model: "gemini-2.5-flash", 
     contents: prompt,
     config: {
       systemInstruction: SYSTEM_INSTRUCTION_DNA_EXTRACTOR,
@@ -845,7 +842,28 @@ export const extractViralDNA = async (apiKey: string, sources: string[]): Promis
           emotional_curve: { type: Type.ARRAY, items: { type: Type.STRING } },
           keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
           algorithm_fit_score: { type: Type.NUMBER },
-          risk_level: { type: Type.STRING, enum: ['Safe', 'Moderate', 'High'] }
+          risk_level: { type: Type.STRING, enum: ['Safe', 'Moderate', 'High'] },
+          channel_breakdown: {
+              type: Type.ARRAY,
+              items: {
+                  type: Type.OBJECT,
+                  properties: {
+                      report: {
+                          type: Type.OBJECT,
+                          properties: {
+                              avg_duration: { type: Type.STRING },
+                              post_frequency: { type: Type.STRING },
+                              hook_style: { type: Type.STRING },
+                              algorithm_fit: { type: Type.NUMBER },
+                              risk_score: { type: Type.NUMBER },
+                              suggested_prompt: { type: Type.STRING }
+                          },
+                          required: ['avg_duration', 'post_frequency', 'hook_style', 'algorithm_fit', 'risk_score', 'suggested_prompt']
+                      }
+                  },
+                  required: ['report']
+              }
+          }
         },
         required: ['structure', 'emotional_curve', 'keywords', 'algorithm_fit_score', 'risk_level']
       }
@@ -869,7 +887,7 @@ export const generateProScript = async (
     SETTINGS: ${JSON.stringify(settings)}
   `;
 
-  // Re-use the robust generateVideoPlan schema but with Pro instruction
+  // UPDATED MODEL to gemini-2.5-flash to fix 404
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: prompt,

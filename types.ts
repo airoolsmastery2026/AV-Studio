@@ -148,6 +148,14 @@ export interface CompetitorChannel {
   name: string;
   status: 'pending' | 'analyzing' | 'done' | 'error';
   dna_score?: number; // How much "DNA" was extracted
+  report?: {
+      avg_duration: string;
+      post_frequency: string;
+      hook_style: string;
+      algorithm_fit: number;
+      risk_score: number;
+      suggested_prompt: string;
+  }
 }
 
 export interface ViralDNAProfile {
@@ -160,14 +168,26 @@ export interface ViralDNAProfile {
   keywords: string[];
   algorithm_fit_score: number; // 0-100
   risk_level: 'Safe' | 'Moderate' | 'High';
+  channel_breakdown?: CompetitorChannel[]; // Detailed breakdown for Studio Pro
 }
 
 export interface StudioSettings {
-  goal: 'Viral' | 'Education' | 'Affiliate';
-  platform: 'Shorts' | 'TikTok' | 'Reels' | 'Long';
-  language: string;
-  duration: 'Short (30-60s)' | 'Medium (3-5m)' | 'Long (10m+)';
+  // Video Settings
   quality: 'Draft' | 'Standard' | 'Ultra';
+  aspectRatio: '9:16' | '16:9' | '1:1';
+  model: 'Fast' | 'Balanced' | 'Cinematic';
+  
+  // Prompt Control
+  hookStrength: number; // 1-10
+  storyMode: 'One-shot' | 'Episodic' | 'Documentary';
+  riskLevel: 'Safe' | 'Medium' | 'High';
+  
+  // Consistency
+  characterLock: boolean;
+  styleLock: boolean;
+  
+  // Rendering
+  musicSync: boolean;
 }
 
 // --- NEWLY ADDED TYPES ---
