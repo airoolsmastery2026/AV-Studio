@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrainCircuit, Check, Palette, Mic, Cpu, Sparkles, Zap, MonitorPlay, Ratio, Scan } from 'lucide-react';
+import { BrainCircuit, Check, Palette, Mic, Cpu, Sparkles, Zap, MonitorPlay, Ratio, Scan, MessageSquare } from 'lucide-react';
 import { ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 
 interface ModelSelectorProps {
@@ -89,6 +89,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                   { id: 'Gemini 2.5 Flash', name: 'Gemini 2.5 Flash', desc: 'Fastest, low latency. Best for viral hooks.', badge: 'Speed', icon: Zap },
                   { id: 'Gemini 1.5 Pro', name: 'Gemini 1.5 Pro', desc: 'Deep reasoning. Best for tutorials & analysis.', badge: 'Logic', icon: BrainCircuit },
                   { id: 'GPT-4o', name: 'GPT-4o (OpenAI)', desc: 'Creative storytelling & nuance.', badge: 'Creative', icon: Sparkles },
+                  { id: 'Grok Beta', name: 'Grok Beta (xAI)', desc: 'Real-time knowledge, roast-heavy & unfiltered.', badge: 'Rebel', icon: MessageSquare },
                 ].map((m) => (
                    <button 
                       key={m.id}

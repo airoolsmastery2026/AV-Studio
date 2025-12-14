@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ScanEye, Crosshair, Radar, Target, 
   Send, Lock, Unlock, TrendingUp, 
-  Zap, BarChart2, Radio, Trophy, Activity, Loader2, StopCircle, Globe, Search, Link as LinkIcon
+  Zap, BarChart2, Radio, Trophy, Activity, Loader2, StopCircle, Globe, Search, Link as LinkIcon, BrainCircuit
 } from 'lucide-react';
 import { ApiKeyConfig, HunterInsight, NetworkScanResult } from '../types';
 import NeonButton from './NeonButton';
@@ -13,6 +13,7 @@ interface AnalyticsDashboardProps {
   apiKeys: ApiKeyConfig[];
   onDeployStrategy: (url: string, type: 'clone' | 'review') => void;
   onSendReportToChat?: (report: string) => void;
+  onSyncToBrain?: (insight: HunterInsight) => void;
 }
 
 // Mock targets for simulation when auto-scanning
@@ -22,7 +23,7 @@ const AUTO_TARGETS = [
     "Funny Cat Videos", "Weight Loss Tips", "Gaming Setup Cheap", "Travel Hacks Japan"
 ];
 
-const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ apiKeys, onDeployStrategy, onSendReportToChat }) => {
+const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ apiKeys, onDeployStrategy, onSendReportToChat, onSyncToBrain }) => {
   // Mode: Manual vs Auto vs Deep Scan
   const [activeView, setActiveView] = useState<'standard' | 'deep_scan'>('standard');
   const [isAutoRecon, setIsAutoRecon] = useState(false);
@@ -97,6 +98,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ apiKeys, onDepl
         if (!winner || result.match_score > winner.match_score) {
             setWinner(result);
             addLog(">>> NEW WINNER IDENTIFIED <<<", "text-red-400");
+            
+            // AUTO SYNC TO BRAIN IF HIGH SCORE
+            if (result.match_score >= 80 && onSyncToBrain) {
+                onSyncToBrain(result);
+                addLog("🧠 TRANSMITTING WINNER DATA TO BRAIN...", "text-yellow-400");
+            }
+
             if (isAutoRecon) {
                 // Auto report winner to chat if in auto mode
                 onSendReportToChat?.(`🏆 **AUTO-RECON WINNER FOUND**\nTarget: ${result.target_name}\nScore: ${result.match_score}\nStrategy: ${result.strategic_suggestion}`);
@@ -372,7 +380,13 @@ ${data.key_metrics.map(m => `- ${m.label}: ${m.value} (${m.trend})`).join('\n')}
                                   <Trophy size={24} />
                               </div>
                               <div>
-                                  <div className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest">Top Opportunity</div>
+                                  <div className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                                      Top Opportunity 
+                                      {/* SYNCED BADGE */}
+                                      <span className="flex items-center gap-1 bg-blue-900/50 text-blue-300 px-1.5 py-0.5 rounded text-[8px] border border-blue-500/30">
+                                          <BrainCircuit size={8} /> Synced to Brain
+                                      </span>
+                                  </div>
                                   <h2 className="text-lg font-bold text-white line-clamp-2">{winner.target_name}</h2>
                               </div>
                           </div>

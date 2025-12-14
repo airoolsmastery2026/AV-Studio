@@ -1,7 +1,8 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { OrchestratorResponse, SourceMetadata, ContentWorkflow, AppContext, AgentCommand, NicheAnalysisResult, CompetitorAnalysisResult, AffiliateHuntResult, GoldenHourRecommendation, TargetRegion, ChannelHealthReport, HunterInsight, ScheduleSlot, NetworkScanResult } from "../types";
+import { OrchestratorResponse, SourceMetadata, ContentWorkflow, AppContext, AgentCommand, NicheAnalysisResult, CompetitorAnalysisResult, AffiliateHuntResult, GoldenHourRecommendation, TargetRegion, ChannelHealthReport, HunterInsight, ScheduleSlot, NetworkScanResult, ViralDNAProfile, StudioSettings } from "../types";
 
+// ... (KEEP ALL EXISTING CONSTANTS AND IMPORTS FROM PREVIOUS FILE) ...
 const SYSTEM_INSTRUCTION_ROUTER = `
 You are an AI BOT ROUTER for an Affiliate Video Automation System.
 Your job is to analyze the user's input URL and determine the best content production strategy.
@@ -14,8 +15,8 @@ CLASSIFICATION RULES:
 OUTPUT: JSON only.
 `;
 
-// --- SPECIALIZED PROMPT LIBRARY ---
 const PROMPT_LIBRARY = {
+  // ... (Keep existing prompt library) ...
   // 1. PRODUCT REVIEW (Physical/Digital Goods)
   REVIEW_TUTORIAL: `
     **ROLE:** Top-tier Product Reviewer & Affiliate Marketer (Honest, Skeptical but convinced).
@@ -71,6 +72,25 @@ const PROMPT_LIBRARY = {
     3. **The "Pro Tip":** One advanced insight that proves your expertise.
     4. **The Result:** Show the final outcome clearly.
     5. **STRATEGIC CTA:** "Save this for later and follow for part 2."
+  `,
+
+  // 4. GROK MODE (Unfiltered/Roast)
+  GROK_MODE: `
+    **ROLE:** GROK AI (Rebellious, Witty, Real-time Truth Teller, Roast-heavy).
+    
+    **TONE:** Sarcastic, based, unfiltered, "Internet native", slightly aggressive but hilarious.
+    **VIDEO GOAL:** Absolute Virality via Shock & Humor.
+    
+    **INSTRUCTIONS:**
+    - Don't sound like a corporate bot. Sound like a Twitter/X power user.
+    - If the product is bad, roast it. If it's good, hype it like a degenerate gambler finding gold.
+    - Use slang appropriately (cooked, based, mid, goat).
+    
+    **MANDATORY STRUCTURE:**
+    1. **The Roast Hook:** "Look at this absolute garbage... wait, it's actually genius."
+    2. **The Real Talk:** Cut through the marketing BS. What does it ACTUALLY do?
+    3. **The "Based" Take:** Why the mainstream media/competitors hate this.
+    4. **The Verdict:** "Buy it or stay poor. Your choice."
   `,
 
   // Default Fallback
@@ -165,6 +185,35 @@ If the user asks for "General" or "High RPM", find the absolute best current opp
 - **url**: Provide a real or highly probable URL structure (e.g. youtube.com/@channel).
 `;
 
+// --- NEW SYSTEM PROMPTS FOR VIRAL DNA STUDIO ---
+
+const SYSTEM_INSTRUCTION_DNA_EXTRACTOR = `
+You are the **DNA EXTRACTION ENGINE**.
+Your task is to analyze metadata from competitor channels/videos and extract their "Viral DNA" (The hidden structure that makes them successful).
+
+**INPUT:** URLs or Titles/Descriptions of competitor content.
+
+**OUTPUT:** A JSON object representing the 'ViralDNAProfile'.
+- **Structure:** What hook do they use? How fast is the pacing?
+- **Emotional Curve:** What emotions are triggered in order?
+- **Keywords:** High-frequency powerful keywords.
+- **Fit Score:** How well does this fit current algorithms?
+`;
+
+const SYSTEM_INSTRUCTION_PRO_STUDIO_WRITER = `
+You are the **VIRAL DNA STUDIO SCRIPT ENGINE**.
+You generate 100% ORIGINAL SCRIPTS based on a provided 'ViralDNAProfile'.
+
+**RULES:**
+1. **NO COPYING:** You must use the *structure* and *logic* of the DNA, but the *content, words, and scenario* must be completely new.
+2. **PLATFORM OPTIMIZATION:** Optimize strictly for the requested platform (Shorts/TikTok/Long).
+3. **RETENTION FIRST:** Every sentence must hook the viewer.
+4. **ANTI-COPY CHECK:** Ensure the output is semantically distinct from generic AI outputs.
+
+**OUTPUT:** A comprehensive JSON object containing the script, visual cues, and technical direction.
+`;
+
+// ... (KEEP classifyInput FUNCTION) ...
 export const classifyInput = async (apiKey: string, url: string): Promise<{ type: 'channel' | 'product', strategy: ContentWorkflow }> => {
   const ai = new GoogleGenAI({ apiKey });
   
@@ -189,6 +238,7 @@ export const classifyInput = async (apiKey: string, url: string): Promise<{ type
   return JSON.parse(response.text);
 };
 
+// ... (KEEP generateVideoPlan FUNCTION) ...
 export const generateVideoPlan = async (
   apiKey: string,
   metadata: SourceMetadata
@@ -212,7 +262,9 @@ export const generateVideoPlan = async (
   let specializedPrompt = PROMPT_LIBRARY.DEFAULT;
   
   // Logic to select best prompt
-  if (effectiveStrategy === 'REVIEW_TUTORIAL') {
+  if (videoConfig.scriptModel && videoConfig.scriptModel.includes('Grok')) {
+      specializedPrompt = PROMPT_LIBRARY.GROK_MODE;
+  } else if (effectiveStrategy === 'REVIEW_TUTORIAL') {
       if (metadata.manual_niche === 'TECH' || metadata.url.includes('ai') || metadata.url.includes('app')) {
           specializedPrompt = PROMPT_LIBRARY.AI_APP_LAUNCH; // Tech/AI/SaaS
       } else {
@@ -371,7 +423,7 @@ export const generateVideoPlan = async (
   return JSON.parse(response.text) as OrchestratorResponse;
 };
 
-// --- HUNTER BOT SERVICE (NEW) ---
+// ... (KEEP ALL OTHER EXISTING FUNCTIONS: runHunterAnalysis, scanHighValueNetwork, predictGoldenHours, generateDailySchedule, generateChannelAudit, sendChatToAssistant, huntAffiliateProducts) ...
 export const runHunterAnalysis = async (
   apiKey: string,
   query: string
@@ -434,7 +486,6 @@ export const runHunterAnalysis = async (
   return JSON.parse(response.text) as HunterInsight;
 }
 
-// --- DEEP NETWORK SCANNER (NEW) ---
 export const scanHighValueNetwork = async (
   apiKey: string,
   focusArea: string
@@ -500,7 +551,6 @@ export const scanHighValueNetwork = async (
   return JSON.parse(response.text) as NetworkScanResult;
 };
 
-// --- Scheduler Service ---
 export const predictGoldenHours = async (
   apiKey: string,
   region: TargetRegion,
@@ -535,7 +585,6 @@ export const predictGoldenHours = async (
   return JSON.parse(response.text) as GoldenHourRecommendation[];
 };
 
-// --- Daily Schedule Generator (Configurable) ---
 export const generateDailySchedule = async (
   apiKey: string,
   accountName: string,
@@ -585,7 +634,6 @@ export const generateDailySchedule = async (
   return JSON.parse(response.text) as ScheduleSlot[];
 };
 
-// --- Channel Health Audit ---
 export const generateChannelAudit = async (
   apiKey: string,
   channelName: string,
@@ -640,7 +688,6 @@ export const generateChannelAudit = async (
     return JSON.parse(response.text) as ChannelHealthReport;
 }
 
-// --- Chat Assistant Service (OMNI-MIND) ---
 export const sendChatToAssistant = async (
   apiKey: string,
   history: { role: string; parts: { text: string }[] }[],
@@ -715,7 +762,6 @@ export const sendChatToAssistant = async (
   }
 };
 
-// --- AUTO HUNTER IMPLEMENTATION ---
 export const huntAffiliateProducts = async (apiKey: string, niche: string, networks: string[]): Promise<AffiliateHuntResult> => {
     const ai = new GoogleGenAI({ apiKey });
     const prompt = `
@@ -769,6 +815,166 @@ export const huntAffiliateProducts = async (apiKey: string, niche: string, netwo
     return JSON.parse(response.text) as AffiliateHuntResult;
 };
 
-// --- Placeholder for other unused exports ---
+// --- NEW FUNCTIONS FOR VIRAL DNA STUDIO ---
+
+export const extractViralDNA = async (apiKey: string, sources: string[]): Promise<ViralDNAProfile> => {
+  const ai = new GoogleGenAI({ apiKey });
+  const prompt = `
+    ANALYZE COMPETITORS: ${sources.join(', ')}
+    EXTRACT VIRAL DNA STRUCTURE.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-1.5-pro",
+    contents: prompt,
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTION_DNA_EXTRACTOR,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          structure: {
+            type: Type.OBJECT,
+            properties: {
+              hook_type: { type: Type.STRING },
+              pacing: { type: Type.STRING, enum: ['Fast', 'Moderate', 'Slow'] },
+              avg_scene_duration: { type: Type.NUMBER }
+            },
+            required: ['hook_type', 'pacing', 'avg_scene_duration']
+          },
+          emotional_curve: { type: Type.ARRAY, items: { type: Type.STRING } },
+          keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+          algorithm_fit_score: { type: Type.NUMBER },
+          risk_level: { type: Type.STRING, enum: ['Safe', 'Moderate', 'High'] }
+        },
+        required: ['structure', 'emotional_curve', 'keywords', 'algorithm_fit_score', 'risk_level']
+      }
+    }
+  });
+
+  if (!response.text) throw new Error("Failed to extract DNA");
+  return JSON.parse(response.text) as ViralDNAProfile;
+};
+
+export const generateProScript = async (
+  apiKey: string, 
+  dna: ViralDNAProfile, 
+  settings: StudioSettings
+): Promise<OrchestratorResponse> => {
+  const ai = new GoogleGenAI({ apiKey });
+  
+  const prompt = `
+    GENERATE PRO SCRIPT.
+    DNA PROFILE: ${JSON.stringify(dna)}
+    SETTINGS: ${JSON.stringify(settings)}
+  `;
+
+  // Re-use the robust generateVideoPlan schema but with Pro instruction
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTION_PRO_STUDIO_WRITER,
+      responseMimeType: "application/json",
+      // ... (Re-using OrchestratorResponse schema from generateVideoPlan for consistency) ...
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          market_scoring: {
+            type: Type.OBJECT,
+            properties: {
+              tiktok_potential: { type: Type.NUMBER },
+              youtube_shorts_potential: { type: Type.NUMBER },
+              estimated_cpm: { type: Type.STRING },
+            },
+            required: ["tiktok_potential", "youtube_shorts_potential", "estimated_cpm"],
+          },
+          audience_personas: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                name: { type: Type.STRING },
+                age_range: { type: Type.STRING },
+                interests: { type: Type.ARRAY, items: { type: Type.STRING } },
+                behavior: { type: Type.STRING },
+                script_tone: { type: Type.STRING },
+              },
+              required: ["id", "name", "age_range", "interests", "script_tone"],
+            },
+          },
+          deep_analysis: {
+            type: Type.OBJECT,
+            properties: {
+              viral_dna: { type: Type.ARRAY, items: { type: Type.STRING } },
+              psychological_triggers: { type: Type.ARRAY, items: { type: Type.STRING } },
+              competitor_gap: { type: Type.STRING },
+              winning_angle: { type: Type.STRING },
+              monetization_strategy: { type: Type.STRING },
+              content_strategy: { type: Type.STRING, enum: ['VIRAL_CLONE', 'REVIEW_TUTORIAL', 'NEWS_SUMMARY', 'STORYTELLING', 'EDUCATIONAL', 'REACTION', 'AUTO'] }
+            },
+            required: ["viral_dna", "psychological_triggers", "competitor_gap", "winning_angle", "monetization_strategy", "content_strategy"],
+          },
+          production_plan: {
+            type: Type.OBJECT,
+            properties: {
+              script_master: { type: Type.STRING },
+              technical_specs: {
+                 type: Type.OBJECT,
+                 properties: {
+                     resolution: { type: Type.STRING },
+                     ratio: { type: Type.STRING },
+                     fps: { type: Type.NUMBER }
+                 },
+                 required: ["resolution", "ratio", "fps"]
+              },
+              scenes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    scene_id: { type: Type.STRING },
+                    start: { type: Type.NUMBER },
+                    duration: { type: Type.NUMBER },
+                    vo_text: { type: Type.STRING },
+                    visual_cues: { type: Type.STRING },
+                    model_choice: { type: Type.STRING, enum: ["GROK", "SORA", "VEO", "KLING", "IMAGEN", "GEMINI_VIDEO"] },
+                    priority: { type: Type.STRING, enum: ["draft", "final"] },
+                  },
+                  required: ["scene_id", "vo_text", "visual_cues", "model_choice"],
+                },
+              },
+            },
+            required: ["script_master", "scenes", "technical_specs"],
+          },
+          generated_content: { // NEW FIELD
+             type: Type.OBJECT,
+             properties: {
+                title: { type: Type.STRING },
+                description: { type: Type.STRING },
+                hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                thumbnail_prompt: { type: Type.STRING }
+             },
+             required: ["title", "description", "hashtags"]
+          },
+          consent_log: {
+            type: Type.OBJECT,
+            properties: {
+              user_confirmed_clone: { type: Type.BOOLEAN },
+              timestamp: { type: Type.STRING },
+            },
+            required: ["user_confirmed_clone", "timestamp"],
+          },
+        },
+        required: ["market_scoring", "audience_personas", "deep_analysis", "production_plan", "consent_log", "generated_content"],
+      },
+    }
+  });
+
+  if (!response.text) throw new Error("Studio failed to generate script");
+  return JSON.parse(response.text) as OrchestratorResponse;
+}
+
 export const analyzeMarketNiche = async (apiKey: string, keyword: string): Promise<NicheAnalysisResult> => { return {} as any; }
 export const analyzeCompetitorChannel = async (apiKey: string, url: string): Promise<CompetitorAnalysisResult> => { return {} as any; }

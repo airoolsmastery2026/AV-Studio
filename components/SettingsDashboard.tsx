@@ -1,14 +1,24 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Cpu, Database, Save, Trash2, Plus, 
   Brain, Shield, RefreshCw, Key, 
   ChevronDown, ChevronUp, Check, 
   Terminal, Sparkles, BookOpen, Layers,
-  Youtube, ShoppingBag, MessageCircle, Facebook, Instagram, Twitter, Globe, Banknote, CreditCard, ExternalLink, Info, Zap, Smartphone, TrendingUp, Image, Images, Linkedin, Send, Pin, ShoppingCart, Truck, MapPin, Video, MonitorPlay
+  Youtube, ShoppingBag, MessageCircle, Facebook, Instagram, Twitter, Globe, Banknote, CreditCard, ExternalLink, Info, Zap, Smartphone, TrendingUp, Image, Images, Linkedin, Send, Pin, ShoppingCart, Truck, MapPin, Video, MonitorPlay,
+  Download, Upload, AlertOctagon, HardDrive, Bell, Moon, Languages, FileJson, AlertTriangle
 } from 'lucide-react';
 import NeonButton from './NeonButton';
 import { ApiKeyConfig, KnowledgeBase } from '../types';
+
+// STORAGE KEYS (Mirrored from App.tsx for Backup/Restore)
+const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
+const BRAIN_STORAGE_KEY = 'av_studio_brain_v1';
+const QUEUE_STORAGE_KEY = 'av_studio_queue_v1';
+const UI_STATE_STORAGE_KEY = 'av_studio_ui_state_v1';
+const GALLERY_STORAGE_KEY = 'av_studio_gallery_v1';
+const CHAT_STORAGE_KEY = 'av_studio_chat_sessions_v2';
+const AUTOPILOT_STORAGE_KEY = 'av_studio_autopilot_state_v1';
 
 interface SettingsDashboardProps {
   apiKeys: ApiKeyConfig[];
@@ -171,6 +181,25 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // System Config States
+  const [storageUsage, setStorageUsage] = useState<string>('0 KB');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [appLanguage, setAppLanguage] = useState<'vi' | 'en'>('vi');
+
+  useEffect(() => {
+      // Calculate storage usage
+      let total = 0;
+      for (let x in localStorage) {
+          if (!localStorage.hasOwnProperty(x)) continue;
+          total += ((localStorage[x].length + x.length) * 2);
+      }
+      setStorageUsage((total / 1024).toFixed(2) + " KB");
+      
+      // Load saved prefs
+      if (localStorage.getItem('av_pref_notifications') === 'true') setNotificationsEnabled(true);
+      if (localStorage.getItem('av_pref_language') === 'en') setAppLanguage('en');
+  }, []);
+
   // Filter Logic
   let currentProviders = PROVIDERS_DATA[activeVaultTab];
   if (activeVaultTab === 'affiliate') {
@@ -215,6 +244,82 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
     }
   };
 
+  // --- SYSTEM LOGIC ---
+  const handleBackup = () => {
+      const backupData = {
+          timestamp: new Date().toISOString(),
+          version: '1.0.1',
+          vault: localStorage.getItem(VAULT_STORAGE_KEY),
+          brain: localStorage.getItem(BRAIN_STORAGE_KEY),
+          queue: localStorage.getItem(QUEUE_STORAGE_KEY),
+          gallery: localStorage.getItem(GALLERY_STORAGE_KEY),
+          chat: localStorage.getItem(CHAT_STORAGE_KEY),
+          autopilot: localStorage.getItem(AUTOPILOT_STORAGE_KEY),
+          ui: localStorage.getItem(UI_STATE_STORAGE_KEY),
+      };
+      
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `AV_Studio_Backup_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
+  const handleRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          try {
+              const content = event.target?.result as string;
+              const data = JSON.parse(content);
+              
+              if (!data.version) throw new Error("Invalid backup file.");
+
+              if (confirm("CẢNH BÁO: Khôi phục dữ liệu sẽ ghi đè lên toàn bộ cài đặt hiện tại. Tiếp tục?")) {
+                  if (data.vault) localStorage.setItem(VAULT_STORAGE_KEY, data.vault);
+                  if (data.brain) localStorage.setItem(BRAIN_STORAGE_KEY, data.brain);
+                  if (data.queue) localStorage.setItem(QUEUE_STORAGE_KEY, data.queue);
+                  if (data.gallery) localStorage.setItem(GALLERY_STORAGE_KEY, data.gallery);
+                  if (data.chat) localStorage.setItem(CHAT_STORAGE_KEY, data.chat);
+                  if (data.autopilot) localStorage.setItem(AUTOPILOT_STORAGE_KEY, data.autopilot);
+                  if (data.ui) localStorage.setItem(UI_STATE_STORAGE_KEY, data.ui);
+                  
+                  alert("Khôi phục thành công! Hệ thống sẽ tự tải lại.");
+                  window.location.reload();
+              }
+          } catch (err) {
+              alert("File backup bị lỗi hoặc không đúng định dạng.");
+          }
+      };
+      reader.readAsText(file);
+  };
+
+  const handleFactoryReset = () => {
+      if (confirm("DANGER ZONE: Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu của ứng dụng? Hành động này không thể hoàn tác.")) {
+          localStorage.clear();
+          window.location.reload();
+      }
+  };
+
+  const toggleNotifications = () => {
+      const newVal = !notificationsEnabled;
+      setNotificationsEnabled(newVal);
+      localStorage.setItem('av_pref_notifications', String(newVal));
+      if (newVal) {
+          Notification.requestPermission();
+      }
+  };
+
+  const changeLanguage = (lang: 'vi' | 'en') => {
+      setAppLanguage(lang);
+      localStorage.setItem('av_pref_language', lang);
+  };
+
   return (
     <div className="animate-fade-in space-y-6 pb-12">
       {/* Header */}
@@ -254,7 +359,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
         
         {/* TAB: BRAIN */}
         {activeTab === 'brain' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
              <div className="space-y-4">
                 <div className="flex justify-between items-center">
                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -313,7 +418,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 
         {/* TAB: VAULT */}
         {activeTab === 'vault' && (
-          <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex flex-col md:flex-row gap-6 animate-fade-in">
              {/* Sub Sidebar */}
              <div className="w-full md:w-60 space-y-2 shrink-0">
                 {[
@@ -503,9 +608,137 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 
         {/* TAB: SYSTEM */}
         {activeTab === 'system' && (
-           <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-              <Terminal size={48} className="mb-4 opacity-20" />
-              <p>System Logs & Advanced Config coming soon.</p>
+           <div className="animate-fade-in grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* LEFT: GENERAL PREFERENCES */}
+              <div className="space-y-6">
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-5">
+                      <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                          <MonitorPlay size={16} className="text-blue-400"/> General Preferences
+                      </h3>
+                      <div className="space-y-4">
+                          {/* Language */}
+                          <div className="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-800">
+                              <div className="flex items-center gap-3">
+                                  <Languages size={18} className="text-slate-400" />
+                                  <span className="text-sm text-slate-200">Ngôn ngữ hiển thị</span>
+                              </div>
+                              <div className="flex bg-slate-950 rounded-md p-1 border border-slate-800">
+                                  <button 
+                                    onClick={() => changeLanguage('vi')}
+                                    className={`px-3 py-1 rounded text-xs font-bold transition-all ${appLanguage === 'vi' ? 'bg-primary text-white shadow' : 'text-slate-500 hover:text-white'}`}
+                                  >
+                                    Tiếng Việt
+                                  </button>
+                                  <button 
+                                    onClick={() => changeLanguage('en')}
+                                    className={`px-3 py-1 rounded text-xs font-bold transition-all ${appLanguage === 'en' ? 'bg-primary text-white shadow' : 'text-slate-500 hover:text-white'}`}
+                                  >
+                                    English
+                                  </button>
+                              </div>
+                          </div>
+
+                          {/* Notifications */}
+                          <div className="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-800">
+                              <div className="flex items-center gap-3">
+                                  <Bell size={18} className="text-slate-400" />
+                                  <span className="text-sm text-slate-200">Thông báo trình duyệt</span>
+                              </div>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer" checked={notificationsEnabled} onChange={toggleNotifications} />
+                                <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                              </label>
+                          </div>
+
+                          {/* Theme (Visual only for now) */}
+                          <div className="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-800 opacity-75 cursor-not-allowed">
+                              <div className="flex items-center gap-3">
+                                  <Moon size={18} className="text-slate-400" />
+                                  <span className="text-sm text-slate-200">Giao diện (Dark Only)</span>
+                              </div>
+                              <span className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-500">Locked</span>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* System Status */}
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-5">
+                      <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                          <HardDrive size={16} className="text-green-400"/> System Health
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center">
+                              <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Local Storage</div>
+                              <div className="text-lg font-mono text-white">{storageUsage}</div>
+                          </div>
+                          <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 text-center">
+                              <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Version</div>
+                              <div className="text-lg font-mono text-primary">v1.0.1 PRO</div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* RIGHT: DATA MANAGEMENT */}
+              <div className="space-y-6">
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                      
+                      <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2 relative z-10">
+                          <Database size={16} className="text-purple-400"/> Data Management
+                      </h3>
+                      
+                      <div className="space-y-4 relative z-10">
+                          <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-lg">
+                              <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 mt-1">
+                                      <FileJson size={20} />
+                                  </div>
+                                  <div>
+                                      <h4 className="text-sm font-bold text-white">Backup & Restore</h4>
+                                      <p className="text-xs text-slate-400 mt-1 mb-3">
+                                          Xuất toàn bộ cấu hình (API Keys, Brain, History) ra file JSON để lưu trữ hoặc chuyển sang máy khác.
+                                      </p>
+                                      <div className="flex gap-2">
+                                          <button 
+                                            onClick={handleBackup}
+                                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-colors"
+                                          >
+                                              <Download size={14} /> Export Data
+                                          </button>
+                                          <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-colors cursor-pointer">
+                                              <Upload size={14} /> Import Data
+                                              <input type="file" accept=".json" onChange={handleRestore} className="hidden" />
+                                          </label>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div className="p-4 bg-red-900/10 border border-red-500/20 rounded-lg">
+                              <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-red-500/10 rounded-lg text-red-500 mt-1">
+                                      <AlertTriangle size={20} />
+                                  </div>
+                                  <div>
+                                      <h4 className="text-sm font-bold text-red-400">Danger Zone</h4>
+                                      <p className="text-xs text-red-300/70 mt-1 mb-3">
+                                          Khôi phục cài đặt gốc sẽ xóa vĩnh viễn mọi dữ liệu trên trình duyệt này.
+                                      </p>
+                                      <button 
+                                        onClick={handleFactoryReset}
+                                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg flex items-center gap-2 transition-colors w-full justify-center"
+                                      >
+                                          <Trash2 size={14} /> Factory Reset (Xóa tất cả)
+                                      </button>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
            </div>
         )}
 

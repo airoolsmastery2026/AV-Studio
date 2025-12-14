@@ -16,10 +16,11 @@ import AIChatAssistant from './components/AIChatAssistant';
 import AutoPilotDashboard from './components/AutoPilotDashboard';
 import ModelSelector from './components/ModelSelector';
 import ModelFlowDiagram from './components/ModelFlowDiagram';
+import ViralDNAStudio from './components/ViralDNAStudio'; // NEW IMPORT
 import { Zap, Link as LinkIcon, AlertTriangle, Cpu, Lock, LayoutDashboard, Settings, Layers, RotateCw, Bot, Filter, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Type, Palette, Mic, Check, BrainCircuit, ArrowRight, Menu, MessageCircle, Factory } from 'lucide-react';
 import { generateVideoPlan, classifyInput } from './services/geminiService';
 import { postVideoToSocial } from './services/socialService';
-import { AppStatus, OrchestratorResponse, SourceMetadata, TabView, ApiKeyConfig, ContentNiche, ContentWorkflow, AppContext, KnowledgeBase, AgentCommand, PostingJob, ChatSession, ChatMessage, VideoResolution, AspectRatio, ScriptModel, VisualModel, VoiceModel, CompletedVideo } from './types';
+import { AppStatus, OrchestratorResponse, SourceMetadata, TabView, ApiKeyConfig, ContentNiche, ContentWorkflow, AppContext, KnowledgeBase, AgentCommand, PostingJob, ChatSession, ChatMessage, VideoResolution, AspectRatio, ScriptModel, VisualModel, VoiceModel, CompletedVideo, HunterInsight } from './types';
 
 // SECURITY & PERSISTENCE CONSTANTS
 const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
@@ -28,11 +29,11 @@ const QUEUE_STORAGE_KEY = 'av_studio_queue_v1';
 const UI_STATE_STORAGE_KEY = 'av_studio_ui_state_v1';
 const CHAT_STORAGE_KEY = 'av_studio_chat_sessions_v2'; 
 const GALLERY_STORAGE_KEY = 'av_studio_gallery_v1';
-const APP_RUNTIME_STORAGE_KEY = 'av_studio_runtime_v1'; // NEW: Persist active process
+const APP_RUNTIME_STORAGE_KEY = 'av_studio_runtime_v1'; 
 const AUTOPILOT_STORAGE_KEY = 'av_studio_autopilot_state_v1';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabView>('campaign');
+  const [activeTab, setActiveTab] = useState<TabView>('studio'); // Default to Studio for Pro Version
   
   // Mobile Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -110,7 +111,6 @@ const App: React.FC = () => {
   const runtimeState = getRuntimeState();
 
   const [campaignMode, setCampaignMode] = useState<'single' | 'batch'>(runtimeState.campaignMode || 'single');
-  // If status was loading when closed, reset to IDLE to prevent stuck spinners, but keep logs/plan
   const initialStatus = ['ANALYZING', 'ROUTING', 'PLANNING', 'PARAPHRASING', 'RENDERING'].includes(runtimeState.status) 
         ? AppStatus.IDLE 
         : (runtimeState.status || AppStatus.IDLE);
@@ -120,7 +120,6 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(runtimeState.error || null);
   const [logs, setLogs] = useState<string[]>(runtimeState.logs || []);
 
-  // --- NEW: VIDEO CONFIG STATE (PERSISTED) ---
   const [resolution, setResolution] = useState<VideoResolution>('1080p');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
   
@@ -130,7 +129,6 @@ const App: React.FC = () => {
 
   const [detectedStrategy, setDetectedStrategy] = useState<ContentWorkflow | null>(null);
   
-  // Modal States
   const [showConsent, setShowConsent] = useState(false);
 
   // --- PERSISTENCE EFFECTS ---
@@ -162,12 +160,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const stateToSave = { 
         url, selectedNiche, selectedWorkflow, showAdvanced,
-        scriptModel, visualModel, voiceModel // Persist Model Selection
+        scriptModel, visualModel, voiceModel 
     };
     localStorage.setItem(UI_STATE_STORAGE_KEY, JSON.stringify(stateToSave));
   }, [url, selectedNiche, selectedWorkflow, showAdvanced, scriptModel, visualModel, voiceModel]);
 
-  // NEW: Save Runtime State
   useEffect(() => {
       const runtimeToSave = {
           status,
@@ -186,7 +183,6 @@ const App: React.FC = () => {
   const primaryApiKey = apiKeys.find(k => k.status === 'active' && k.provider === 'google')?.key;
   const hasZaloVideo = apiKeys.some(k => k.provider === 'zalo' && k.status === 'active');
 
-  // --- HELPER: Read AutoPilot Data for Context ---
   const getAutoPilotContext = () => {
       try {
           const saved = localStorage.getItem(AUTOPILOT_STORAGE_KEY);
@@ -239,7 +235,6 @@ ${recentLogs}
     setUrl(link);
     setSelectedWorkflow('REVIEW_TUTORIAL');
     
-    // Auto-detect if it's a google product link to turn on the ecosystem mode
     if (link.includes('google') || link.includes('gemini') || link.includes('youtube')) {
         setPreferGoogleStack(true);
         addLog(`[MARKETPLACE] Đã phát hiện sản phẩm Google. Bật chế độ "Google Ecosystem Priority".`);
@@ -251,9 +246,8 @@ ${recentLogs}
     addLog(`[MARKETPLACE] Đã chọn sản phẩm. Workflow tự động đặt là: REVIEW_TUTORIAL.`);
   };
 
-  // Callback for Strategic Intelligence Hub (Analytics)
   const handleDeployStrategy = (targetName: string, type: 'clone' | 'review') => {
-      setUrl(targetName); // Set URL as the target name (simulated for now, could be real URL)
+      setUrl(targetName); 
       if (type === 'clone') {
           setSelectedWorkflow('VIRAL_CLONE');
           addLog(`[COMMANDER] Triển khai chiến lược CLONE từ Tình báo Chiến lược: ${targetName}`);
@@ -264,11 +258,24 @@ ${recentLogs}
       setActiveTab('campaign');
   };
 
+  const handleSyncToBrain = (insight: HunterInsight) => {
+      const memoryString = `STRATEGIC WINNER: ${insight.target_name} | PROFIT: ${insight.hidden_analysis.profit_potential} | ANGLE: ${insight.strategic_suggestion}`;
+      
+      if (!knowledgeBase.learnedPreferences.includes(memoryString)) {
+          setKnowledgeBase(prev => ({
+              ...prev,
+              learnedPreferences: [memoryString, ...prev.learnedPreferences].slice(0, 50),
+              lastUpdated: Date.now()
+          }));
+          addLog(`🧠 BRAIN UPDATED: Stored strategy for ${insight.target_name}`);
+      }
+  };
+
   const handleAgentCommand = (cmd: AgentCommand) => {
     addLog(`🤖 COMMAND: ${cmd.action} - ${JSON.stringify(cmd.payload)}`);
     switch (cmd.action) {
       case 'NAVIGATE':
-        if (['campaign', 'analytics', 'risk_center', 'marketplace', 'settings', 'queue', 'auto_pilot', 'models'].includes(cmd.payload)) {
+        if (['campaign', 'analytics', 'risk_center', 'marketplace', 'settings', 'queue', 'auto_pilot', 'models', 'studio'].includes(cmd.payload)) {
           setActiveTab(cmd.payload as TabView);
         }
         break;
@@ -291,13 +298,11 @@ ${recentLogs}
     }
   };
 
-  // Helper to inject a system message into the active chat (Simulated notification)
   const handleSendReportToChat = (reportText: string) => {
     try {
         const savedSessionsRaw = localStorage.getItem(CHAT_STORAGE_KEY);
         let sessions: ChatSession[] = savedSessionsRaw ? JSON.parse(savedSessionsRaw) : [];
         
-        // If no sessions, create one
         if (sessions.length === 0) {
             const newSession: ChatSession = {
                 id: crypto.randomUUID(),
@@ -308,7 +313,6 @@ ${recentLogs}
             sessions.push(newSession);
         }
 
-        // Push to the first (most recent) session
         const updatedSession = { ...sessions[0] };
         const newMsg: ChatMessage = {
             id: crypto.randomUUID(),
@@ -321,7 +325,6 @@ ${recentLogs}
 
         localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(sessions));
         
-        // Trigger a custom event so AIChatAssistant knows to re-render if it's open
         addLog("📨 Report sent to AV Commander.");
         window.dispatchEvent(new Event('chat-storage-updated'));
         
@@ -330,7 +333,6 @@ ${recentLogs}
     }
   };
 
-  // --- ZALO POSTING INTEGRATION ---
   const handlePostToZalo = async (content: { title: string, description: string }) => {
     const zaloKey = apiKeys.find(k => k.provider === 'zalo' && k.status === 'active');
     if (zaloKey) {
@@ -358,10 +360,9 @@ ${recentLogs}
   const handleAddToQueue = (job: PostingJob) => {
       setQueueJobs(prev => [job, ...prev]);
       addLog(`[QUEUE] Added job: ${job.content_title}`);
-      setActiveTab('queue'); // Auto-switch to Queue tab for UX
+      setActiveTab('queue'); 
   };
 
-  // NEW: Handler for auto-generated videos (from AutoPilot)
   const handleVideoCompleted = (video: CompletedVideo) => {
       setCompletedVideos(prev => [video, ...prev]);
       addLog(`[LIBRARY] 🎬 New Video Added: ${video.title}`);
@@ -489,6 +490,8 @@ ${recentLogs}
   // RENDER CONTENT BASED ON TAB
   const renderContent = () => {
     switch(activeTab) {
+      case 'studio':
+        return <ViralDNAStudio apiKeys={apiKeys} />;
       case 'risk_center':
         return <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={handleSendReportToChat} />;
       case 'analytics':
@@ -497,6 +500,7 @@ ${recentLogs}
                 apiKeys={apiKeys} 
                 onDeployStrategy={handleDeployStrategy} 
                 onSendReportToChat={handleSendReportToChat}
+                onSyncToBrain={handleSyncToBrain}
             />
         );
       case 'marketplace':
@@ -842,6 +846,7 @@ ${recentLogs}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <div>
                 <h2 className="text-lg md:text-3xl font-bold text-white mb-1 md:mb-2 leading-tight truncate">
+                  {activeTab === 'studio' && "Viral DNA Studio Pro"}
                   {activeTab === 'campaign' && "Smart Campaign Wizard"}
                   {activeTab === 'analytics' && "Strategic Intelligence"}
                   {activeTab === 'risk_center' && "Channel Risk Center"}
@@ -853,6 +858,7 @@ ${recentLogs}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="text-slate-400 text-xs md:text-sm hidden md:block">
+                    {activeTab === 'studio' && "Công cụ phân tích đối thủ đa kênh và tạo bản sao Viral tối thượng."}
                     {activeTab === 'campaign' && "Tự động phân loại nguồn và tạo video theo chiến lược thông minh (Hỗ trợ Batch)."}
                     {activeTab === 'analytics' && "Tình báo thị trường, giải mã đối thủ để Clone & Build New."}
                     {activeTab === 'risk_center' && "Phân tích sức khỏe kênh, phát hiện rủi ro và nhận diện Shadowban."}

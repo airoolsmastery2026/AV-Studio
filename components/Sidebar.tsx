@@ -9,7 +9,8 @@ import {
   HeartPulse,
   X,
   Infinity as InfinityIcon,
-  Cpu
+  Cpu,
+  Dna
 } from 'lucide-react';
 import { TabView } from '../types';
 
@@ -21,7 +22,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onClose }) => {
-  const menuItems: { id: TabView, icon: any, label: string, special?: boolean }[] = [
+  const menuItems: { id: TabView, icon: any, label: string, special?: boolean, pro?: boolean }[] = [
+    { id: 'studio', icon: Dna, label: 'Viral DNA Studio', special: true, pro: true },
     { id: 'auto_pilot', icon: InfinityIcon, label: 'Infinity Auto-Pilot', special: true }, 
     { id: 'campaign', icon: LayoutDashboard, label: 'Sản xuất & Chiến dịch' },
     { id: 'models', icon: Cpu, label: 'AI Models' },
@@ -74,13 +76,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onCl
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                     activeTab === item.id 
                       ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_10px_rgba(14,165,164,0.1)]' 
-                      : item.special 
-                        ? 'bg-gradient-to-r from-purple-900/20 to-blue-900/20 text-purple-300 border border-purple-500/30 hover:border-purple-400 hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                      : item.pro 
+                        ? 'bg-gradient-to-r from-red-900/10 to-orange-900/10 text-orange-400 border border-orange-500/20 hover:border-orange-500/50'
+                        : item.special 
+                          ? 'bg-gradient-to-r from-purple-900/20 to-blue-900/20 text-purple-300 border border-purple-500/30 hover:border-purple-400 hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-900'
                   }`}
                 >
                   <item.icon size={18} className={item.special ? "animate-pulse" : ""} />
                   {item.label}
+                  {item.pro && <span className="ml-auto text-[9px] bg-orange-500 text-black px-1.5 rounded font-bold">PRO</span>}
                 </button>
               </li>
             ))}
