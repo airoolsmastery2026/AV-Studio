@@ -10,7 +10,8 @@ import {
   X,
   Infinity as InfinityIcon,
   Cpu,
-  Dna
+  Dna,
+  BookOpen
 } from 'lucide-react';
 import { TabView } from '../types';
 
@@ -31,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onCl
     { id: 'marketplace', icon: ShoppingBag, label: 'Sản phẩm AI' },
     { id: 'risk_center', icon: HeartPulse, label: 'Sức khỏe Kênh' },
     { id: 'queue', icon: ListVideo, label: 'Lịch đăng & Queue' },
+    { id: 'docs', icon: BookOpen, label: 'Hướng dẫn sử dụng' }, // New Item
     { id: 'settings', icon: Settings, label: 'Cấu hình Hệ thống' },
   ];
 

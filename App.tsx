@@ -16,7 +16,8 @@ import AIChatAssistant from './components/AIChatAssistant';
 import AutoPilotDashboard from './components/AutoPilotDashboard';
 import ModelSelector from './components/ModelSelector';
 import ModelFlowDiagram from './components/ModelFlowDiagram';
-import ViralDNAStudio from './components/ViralDNAStudio'; // NEW IMPORT
+import ViralDNAStudio from './components/ViralDNAStudio';
+import Documentation from './components/Documentation'; // NEW IMPORT
 import { Zap, Link as LinkIcon, AlertTriangle, Cpu, Lock, LayoutDashboard, Settings, Layers, RotateCw, Bot, Filter, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Type, Palette, Mic, Check, BrainCircuit, ArrowRight, Menu, MessageCircle, Factory } from 'lucide-react';
 import { generateVideoPlan, classifyInput } from './services/geminiService';
 import { postVideoToSocial } from './services/socialService';
@@ -275,7 +276,7 @@ ${recentLogs}
     addLog(`🤖 COMMAND: ${cmd.action} - ${JSON.stringify(cmd.payload)}`);
     switch (cmd.action) {
       case 'NAVIGATE':
-        if (['campaign', 'analytics', 'risk_center', 'marketplace', 'settings', 'queue', 'auto_pilot', 'models', 'studio'].includes(cmd.payload)) {
+        if (['campaign', 'analytics', 'risk_center', 'marketplace', 'settings', 'queue', 'auto_pilot', 'models', 'studio', 'docs'].includes(cmd.payload)) {
           setActiveTab(cmd.payload as TabView);
         }
         break;
@@ -492,6 +493,8 @@ ${recentLogs}
     switch(activeTab) {
       case 'studio':
         return <ViralDNAStudio apiKeys={apiKeys} />;
+      case 'docs': // NEW CASE
+        return <Documentation />;
       case 'risk_center':
         return <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={handleSendReportToChat} />;
       case 'analytics':
@@ -855,6 +858,7 @@ ${recentLogs}
                   {activeTab === 'queue' && "Social Scheduler"}
                   {activeTab === 'auto_pilot' && "Infinity Auto-Pilot"}
                   {activeTab === 'models' && "AI Model Engine"}
+                  {activeTab === 'docs' && "Documentation Center"}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="text-slate-400 text-xs md:text-sm hidden md:block">
@@ -867,6 +871,7 @@ ${recentLogs}
                     {activeTab === 'queue' && "Lên lịch đăng bài tự động, tối ưu giờ vàng và quản lý đa kênh."}
                     {activeTab === 'auto_pilot' && "Chế độ chạy ngầm 24/7: Tự động săn tìm, tạo video và đăng bài liên tục."}
                     {activeTab === 'models' && "Cấu hình Script, Visual và Voice Model cho toàn bộ hệ thống."}
+                    {activeTab === 'docs' && "Hướng dẫn sử dụng chi tiết, mẹo tối ưu và các kỹ thuật nâng cao."}
                     </p>
                     
                     {/* Zalo Video Indicator */}
