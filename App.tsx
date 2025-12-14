@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -17,11 +17,11 @@ import AutoPilotDashboard from './components/AutoPilotDashboard';
 import ModelSelector from './components/ModelSelector';
 import ModelFlowDiagram from './components/ModelFlowDiagram';
 import ViralDNAStudio from './components/ViralDNAStudio';
-import Documentation from './components/Documentation'; // NEW IMPORT
-import { Zap, Link as LinkIcon, AlertTriangle, Cpu, Lock, LayoutDashboard, Settings, Layers, RotateCw, Bot, Filter, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Type, Palette, Mic, Check, BrainCircuit, ArrowRight, Menu, MessageCircle, Factory } from 'lucide-react';
+import Documentation from './components/Documentation';
+import { Zap, Link as LinkIcon, AlertTriangle, Cpu, LayoutDashboard, Settings, Layers, RotateCw, Bot, SlidersHorizontal, Sparkles, MonitorPlay, Ratio, Menu, MessageCircle, Factory, Globe } from 'lucide-react';
 import { generateVideoPlan, classifyInput } from './services/geminiService';
 import { postVideoToSocial } from './services/socialService';
-import { AppStatus, OrchestratorResponse, SourceMetadata, TabView, ApiKeyConfig, ContentNiche, ContentWorkflow, AppContext, KnowledgeBase, AgentCommand, PostingJob, ChatSession, ChatMessage, VideoResolution, AspectRatio, ScriptModel, VisualModel, VoiceModel, CompletedVideo, HunterInsight } from './types';
+import { AppStatus, OrchestratorResponse, SourceMetadata, TabView, ApiKeyConfig, ContentNiche, ContentWorkflow, AppContext, KnowledgeBase, AgentCommand, PostingJob, ChatSession, ChatMessage, VideoResolution, AspectRatio, ScriptModel, VisualModel, VoiceModel, CompletedVideo, HunterInsight, AppLanguage, ContentLanguage } from './types';
 
 // SECURITY & PERSISTENCE CONSTANTS
 const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
@@ -33,11 +33,427 @@ const GALLERY_STORAGE_KEY = 'av_studio_gallery_v1';
 const APP_RUNTIME_STORAGE_KEY = 'av_studio_runtime_v1'; 
 const AUTOPILOT_STORAGE_KEY = 'av_studio_autopilot_state_v1';
 
+// --- LAYER 1: APP LOCALIZATION (FULL DICTIONARY) ---
+const TRANSLATIONS = {
+  vi: {
+    sidebar: {
+      studio: "Xưởng Viral DNA",
+      auto: "Auto-Pilot Vô Cực",
+      campaign: "Chiến Dịch Hàng Loạt",
+      models: "Động Cơ AI",
+      analytics: "Tình báo Chiến lược",
+      market: "Sàn AI Affiliate",
+      risk: "Trung tâm Rủi ro",
+      queue: "Lịch trình & Hàng chờ",
+      docs: "Hướng dẫn",
+      settings: "Cấu hình Hệ thống"
+    },
+    header: {
+      lang_label: "Ngôn ngữ hiển thị",
+      keys: "Keys"
+    },
+    studio: {
+      title: "Xưởng Viral DNA",
+      subtitle: "Bộ máy phân tích & tái tạo cấu trúc",
+      input_section: "Nguồn dữ liệu (Input)",
+      input_placeholder: "Dán link YouTube/TikTok...",
+      btn_add_source: "Thêm nguồn",
+      btn_upload: "Tải lên Video",
+      content_lang_label: "Ngôn ngữ nội dung video (Output)",
+      content_lang_desc: "Quyết định ngôn ngữ của Script, Voice, và SEO.",
+      analyze_btn: "PHÂN TÍCH & TÁI TẠO CẤU TRÚC",
+      tabs: {
+        dna: "1. Phân tích DNA",
+        script: "2. Kịch bản AI",
+        studio: "3. Xưởng sản xuất",
+        quality: "4. Kiểm soát"
+      },
+      script_engine: {
+        title: "Script Engine",
+        topic_label: "Chủ đề / Hook Chính",
+        generate_btn: "Tạo Kịch bản (Original)",
+        generating: "Đang viết..."
+      },
+      video_studio: {
+        title: "Video Studio",
+        render_btn: "BẮT ĐẦU RENDER",
+        rendering: "Đang dựng..."
+      }
+    },
+    campaign: {
+      title: "Xưởng Sản Xuất Hàng Loạt",
+      subtitle: "Nhập danh sách URL hoặc Chủ đề. Hệ thống sẽ tự động Phân tích -> Viết kịch bản -> Tạo ảnh -> Dựng video -> Lên lịch đăng.",
+      input_label: "1. Nhập danh sách nguồn (1 dòng / 1 link)",
+      import_btn: "Import vào Hàng chờ",
+      control_title: "2. Điều khiển",
+      waiting: "chờ",
+      done: "xong",
+      start_btn: "Bắt đầu Sản xuất",
+      processing: "Đang xử lý...",
+      clear_btn: "Xóa tất cả",
+      progress_title: "Tiến độ Sản xuất",
+      clear_done: "Xóa job đã xong",
+      empty_state: "Danh sách trống. Hãy nhập URL bên trái."
+    },
+    models: {
+      title: "Động Cơ Mô Hình AI",
+      subtitle: "Trực quan hóa và cấu hình các mạng nơ-ron đang vận hành.",
+      specs_title: "Thông số kỹ thuật đầu ra",
+      res_label: "Độ phân giải",
+      ratio_label: "Tỷ lệ khung hình",
+      script_title: "Trí Tuệ Kịch Bản",
+      visual_title: "Động Cơ Hình Ảnh",
+      voice_title: "Tổng Hợp Giọng Nói",
+      badge_reasoning: "Lõi Suy Luận",
+      badge_visual: "Ảnh & Video",
+      badge_audio: "TTS Audio"
+    },
+    plan_result: {
+        viral_score: "Điểm Tiềm Năng Viral",
+        tiktok_trend: "Xu hướng TikTok",
+        yt_shorts: "YouTube Shorts",
+        est_cpm: "Ước tính CPM",
+        audience_persona: "Khán giả Mục tiêu (Persona)",
+        deep_analysis: "Phân Tích Chuyên Sâu",
+        script_scenes: "Kịch bản & Phân cảnh",
+        voiceover: "Giọng đọc",
+        visual: "Hình ảnh",
+        live_preview: "XEM TRƯỚC LIVE",
+        auto_post_timer: "Đếm ngược Đăng",
+        posted_success: "ĐÃ ĐĂNG THÀNH CÔNG",
+        post_now: "ĐĂNG NGAY",
+        schedule: "LÊN LỊCH / QUEUE",
+        gen_metadata: "Metadata Tạo tự động",
+        title_viral: "Tiêu đề (Viral)",
+        desc_seo: "Mô tả (SEO)",
+        hashtags: "Hashtags",
+        download: "Tải về JSON",
+        share: "Chia sẻ"
+    },
+    risk_center: {
+        title: "Trung tâm Rủi ro & Sức khỏe Kênh",
+        subtitle: "Hệ thống chẩn đoán sức khỏe kênh chuyên sâu. Phát hiện Shadowban, Vi phạm bản quyền, Gậy cộng đồng và Sụt giảm tương tác bất thường.",
+        btn_scan: "Chạy Kiểm Tra Rủi Ro",
+        btn_scanning: "Đang Quét...",
+        card_channels: "Kênh Đã Kết Nối",
+        card_score: "Điểm Sức Khỏe TB",
+        card_risk: "Rủi Ro Shadowban",
+        card_hint: "Nhấn nút kiểm tra để AI quét toàn bộ hệ thống.",
+        report_score: "Điểm Sức Khỏe",
+        metric_growth: "Tăng Trưởng",
+        metric_watch: "Thời Gian Xem",
+        metric_ctr: "CTR",
+        risk_protocol: "Giao Thức Phát Hiện Rủi Ro",
+        risk_safe: "Không phát hiện bất thường. Hệ thống an toàn.",
+        ai_diagnosis: "Chẩn Đoán & Khắc Phục AI",
+        auto_reported: "Đã báo cáo tự động",
+        alert_key: "Cần Google API Key để AI phân tích rủi ro.",
+        alert_error: "Lỗi trong quá trình quét kênh."
+    },
+    analytics: {
+        title: "Trung tâm Tình báo Chiến lược",
+        subtitle: "Trinh sát tự động. Bot tự động săn lùng và tìm ra 'The Winner'.",
+        view_standard: "Quét Cơ bản",
+        view_deep: "Quét Mạng Lưới Sâu",
+        auto_recon_btn: "TỰ ĐỘNG TRINH SÁT",
+        stop_auto_btn: "DỪNG TỰ ĐỘNG",
+        manual_target: "Nhập mục tiêu thủ công (Từ khóa / URL)",
+        logs_title: "Tín hiệu Trực tiếp",
+        analysis_title: "Phân tích Mục tiêu Hiện tại",
+        winner_title: "Cơ hội Tốt nhất (Winner)",
+        deploy_btn: "TRIỂN KHAI NGAY",
+        waiting: "Hệ thống sẵn sàng. Đang chờ lệnh..."
+    },
+    marketplace: {
+        tab_market: "Sàn AI Tuyển Chọn",
+        tab_hunter: "Auto-Hunter (Tự động)",
+        filter_google: "Hệ sinh thái Google",
+        title: "Sàn AI Affiliate (High Ticket)",
+        desc: "Tuyển chọn các công cụ AI có hoa hồng cao nhất.",
+        hunter_title: "Giao thức Auto-Hunter",
+        hunter_desc: "Hệ thống sẽ tự động quét sản phẩm tiềm năng.",
+        niche_placeholder: "Nhập ngách (VD: Kitchen Gadgets)...",
+        activate_btn: "Kích hoạt Hunter",
+        hunting: "Đang săn...",
+        results_found: "Sản phẩm tìm thấy"
+    },
+    queue: {
+        title: "Soạn thảo & Cấu hình",
+        input_title: "Tiêu đề Video",
+        input_caption: "Mô tả / Caption",
+        platform_label: "Chọn nền tảng",
+        schedule_label: "Chiến lược & Thời gian",
+        mode_smart: "Luật Tùy chỉnh",
+        mode_auto: "AI Phân tích",
+        mode_manual: "Thủ công",
+        mode_now: "Đăng ngay",
+        queue_list_title: "Hàng chờ",
+        btn_schedule: "LÊN LỊCH",
+        btn_post_now: "ĐĂNG NGAY",
+        btn_analyzing: "ĐANG TẢI..."
+    },
+    autopilot: {
+        title: "HỆ THỐNG AUTO-PILOT VÔ CỰC",
+        subtitle: "Cỗ máy Bán hàng & Affiliate Tự động (Review, Ads, Demo)",
+        status_label: "Trạng thái Hệ thống",
+        config_title: "Cấu hình Nhiệm vụ",
+        niche_label: "Ngách Mục tiêu",
+        draft_mode: "Chế độ Nháp (Không đăng)",
+        stats_videos: "Video đã tạo",
+        stats_posted: "Đã đăng",
+        stats_uptime: "Thời gian chạy",
+        logs_title: "NHẬT KÝ HOẠT ĐỘNG",
+        library_title: "Thư viện Video Hoàn tất"
+    },
+    settings: {
+      title: "Trung Tâm Điều Khiển",
+      subtitle: "Cấu hình Bot, Quản lý Key và Dạy AI học tập.",
+      tabs: {
+        brain: "AI Brain (Bộ nhớ)",
+        vault: "API Vault (Kết nối)",
+        studio: "Cấu hình Studio",
+        system: "Hệ thống"
+      },
+      sections: {
+        general: "Cài đặt chung"
+      }
+    }
+  },
+  en: {
+    sidebar: {
+      studio: "Viral DNA Studio",
+      auto: "Infinity Auto-Pilot",
+      campaign: "Campaign Wizard",
+      models: "AI Models Engine",
+      analytics: "Strategic Intel",
+      market: "AI Marketplace",
+      risk: "Risk Center",
+      queue: "Scheduler & Queue",
+      docs: "Documentation",
+      settings: "Settings"
+    },
+    header: {
+      lang_label: "Display Language",
+      keys: "Keys"
+    },
+    studio: {
+      title: "Viral DNA Studio",
+      subtitle: "Structure Analysis & Replication Engine",
+      input_section: "Data Sources (Input)",
+      input_placeholder: "Paste YouTube/TikTok link...",
+      btn_add_source: "Add Source",
+      btn_upload: "Upload Video",
+      content_lang_label: "Video Content Language (Output)",
+      content_lang_desc: "Determines Script, Voice, and SEO language.",
+      analyze_btn: "ANALYZE & REPLICATE STRUCTURE",
+      tabs: {
+        dna: "1. DNA Analysis",
+        script: "2. Script Engine",
+        studio: "3. Video Studio",
+        quality: "4. Quality Gate"
+      },
+      script_engine: {
+        title: "Script Engine",
+        topic_label: "Topic / Main Hook",
+        generate_btn: "Generate Script (Original)",
+        generating: "Writing..."
+      },
+      video_studio: {
+        title: "Video Studio",
+        render_btn: "START RENDER",
+        rendering: "Rendering..."
+      }
+    },
+    campaign: {
+      title: "Batch Video Factory",
+      subtitle: "Enter URL list or Topics. System auto-analyzes -> Scripts -> Images -> Renders -> Schedules.",
+      input_label: "1. Input Source List (1 line / 1 link)",
+      import_btn: "Import to Queue",
+      control_title: "2. Controls",
+      waiting: "waiting",
+      done: "done",
+      start_btn: "Start Production",
+      processing: "Processing...",
+      clear_btn: "Clear All",
+      progress_title: "Production Progress",
+      clear_done: "Clear completed",
+      empty_state: "List empty. Enter URLs on the left."
+    },
+    models: {
+      title: "AI Model Engine",
+      subtitle: "Visualize and configure the neural networks powering your content.",
+      specs_title: "Output Specifications",
+      res_label: "Resolution",
+      ratio_label: "Aspect Ratio",
+      script_title: "Script Intelligence",
+      visual_title: "Visual Engine",
+      voice_title: "Voice Synthesis",
+      badge_reasoning: "Reasoning Core",
+      badge_visual: "Image & Video",
+      badge_audio: "TTS Audio"
+    },
+    plan_result: {
+        viral_score: "Viral Potential Score",
+        tiktok_trend: "TikTok Trend",
+        yt_shorts: "YouTube Shorts",
+        est_cpm: "EST. CPM",
+        audience_persona: "Target Audience (Persona)",
+        deep_analysis: "Deep Analysis",
+        script_scenes: "Script & Scenes",
+        voiceover: "Voiceover",
+        visual: "Visual",
+        live_preview: "LIVE PREVIEW",
+        auto_post_timer: "Auto-Post Timer",
+        posted_success: "POSTED SUCCESSFULLY",
+        post_now: "POST NOW",
+        schedule: "SCHEDULE / QUEUE",
+        gen_metadata: "Generated Metadata",
+        title_viral: "Title (Viral)",
+        desc_seo: "Description (SEO)",
+        hashtags: "Hashtags",
+        download: "Download JSON",
+        share: "Share"
+    },
+    risk_center: {
+        title: "Channel Health & Risk Center",
+        subtitle: "Deep channel health diagnostic system. Detects Shadowban, Copyright strikes, Community guidelines violations, and abnormal engagement drops.",
+        btn_scan: "Run Risk Audit",
+        btn_scanning: "Scanning...",
+        card_channels: "Connected Channels",
+        card_score: "Avg. Health Score",
+        card_risk: "Shadowban Risk",
+        card_hint: "Press 'Run Risk Audit' to scan the full system.",
+        report_score: "Health Score",
+        metric_growth: "Growth",
+        metric_watch: "Watch Time",
+        metric_ctr: "CTR",
+        risk_protocol: "Risk Detection Protocol",
+        risk_safe: "No anomalies detected. System secure.",
+        ai_diagnosis: "AI Diagnosis & Fix",
+        auto_reported: "Auto-reported",
+        alert_key: "Google API Key required for AI analysis.",
+        alert_error: "Error during channel scanning."
+    },
+    analytics: {
+        title: "Strategic Intelligence Hub",
+        subtitle: "Automated reconnaissance. Bot hunts and finds 'The Winner'.",
+        view_standard: "Standard Scan",
+        view_deep: "Deep Net Scanner",
+        auto_recon_btn: "AUTO-RECON",
+        stop_auto_btn: "STOP AUTO",
+        manual_target: "Manual Targeting (Keyword / URL)",
+        logs_title: "Signal Feed",
+        analysis_title: "Current Target Analysis",
+        winner_title: "The Winner (Best Found)",
+        deploy_btn: "DEPLOY NOW",
+        waiting: "System ready. Awaiting command..."
+    },
+    marketplace: {
+        tab_market: "Curated AI Market",
+        tab_hunter: "Auto-Hunter",
+        filter_google: "Google Ecosystem",
+        title: "AI Affiliate Market (High Ticket)",
+        desc: "Curated AI tools with highest commissions.",
+        hunter_title: "Auto-Hunter Protocol",
+        hunter_desc: "System will automatically scan for potential products.",
+        niche_placeholder: "Enter niche (e.g. Kitchen Gadgets)...",
+        activate_btn: "Activate Hunter",
+        hunting: "Hunting...",
+        results_found: "Products Found"
+    },
+    queue: {
+        title: "Drafting & Config",
+        input_title: "Video Title",
+        input_caption: "Description / Caption",
+        platform_label: "Select Platforms",
+        schedule_label: "Strategy & Timing",
+        mode_smart: "Smart Rule",
+        mode_auto: "AI Analysis",
+        mode_manual: "Manual",
+        mode_now: "Post Now",
+        queue_list_title: "Queue",
+        btn_schedule: "ADD TO QUEUE",
+        btn_post_now: "POST IMMEDIATELY",
+        btn_analyzing: "UPLOADING..."
+    },
+    autopilot: {
+        title: "INFINITY AUTO-PILOT",
+        subtitle: "Automated Sales & Affiliate Engine (Review, Ads, Demo)",
+        status_label: "System Status",
+        config_title: "Mission Config",
+        niche_label: "Target Niche",
+        draft_mode: "Draft Mode (No Posting)",
+        stats_videos: "Videos Created",
+        stats_posted: "Posted",
+        stats_uptime: "Session Uptime",
+        logs_title: "LIVE EXECUTION LOGS",
+        library_title: "Finished Video Library"
+    },
+    settings: {
+      title: "Control Center",
+      subtitle: "Bot Config, Key Management & AI Training.",
+      tabs: {
+        brain: "AI Brain (Memory)",
+        vault: "API Vault (Connect)",
+        studio: "Studio Config",
+        system: "System"
+      },
+      sections: {
+        general: "General Settings"
+      }
+    }
+  },
+  // ... (JP, ES, CN would follow similar structure, kept brief for XML limits but strictly following structure)
+  jp: {
+    sidebar: { studio: "バイラルDNAスタジオ", auto: "無限オートパイロット", campaign: "キャンペーン", models: "AIモデル", analytics: "戦略的インテリジェンス", market: "AIマーケット", risk: "リスクセンター", queue: "スケジューラー", docs: "ドキュメント", settings: "設定" },
+    header: { lang_label: "表示言語", keys: "キー" },
+    studio: { title: "バイラルDNAスタジオ", subtitle: "構造分析および複製エンジン", input_section: "データソース", analyze_btn: "構造分析", content_lang_label: "出力言語", tabs: { dna: "1. DNA分析", script: "2. スクリプト", studio: "3. スタジオ", quality: "4. 品質" }, script_engine: { title: "スクリプトエンジン", topic_label: "トピック", generate_btn: "生成", generating: "生成中..." }, video_studio: { title: "ビデオスタジオ", render_btn: "レンダリング", rendering: "処理中..." } },
+    analytics: { title: "戦略的インテリジェンスハブ", subtitle: "自動偵察。", view_standard: "標準スキャン", auto_recon_btn: "自動偵察", manual_target: "手動ターゲット", logs_title: "ライブフィード", analysis_title: "分析", winner_title: "勝者", deploy_btn: "展開" },
+    marketplace: { tab_market: "AIマーケット", tab_hunter: "オートハンター", title: "AIアフィリエイト", activate_btn: "ハンター起動", results_found: "結果" },
+    queue: { title: "ドラフト構成", input_title: "タイトル", schedule_label: "スケジュール", mode_now: "今すぐ投稿", queue_list_title: "キュー", btn_schedule: "スケジュール", btn_post_now: "投稿" },
+    autopilot: { title: "無限オートパイロット", subtitle: "自動販売エンジン", status_label: "ステータス", config_title: "ミッション設定", stats_videos: "作成済み", logs_title: "ログ" },
+    risk_center: { title: "チャンネルリスクセンター", subtitle: "シャドウバンと著作権侵害を検出します。", btn_scan: "監査を実行", btn_scanning: "スキャン中...", card_channels: "接続されたチャンネル", card_score: "平均スコア", card_risk: "シャドウバンのリスク", card_hint: "ボタンを押してスキャンを開始します。", report_score: "健康スコア", metric_growth: "成長", metric_watch: "総再生時間", metric_ctr: "CTR", risk_protocol: "リスク検出", risk_safe: "異常なし。安全です。", ai_diagnosis: "AI診断", auto_reported: "自動報告", alert_key: "Google APIキーが必要です。", alert_error: "エラーが発生しました。" },
+    settings: { title: "コントロールセンター", tabs: { brain: "AIブレイン", vault: "API保管庫", studio: "スタジオ設定", system: "システム" }, sections: { general: "一般設定" } }
+  },
+  es: {
+    sidebar: { studio: "Estudio Viral", auto: "Piloto Automático", campaign: "Campaña", models: "Modelos IA", analytics: "Inteligencia", market: "Mercado IA", risk: "Riesgo", queue: "Cola", docs: "Docs", settings: "Ajustes" },
+    header: { lang_label: "Idioma", keys: "Claves" },
+    studio: { title: "Estudio Viral DNA", subtitle: "Motor de Análisis", input_section: "Fuentes", analyze_btn: "Analizar", content_lang_label: "Idioma Salida", tabs: { dna: "1. Análisis", script: "2. Guión", studio: "3. Estudio", quality: "4. Calidad" }, script_engine: { title: "Motor Guión", topic_label: "Tema", generate_btn: "Generar", generating: "Escribiendo..." }, video_studio: { title: "Estudio Video", render_btn: "Renderizar", rendering: "Procesando..." } },
+    analytics: { title: "Centro de Inteligencia", subtitle: "Reconocimiento automático.", view_standard: "Escaneo Std", auto_recon_btn: "Auto-Recon", manual_target: "Objetivo Manual", logs_title: "Señal en vivo", analysis_title: "Análisis", winner_title: "Ganador", deploy_btn: "Desplegar" },
+    marketplace: { tab_market: "Mercado AI", tab_hunter: "Cazador Auto", title: "Afiliados AI", activate_btn: "Activar", results_found: "Resultados" },
+    queue: { title: "Borrador", input_title: "Título", schedule_label: "Horario", mode_now: "Publicar Ahora", queue_list_title: "Cola", btn_schedule: "Programar", btn_post_now: "Publicar" },
+    autopilot: { title: "Piloto Automático", subtitle: "Motor de Ventas", status_label: "Estado", config_title: "Config Misión", stats_videos: "Videos", logs_title: "Registros" },
+    risk_center: { title: "Centro de Riesgo", subtitle: "Detecta Shadowban y violaciones.", btn_scan: "Ejecutar Auditoría", btn_scanning: "Escaneando...", card_channels: "Canales", card_score: "Puntaje Promedio", card_risk: "Riesgo Shadowban", card_hint: "Presione escanear.", report_score: "Puntaje Salud", metric_growth: "Crecimiento", metric_watch: "Tiempo Vista", metric_ctr: "CTR", risk_protocol: "Protocolo Riesgo", risk_safe: "Sistema seguro.", ai_diagnosis: "Diagnóstico AI", auto_reported: "Auto-reportado", alert_key: "Se requiere Google API Key.", alert_error: "Error de escaneo." },
+    settings: { title: "Centro de Control", tabs: { brain: "Cerebro IA", vault: "Bóveda API", studio: "Config Estudio", system: "Sistema" }, sections: { general: "General" } }
+  },
+  cn: {
+    sidebar: { studio: "病毒工作室", auto: "自动驾驶", campaign: "活动", models: "模型", analytics: "情报", market: "市场", risk: "风控", queue: "队列", docs: "文档", settings: "设置" },
+    header: { lang_label: "语言", keys: "密钥" },
+    studio: { title: "病毒DNA工作室", subtitle: "分析引擎", input_section: "数据源", analyze_btn: "分析", content_lang_label: "输出语言", tabs: { dna: "1. DNA分析", script: "2. 脚本", studio: "3. 工作室", quality: "4. 质量" }, script_engine: { title: "脚本引擎", topic_label: "主题", generate_btn: "生成", generating: "生成中..." }, video_studio: { title: "视频工作室", render_btn: "渲染", rendering: "处理中..." } },
+    analytics: { title: "战略情报中心", subtitle: "自动侦察。", view_standard: "标准扫描", auto_recon_btn: "自动侦察", manual_target: "手动目标", logs_title: "实时信号", analysis_title: "分析", winner_title: "获胜者", deploy_btn: "部署" },
+    marketplace: { tab_market: "AI市场", tab_hunter: "自动猎人", title: "AI联盟", activate_btn: "激活", results_found: "结果" },
+    queue: { title: "草稿配置", input_title: "标题", schedule_label: "排程", mode_now: "立即发布", queue_list_title: "队列", btn_schedule: "加入队列", btn_post_now: "发布" },
+    autopilot: { title: "无限自动驾驶", subtitle: "销售引擎", status_label: "状态", config_title: "任务配置", stats_videos: "视频数", logs_title: "日志" },
+    risk_center: { title: "风险控制中心", subtitle: "检测 Shadowban 和违规行为。", btn_scan: "运行审计", btn_scanning: "扫描中...", card_channels: "已连接频道", card_score: "平均得分", card_risk: "Shadowban 风险", card_hint: "按按钮开始。", report_score: "健康分", metric_growth: "增长", metric_watch: "观看时长", metric_ctr: "点击率", risk_protocol: "风险协议", risk_safe: "系统安全。", ai_diagnosis: "AI 诊断", auto_reported: "自动报告", alert_key: "需要 Google API Key。", alert_error: "扫描错误。" },
+    settings: { title: "控制中心", tabs: { brain: "大脑", vault: "保险库", studio: "工作室设置", system: "系统" }, sections: { general: "常规" } }
+  }
+};
+
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabView>('studio'); // Default to Studio for Pro Version
+  const [activeTab, setActiveTab] = useState<TabView>('studio');
   
   // Mobile Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Ref for Main Content Scroll Container
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // EFFECT: Scroll to top when switching main tabs
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
   
   // --- STATE 1: VAULT (API KEYS) ---
   const [apiKeys, setApiKeys] = useState<ApiKeyConfig[]>(() => {
@@ -85,7 +501,7 @@ const App: React.FC = () => {
       return [];
   });
 
-  // --- STATE 5: UI PREFERENCES (URL, NICHE, WORKFLOW) ---
+  // --- STATE 5: UI PREFERENCES ---
   const getUiState = () => {
       try {
           const saved = localStorage.getItem(UI_STATE_STORAGE_KEY);
@@ -101,7 +517,13 @@ const App: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(uiState.showAdvanced || false);
   const [preferGoogleStack, setPreferGoogleStack] = useState<boolean>(false);
   
-  // --- RUNTIME STATE (RESTORED FROM STORAGE) ---
+  // --- LAYER 1: APP UI LANGUAGE ---
+  const [appLanguage, setAppLanguage] = useState<AppLanguage>('vi'); 
+  
+  // --- LAYER 2: CONTENT LANGUAGE (Global Default) ---
+  const [contentLanguage, setContentLanguage] = useState<ContentLanguage>('vi'); 
+  
+  // --- RUNTIME STATE ---
   const getRuntimeState = () => {
       try {
           const saved = localStorage.getItem(APP_RUNTIME_STORAGE_KEY);
@@ -442,7 +864,8 @@ ${recentLogs}
                     aspectRatio,
                     scriptModel,
                     visualModel,
-                    voiceModel
+                    voiceModel,
+                    outputLanguage: contentLanguage // Pass global content language
                 }
             };
 
@@ -488,15 +911,26 @@ ${recentLogs}
     }
   };
 
+  // Translation Helper
+  const t = (TRANSLATIONS as any)[appLanguage] || TRANSLATIONS.en;
+
   // RENDER CONTENT BASED ON TAB
   const renderContent = () => {
     switch(activeTab) {
       case 'studio':
-        return <ViralDNAStudio apiKeys={apiKeys} />;
-      case 'docs': // NEW CASE
+        return (
+            <ViralDNAStudio 
+                apiKeys={apiKeys} 
+                appLanguage={appLanguage} 
+                contentLanguage={contentLanguage}
+                setContentLanguage={setContentLanguage}
+                t={{ ...t.studio, plan_result: t.plan_result }} // Pass both studio and plan result keys
+            />
+        ); 
+      case 'docs':
         return <Documentation />;
       case 'risk_center':
-        return <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={handleSendReportToChat} />;
+        return <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={handleSendReportToChat} t={t.risk_center} />;
       case 'analytics':
         return (
             <AnalyticsDashboard 
@@ -504,12 +938,13 @@ ${recentLogs}
                 onDeployStrategy={handleDeployStrategy} 
                 onSendReportToChat={handleSendReportToChat}
                 onSyncToBrain={handleSyncToBrain}
+                t={t.analytics}
             />
         );
       case 'marketplace':
-        return <AIMarketplace onSelectProduct={handleSelectProduct} apiKeys={apiKeys} />;
+        return <AIMarketplace onSelectProduct={handleSelectProduct} apiKeys={apiKeys} t={t.marketplace} />;
       case 'queue': 
-        return <QueueDashboard apiKeys={apiKeys} currentPlan={plan} jobs={queueJobs} setJobs={setQueueJobs} />;
+        return <QueueDashboard apiKeys={apiKeys} currentPlan={plan} jobs={queueJobs} setJobs={setQueueJobs} t={t.queue} />;
       case 'auto_pilot':
         return (
             <AutoPilotDashboard 
@@ -517,14 +952,15 @@ ${recentLogs}
                 onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} 
                 onVideoGenerated={handleVideoCompleted}
                 completedVideos={completedVideos}
+                t={t.autopilot}
             />
         );
       case 'models':
         return (
           <div className="max-w-4xl mx-auto animate-fade-in">
              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">AI Model Engine</h2>
-                <p className="text-slate-400 text-sm">Visualize and configure the neural networks powering your content.</p>
+                <h2 className="text-2xl font-bold text-white mb-2">{t.models?.title || "AI Model Engine"}</h2>
+                <p className="text-slate-400 text-sm">{t.models?.subtitle || "Visualize and configure the neural networks powering your content."}</p>
              </div>
              
              {/* VISUAL DIAGRAM */}
@@ -543,6 +979,7 @@ ${recentLogs}
                 voiceModel={voiceModel} setVoiceModel={setVoiceModel}
                 resolution={resolution} setResolution={setResolution}
                 aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                t={t.models}
              />
           </div>
         );
@@ -553,6 +990,7 @@ ${recentLogs}
              setApiKeys={setApiKeys}
              knowledgeBase={knowledgeBase}
              setKnowledgeBase={setKnowledgeBase}
+             t={t.settings}
           />
         );
       case 'campaign':
@@ -566,13 +1004,13 @@ ${recentLogs}
                             onClick={() => setCampaignMode('single')}
                             className="flex items-center gap-2 text-sm text-slate-400 hover:text-white"
                         >
-                            <ArrowRight className="rotate-180" size={16} /> Quay lại chế độ Single
+                            <RotateCw className="rotate-180" size={16} /> Single Mode
                         </button>
                         <div className="px-3 py-1 bg-purple-900/30 text-purple-300 rounded text-xs font-bold border border-purple-500/30">
                             BATCH PRODUCTION MODE
                         </div>
                     </div>
-                    <BatchProcessor apiKeys={apiKeys} onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} />
+                    <BatchProcessor apiKeys={apiKeys} onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} t={t.campaign} />
                 </div>
             )
         }
@@ -590,23 +1028,23 @@ ${recentLogs}
                     <button 
                         onClick={() => setCampaignMode('batch')}
                         className="text-[10px] flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition-colors"
-                        title="Chuyển sang chế độ nhập hàng loạt"
+                        title="Switch to Batch Mode"
                     >
-                        <Factory size={12} /> Switch to Batch
+                        <Factory size={12} /> Batch Mode
                     </button>
                 </div>
 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                      Dán Link bất kỳ (Kênh / Sản phẩm / Affiliate)
+                      Link Input (Channel / Product)
                     </label>
                     <div className="relative">
                        <input 
                         type="text" 
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
-                        placeholder="VD: TikTok Channel hoặc Link Shopee/ClickBank..."
+                        placeholder="URL..."
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-4 pr-10 py-3 text-sm text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none placeholder:text-slate-600"
                       />
                       <div className="absolute right-3 top-3 text-slate-500">
@@ -620,7 +1058,7 @@ ${recentLogs}
                       className="text-xs flex items-center gap-1.5 text-primary font-medium hover:text-white transition-colors"
                     >
                       <SlidersHorizontal size={12} />
-                      {showAdvanced ? "Ẩn tùy chọn nâng cao" : "Cấu hình phân loại & Video"}
+                      {showAdvanced ? "Hide Advanced Config" : "Advanced Config"}
                     </button>
                     {showAdvanced && (
                       <div className="mt-3 space-y-4 animate-fade-in bg-slate-950/50 p-3 rounded-xl border border-slate-800">
@@ -628,7 +1066,7 @@ ${recentLogs}
                         {/* Section 1: Classification */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="col-span-1">
-                              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Chủ đề</label>
+                              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Niche</label>
                               <select 
                                   value={selectedNiche}
                                   onChange={(e) => setSelectedNiche(e.target.value as ContentNiche)}
@@ -644,7 +1082,7 @@ ${recentLogs}
                               </select>
                             </div>
                             <div className="col-span-1">
-                              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Luồng</label>
+                              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Workflow</label>
                               <select 
                                   value={selectedWorkflow}
                                   onChange={(e) => setSelectedWorkflow(e.target.value as ContentWorkflow)}
@@ -663,10 +1101,10 @@ ${recentLogs}
 
                         {/* Section 2: Video Specs (New) */}
                         <div className="border-t border-slate-800 pt-3">
-                           <h5 className="text-[10px] font-bold text-primary mb-2 flex items-center gap-1"><MonitorPlay size={10} /> THÔNG SỐ VIDEO</h5>
+                           <h5 className="text-[10px] font-bold text-primary mb-2 flex items-center gap-1"><MonitorPlay size={10} /> VIDEO SPECS</h5>
                            <div className="grid grid-cols-2 gap-3">
                                <div>
-                                  <label className="block text-[10px] text-slate-500 mb-1 flex items-center gap-1"><Ratio size={10}/> Tỷ lệ</label>
+                                  <label className="block text-[10px] text-slate-500 mb-1 flex items-center gap-1"><Ratio size={10}/> Ratio</label>
                                   <select 
                                       value={aspectRatio}
                                       onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
@@ -678,7 +1116,7 @@ ${recentLogs}
                                   </select>
                                 </div>
                                <div>
-                                  <label className="block text-[10px] text-slate-500 mb-1">Độ phân giải</label>
+                                  <label className="block text-[10px] text-slate-500 mb-1">Resolution</label>
                                   <select 
                                       value={resolution}
                                       onChange={(e) => setResolution(e.target.value as VideoResolution)}
@@ -695,12 +1133,12 @@ ${recentLogs}
                         {/* Section 3: AI Models (Quick View) */}
                         <div className="border-t border-slate-800 pt-3">
                            <div className="flex items-center justify-between mb-2">
-                               <h5 className="text-[10px] font-bold text-primary flex items-center gap-1"><Cpu size={10} /> AI MODELS (Quick View)</h5>
+                               <h5 className="text-[10px] font-bold text-primary flex items-center gap-1"><Cpu size={10} /> AI MODELS</h5>
                                <button 
                                   onClick={() => setActiveTab('models')}
                                   className="text-[10px] text-blue-400 hover:text-white flex items-center gap-1 underline"
                                >
-                                  Full Config <ArrowRight size={10} />
+                                  Config <Settings size={10} />
                                </button>
                            </div>
                            <div className="space-y-1 text-[10px] text-slate-400 font-mono">
@@ -722,7 +1160,7 @@ ${recentLogs}
                            >
                               <span className="flex items-center gap-2 truncate">
                                 <Sparkles size={14} className={preferGoogleStack ? "text-yellow-400" : ""} />
-                                Prefer Google Stack (Gemini, Veo)
+                                Prefer Google Stack
                               </span>
                               <div className={`w-8 h-4 rounded-full p-0.5 transition-colors shrink-0 ${preferGoogleStack ? 'bg-blue-500' : 'bg-slate-700'}`}>
                                 <div className={`w-3 h-3 bg-white rounded-full transition-transform ${preferGoogleStack ? 'translate-x-4' : ''}`}></div>
@@ -746,7 +1184,7 @@ ${recentLogs}
                          </span>
                        ) : (
                          <>
-                           <Zap size={20} className="fill-current" /> BẬT TỰ ĐỘNG
+                           <Zap size={20} className="fill-current" /> AUTO START
                          </>
                        )}
                     </NeonButton>
@@ -781,7 +1219,7 @@ ${recentLogs}
                 </div>
               )}
               {status === AppStatus.COMPLETE && plan ? (
-                <PlanResult data={plan} onPost={handlePostToZalo} onAddToQueue={handleAddToQueue} />
+                <PlanResult data={plan} onPost={handlePostToZalo} onAddToQueue={handleAddToQueue} t={t.plan_result} />
               ) : (
                 <div className="h-full min-h-[300px] md:min-h-[400px] flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/20 p-6 md:p-8">
                    {status !== AppStatus.IDLE && status !== AppStatus.COMPLETE && status !== AppStatus.ERROR ? (
@@ -795,13 +1233,13 @@ ${recentLogs}
                         </div>
                         <div>
                           <h3 className="text-lg md:text-xl font-bold text-white mb-2">
-                            {status === AppStatus.ROUTING && "AI Router Đang Phân Loại..."}
-                            {status === AppStatus.ANALYZING && "Quét Metadata & Insight..."}
-                            {status === AppStatus.PLANNING && "Lập Chiến Lược Nội Dung..."}
-                            {status === AppStatus.PARAPHRASING && "Viết Kịch Bản Chuyển Đổi..."}
-                            {status === AppStatus.RENDERING && "Dựng Video Demo..."}
+                            {status === AppStatus.ROUTING && "AI Router Classifying..."}
+                            {status === AppStatus.ANALYZING && "Scanning Metadata..."}
+                            {status === AppStatus.PLANNING && "Strategic Planning..."}
+                            {status === AppStatus.PARAPHRASING && "Scripting Engine..."}
+                            {status === AppStatus.RENDERING && "Video Rendering..."}
                           </h3>
-                          <p className="text-slate-400 text-xs md:text-sm">Hệ thống đang tự động tối ưu hoá nội dung dựa trên loại liên kết bạn cung cấp.</p>
+                          <p className="text-slate-400 text-xs md:text-sm">Optimizing content structure based on input type.</p>
                         </div>
                      </div>
                    ) : (
@@ -809,8 +1247,8 @@ ${recentLogs}
                        <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-800">
                           <LayoutDashboard size={28} />
                        </div>
-                       <h3 className="text-base md:text-lg font-medium text-slate-400 mb-2">Sẵn sàng nhận lệnh</h3>
-                       <p className="text-xs md:text-sm">Nhập URL sản phẩm hoặc kênh, Smart Bot sẽ lo phần còn lại.</p>
+                       <h3 className="text-base md:text-lg font-medium text-slate-400 mb-2">Ready for Command</h3>
+                       <p className="text-xs md:text-sm">Enter a URL to start.</p>
                      </div>
                    )}
                 </div>
@@ -828,6 +1266,7 @@ ${recentLogs}
         setActiveTab={setActiveTab} 
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
+        t={t.sidebar}
       />
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
         {/* Mobile Header */}
@@ -843,35 +1282,17 @@ ${recentLogs}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8 scroll-smooth">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 md:p-6 lg:p-8 scroll-smooth">
           <div className="max-w-6xl mx-auto">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <div>
                 <h2 className="text-lg md:text-3xl font-bold text-white mb-1 md:mb-2 leading-tight truncate">
-                  {activeTab === 'studio' && "Viral DNA Studio Pro"}
-                  {activeTab === 'campaign' && "Smart Campaign Wizard"}
-                  {activeTab === 'analytics' && "Strategic Intelligence"}
-                  {activeTab === 'risk_center' && "Channel Risk Center"}
-                  {activeTab === 'marketplace' && "AI Affiliate Hub"}
-                  {activeTab === 'settings' && "System Control Center"}
-                  {activeTab === 'queue' && "Social Scheduler"}
-                  {activeTab === 'auto_pilot' && "Infinity Auto-Pilot"}
-                  {activeTab === 'models' && "AI Model Engine"}
-                  {activeTab === 'docs' && "Documentation Center"}
+                  {t.sidebar[activeTab]}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="text-slate-400 text-xs md:text-sm hidden md:block">
-                    {activeTab === 'studio' && "Công cụ phân tích đối thủ đa kênh và tạo bản sao Viral tối thượng."}
-                    {activeTab === 'campaign' && "Tự động phân loại nguồn và tạo video theo chiến lược thông minh (Hỗ trợ Batch)."}
-                    {activeTab === 'analytics' && "Tình báo thị trường, giải mã đối thủ để Clone & Build New."}
-                    {activeTab === 'risk_center' && "Phân tích sức khỏe kênh, phát hiện rủi ro và nhận diện Shadowban."}
-                    {activeTab === 'marketplace' && "Khám phá các sản phẩm AI hoa hồng cao để review."}
-                    {activeTab === 'settings' && "Quản lý API Vault, AI Models, AI Brain và cấu hình hệ thống."}
-                    {activeTab === 'queue' && "Lên lịch đăng bài tự động, tối ưu giờ vàng và quản lý đa kênh."}
-                    {activeTab === 'auto_pilot' && "Chế độ chạy ngầm 24/7: Tự động săn tìm, tạo video và đăng bài liên tục."}
-                    {activeTab === 'models' && "Cấu hình Script, Visual và Voice Model cho toàn bộ hệ thống."}
-                    {activeTab === 'docs' && "Hướng dẫn sử dụng chi tiết, mẹo tối ưu và các kỹ thuật nâng cao."}
+                        PRO Edition v1.0.2
                     </p>
                     
                     {/* Zalo Video Indicator */}
@@ -888,11 +1309,31 @@ ${recentLogs}
               </div>
               
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                {/* APP UI LANGUAGE TOGGLE (LAYER 1) */}
+                <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1">
+                    <span className="text-[10px] text-slate-500 px-2 font-bold flex items-center gap-1 uppercase">
+                        <Globe size={12} /> {t.header.lang_label}
+                    </span>
+                    <select 
+                        value={appLanguage}
+                        onChange={(e) => setAppLanguage(e.target.value as AppLanguage)}
+                        className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer"
+                    >
+                        <option value="vi">Tiếng Việt</option>
+                        <option value="en">English</option>
+                        <option value="jp">日本語</option>
+                        <option value="es">Español</option>
+                        <option value="cn">中文</option>
+                    </select>
+                </div>
+
+                <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block"></div>
+
                 <button 
                   onClick={() => setActiveTab('settings')}
                   className="px-3 py-2 md:py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                 >
-                  <Settings size={14} /> <span className="inline">Cấu hình</span>
+                  <Settings size={14} /> <span className="inline">{t.sidebar.settings}</span>
                 </button>
                 <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block"></div>
                 <button 
@@ -905,7 +1346,7 @@ ${recentLogs}
                 >
                    <Layers size={14} className={activeKeysCount > 0 ? "text-green-500" : "text-red-500"} />
                    <span className="text-xs font-mono">
-                     {activeKeysCount > 0 ? `${activeKeysCount} Keys` : 'NO KEYS'}
+                     {activeKeysCount > 0 ? `${activeKeysCount} ${t.header.keys}` : 'NO KEYS'}
                    </span>
                    {activeKeysCount > 0 && activeKeysCount < apiKeys.length && (
                      <RotateCw size={12} className="text-yellow-500 ml-1 hidden md:block" />

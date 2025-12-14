@@ -8,11 +8,13 @@ import { classifyInput, generateVideoPlan } from '../services/geminiService';
 interface BatchProcessorProps {
   apiKeys: ApiKeyConfig[];
   onAddToQueue: (job: PostingJob) => void;
+  t?: any;
 }
 
 const BATCH_STORAGE_KEY = 'av_studio_batch_jobs_v1';
 
-const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }) => {
+const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue, t }) => {
+  const texts = t || {};
   const [inputText, setInputText] = useState('');
   
   // Load initial jobs
@@ -132,10 +134,10 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
        <div className="border-b border-slate-800 pb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-3">
                 <Factory className="text-primary animate-pulse" size={32} />
-                Batch Video Factory
+                {texts.title || "Batch Video Factory"}
             </h2>
             <p className="text-slate-400 text-sm md:text-base">
-                Nhập danh sách URL hoặc Chủ đề. Hệ thống sẽ tự động Phân tích {'->'} Viết kịch bản {'->'} Tạo ảnh {'->'} Dựng video {'->'} Lên lịch đăng.
+                {texts.subtitle || "Enter URL list. Auto Analyze -> Script -> Render -> Schedule."}
             </p>
        </div>
 
@@ -144,7 +146,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
            {/* LEFT: INPUT AREA */}
            <div className="lg:col-span-1 space-y-4">
                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 md:p-5">
-                   <label className="text-sm font-bold text-white mb-2 block">1. Nhập danh sách nguồn (1 dòng / 1 link)</label>
+                   <label className="text-sm font-bold text-white mb-2 block">{texts.input_label || "1. Input Source List"}</label>
                    <textarea 
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
@@ -152,15 +154,15 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
                       className="w-full h-48 md:h-64 bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-white focus:border-primary focus:outline-none font-mono resize-none mb-4"
                    />
                    <NeonButton onClick={handleImport} size="md" className="w-full">
-                       <span className="flex items-center gap-2"><FileText size={16} /> Import vào Hàng chờ</span>
+                       <span className="flex items-center gap-2"><FileText size={16} /> {texts.import_btn || "Import to Queue"}</span>
                    </NeonButton>
                </div>
 
                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 md:p-5">
                    <div className="flex justify-between items-center mb-4">
-                       <h3 className="text-sm font-bold text-white">2. Điều khiển</h3>
+                       <h3 className="text-sm font-bold text-white">{texts.control_title || "2. Controls"}</h3>
                        <div className="text-xs text-slate-500">
-                           {jobs.filter(j => j.status === 'queued').length} chờ • {jobs.filter(j => j.status === 'completed').length} xong
+                           {jobs.filter(j => j.status === 'queued').length} {texts.waiting || "waiting"} • {jobs.filter(j => j.status === 'completed').length} {texts.done || "done"}
                        </div>
                    </div>
                    
@@ -172,9 +174,9 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
                            className="w-full"
                        >
                            {isProcessing ? (
-                               <span className="flex items-center gap-2"><Loader2 className="animate-spin" /> Đang xử lý...</span>
+                               <span className="flex items-center gap-2"><Loader2 className="animate-spin" /> {texts.processing || "Processing..."}</span>
                            ) : (
-                               <span className="flex items-center gap-2"><Play /> Bắt đầu Sản xuất</span>
+                               <span className="flex items-center gap-2"><Play /> {texts.start_btn || "Start Production"}</span>
                            )}
                        </NeonButton>
                        
@@ -182,7 +184,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
                            onClick={() => setJobs([])}
                            className="w-full py-3 border border-slate-700 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-sm font-bold"
                        >
-                           Xóa tất cả
+                           {texts.clear_btn || "Clear All"}
                        </button>
                    </div>
                </div>
@@ -192,11 +194,11 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
            <div className="lg:col-span-2">
                <div className="flex justify-between items-center mb-4">
                    <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2">
-                       <Clock size={20} className="text-slate-500" /> Tiến độ Sản xuất
+                       <Clock size={20} className="text-slate-500" /> {texts.progress_title || "Production Progress"}
                    </h3>
                    {jobs.some(j => j.status === 'completed') && (
                        <button onClick={clearCompleted} className="text-xs text-primary hover:underline">
-                           Xóa job đã xong
+                           {texts.clear_done || "Clear Completed"}
                        </button>
                    )}
                </div>
@@ -205,7 +207,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue }
                    {jobs.length === 0 && (
                        <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/20">
                            <Factory size={48} className="mx-auto mb-3 text-slate-700" />
-                           <p className="text-slate-500">Danh sách trống. Hãy nhập URL bên trái.</p>
+                           <p className="text-slate-500">{texts.empty_state || "List empty."}</p>
                        </div>
                    )}
 

@@ -8,9 +8,11 @@ interface PlanResultProps {
   data: OrchestratorResponse;
   onPost?: (content: { title: string, description: string }) => Promise<boolean>;
   onAddToQueue?: (job: PostingJob) => void;
+  t?: any;
 }
 
-const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) => {
+const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue, t }) => {
+  const texts = t || {};
   const [autoPostTime, setAutoPostTime] = useState<number>(3600); // 1 hour in seconds
   const [isAutoPosting, setIsAutoPosting] = useState(true);
   const [postStatus, setPostStatus] = useState<'pending' | 'posted'>('pending');
@@ -68,11 +70,10 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
           });
           if (success) {
               setPostStatus('posted');
-              // alert("Đã duyệt! Video sẽ được đăng ngay lập tức.");
           }
       } else {
           setPostStatus('posted');
-          alert("Đã duyệt! Video sẽ được đăng ngay lập tức.");
+          alert("Posted!");
       }
   };
 
@@ -123,12 +124,12 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                 <div>
                     <div className="flex items-center gap-2 mb-2 text-primary">
                     <TrendingUp size={20} />
-                    <h3 className="font-semibold text-sm md:text-base">Điểm Tiềm Năng Viral</h3>
+                    <h3 className="font-semibold text-sm md:text-base">{texts.viral_score || "Viral Potential Score"}</h3>
                     </div>
                     <div className="space-y-3">
                     <div>
                         <div className="flex justify-between text-sm mb-1">
-                        <span className="text-slate-400">TikTok Trend</span>
+                        <span className="text-slate-400">{texts.tiktok_trend || "TikTok Trend"}</span>
                         <span className="text-white font-mono">{(data.market_scoring.tiktok_potential * 100).toFixed(0)}%</span>
                         </div>
                         <div className="w-full bg-slate-800 h-1.5 rounded-full">
@@ -137,7 +138,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                     </div>
                     <div>
                         <div className="flex justify-between text-sm mb-1">
-                        <span className="text-slate-400">YouTube Shorts</span>
+                        <span className="text-slate-400">{texts.yt_shorts || "YouTube Shorts"}</span>
                         <span className="text-white font-mono">{(data.market_scoring.youtube_shorts_potential * 100).toFixed(0)}%</span>
                         </div>
                         <div className="w-full bg-slate-800 h-1.5 rounded-full">
@@ -148,7 +149,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                 </div>
                 
                 <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
-                    <span className="text-xs text-slate-500 font-medium">EST. CPM</span>
+                    <span className="text-xs text-slate-500 font-medium">{texts.est_cpm || "EST. CPM"}</span>
                     <span className="text-accent font-bold font-mono text-sm tracking-wide">{data.market_scoring.estimated_cpm}</span>
                 </div>
                 </div>
@@ -157,7 +158,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                 <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 backdrop-blur-sm md:col-span-2">
                 <div className="flex items-center gap-2 mb-3 text-accent">
                     <Target size={20} />
-                    <h3 className="font-semibold text-sm md:text-base">Khán giả Mục tiêu (Persona)</h3>
+                    <h3 className="font-semibold text-sm md:text-base">{texts.audience_persona || "Target Audience"}</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 h-[calc(100%-2rem)]">
                     {data.audience_personas.slice(0, 2).map((persona) => (
@@ -197,7 +198,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                             <Brain size={24} />
                         </div>
                         <div>
-                            <h3 className="text-base md:text-lg font-bold text-white">Phân Tích Chuyên Sâu</h3>
+                            <h3 className="text-base md:text-lg font-bold text-white">{texts.deep_analysis || "Deep Analysis"}</h3>
                             <p className="text-xs text-slate-400 hidden md:block">Forensic Analysis • Competitor Gap • Monetization</p>
                         </div>
                         </div>
@@ -224,7 +225,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
 
                         <div>
                             <h4 className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-2">
-                                <Zap size={14} /> Trigger Tâm Lý (NLP)
+                                <Zap size={14} /> Trigger (NLP)
                             </h4>
                             <div className="flex flex-wrap gap-2">
                                 {data.deep_analysis.psychological_triggers.map((trigger, i) => (
@@ -240,21 +241,21 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                         <div className="space-y-3 md:space-y-4">
                         <div className="bg-slate-950/50 p-3 md:p-4 rounded-xl border border-slate-800/50">
                             <h4 className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-2">
-                                <Crosshair size={14} className="text-yellow-500"/> Lỗ hổng đối thủ
+                                <Crosshair size={14} className="text-yellow-500"/> Competitor Gap
                             </h4>
                             <p className="text-xs md:text-sm text-slate-300 italic">"{data.deep_analysis.competitor_gap}"</p>
                         </div>
                         
                         <div className="bg-slate-950/50 p-3 md:p-4 rounded-xl border border-slate-800/50">
                             <h4 className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-500"/> Góc độ Chiến thắng
+                                <CheckCircle size={14} className="text-green-500"/> Winning Angle
                             </h4>
                             <p className="text-xs md:text-sm text-green-400 font-medium">"{data.deep_analysis.winning_angle}"</p>
                         </div>
 
                         <div className="bg-gradient-to-r from-primary/10 to-blue-600/10 p-3 md:p-4 rounded-xl border border-primary/20">
                             <h4 className="text-xs font-bold text-primary uppercase mb-1 flex items-center gap-2">
-                                <DollarSign size={14} /> Chiến lược Kiếm tiền
+                                <DollarSign size={14} /> Monetization
                             </h4>
                             <p className="text-xs md:text-sm text-white font-bold">"{data.deep_analysis.monetization_strategy}"</p>
                         </div>
@@ -270,7 +271,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-2">
                   <div className="flex items-center gap-2 text-white">
                       <FileText size={20} />
-                      <h3 className="text-base md:text-lg font-semibold">Kịch bản & Phân cảnh</h3>
+                      <h3 className="text-base md:text-lg font-semibold">{texts.script_scenes || "Script & Scenes"}</h3>
                   </div>
                   
                   {/* TECHNICAL SPECS BADGE */}
@@ -298,12 +299,12 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                     </div>
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4">
                         <div className="md:col-span-7">
-                        <h5 className="text-[10px] text-primary font-bold uppercase mb-1 tracking-wider">Voiceover</h5>
+                        <h5 className="text-[10px] text-primary font-bold uppercase mb-1 tracking-wider">{texts.voiceover || "Voiceover"}</h5>
                         <p className="text-xs md:text-sm text-slate-200 leading-snug">{scene.vo_text}</p>
                         </div>
                         <div className="md:col-span-5 border-l border-slate-800/50 pl-2 md:pl-4 mt-1 md:mt-0">
                         <div className="flex justify-between items-start mb-1">
-                            <h5 className="text-[10px] text-accent font-bold uppercase tracking-wider">Visual</h5>
+                            <h5 className="text-[10px] text-accent font-bold uppercase tracking-wider">{texts.visual || "Visual"}</h5>
                             <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-1.5 rounded">{scene.duration}s</span>
                         </div>
                         <p className="text-[10px] md:text-xs text-slate-400 line-clamp-2">{scene.visual_cues}</p>
@@ -334,7 +335,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                               {/* LIVE BADGE */}
                               <div className="absolute top-4 left-4 z-20">
                                 <span className="flex items-center gap-1.5 px-2 py-1 bg-red-600/90 text-white text-[10px] font-bold rounded animate-pulse shadow-lg backdrop-blur-sm">
-                                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span> LIVE PREVIEW
+                                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span> {texts.live_preview || "LIVE PREVIEW"}
                                 </span>
                               </div>
 
@@ -404,7 +405,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                      <div className="flex justify-between items-center mb-3">
                          <div className="flex items-center gap-2">
                             <Clock size={16} className={isAutoPosting ? "text-yellow-500 animate-pulse" : "text-slate-500"} />
-                            <span className="text-sm font-bold text-white">Auto-Post Timer</span>
+                            <span className="text-sm font-bold text-white">{texts.auto_post_timer || "Auto-Post Timer"}</span>
                          </div>
                          <span className="font-mono text-xl font-bold text-yellow-500">{formatTime(autoPostTime)}</span>
                      </div>
@@ -417,7 +418,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                      
                      {postStatus === 'posted' ? (
                         <div className="w-full py-3 bg-green-500/10 border border-green-500/30 text-green-500 rounded-xl font-bold flex items-center justify-center gap-2">
-                           <CheckCircle size={18} /> ĐÃ ĐĂNG THÀNH CÔNG
+                           <CheckCircle size={18} /> {texts.posted_success || "POSTED SUCCESSFULLY"}
                         </div>
                      ) : (
                         <div className="grid grid-cols-2 gap-3">
@@ -426,10 +427,10 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                              onClick={handleAddToQueue}
                              className="py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
                            >
-                              <Calendar size={14} /> LÊN LỊCH / QUEUE
+                              <Calendar size={14} /> {texts.schedule || "SCHEDULE / QUEUE"}
                            </button>
                            <NeonButton onClick={handleApprove} size="md">
-                              ĐĂNG NGAY
+                              {texts.post_now || "POST NOW"}
                            </NeonButton>
                         </div>
                      )}
@@ -439,25 +440,25 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
               {/* GENERATED METADATA CARD */}
               <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 backdrop-blur-sm">
                   <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                     <FileText size={16} className="text-primary" /> Generated Metadata
+                     <FileText size={16} className="text-primary" /> {texts.gen_metadata || "Generated Metadata"}
                   </h4>
                   
                   {data.generated_content ? (
                       <div className="space-y-4">
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Tiêu đề (Viral)</label>
+                            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">{texts.title_viral || "Title (Viral)"}</label>
                             <div className="bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm text-white font-medium break-words">
                                {data.generated_content.title}
                             </div>
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Mô tả (SEO)</label>
+                            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">{texts.desc_seo || "Description (SEO)"}</label>
                             <div className="bg-slate-950 border border-slate-700 rounded-lg p-3 text-xs text-slate-300 h-24 overflow-y-auto leading-relaxed">
                                {data.generated_content.description}
                             </div>
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block flex items-center gap-1"><Hash size={10} /> Hashtags</label>
+                            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block flex items-center gap-1"><Hash size={10} /> {texts.hashtags || "Hashtags"}</label>
                             <div className="flex flex-wrap gap-1.5">
                                 {data.generated_content.hashtags.map((tag, i) => (
                                     <span key={i} className="text-[10px] bg-blue-900/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/20">
@@ -469,19 +470,19 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue }) =
                       </div>
                   ) : (
                       <div className="text-center py-8 text-slate-500 text-xs">
-                          Metadata đang được tạo...
+                          Metadata...
                       </div>
                   )}
                   
                   <div className="mt-4 pt-4 border-t border-slate-800 flex gap-2">
                      <button className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
-                        <Share2 size={14} /> Share
+                        <Share2 size={14} /> {texts.share || "Share"}
                      </button>
                      <button 
                         onClick={handleDownload}
                         className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors"
                      >
-                        <Download size={14} /> Download
+                        <Download size={14} /> {texts.download || "Download"}
                      </button>
                   </div>
               </div>

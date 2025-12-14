@@ -1,5 +1,4 @@
 
-
 export interface Scene {
   scene_id: string;
   start: number;
@@ -34,7 +33,14 @@ export type VideoResolution = '720p' | '1080p' | '4K';
 export type AspectRatio = '9:16' | '16:9' | '1:1';
 export type ScriptModel = 'Gemini 2.5 Flash' | 'Gemini 3 Pro' | 'GPT-4o';
 export type VisualModel = 'VEO' | 'SORA' | 'KLING' | 'IMAGEN' | 'MIDJOURNEY';
-export type VoiceModel = 'ElevenLabs' | 'OpenAI TTS' | 'Google Chirp';
+export type VoiceModel = 'ElevenLabs' | 'OpenAI TTS' | 'Google Chirp' | 'Vbee TTS';
+
+// --- SAAS LANGUAGE ARCHITECTURE ---
+// Layer 1: Application UI Language (Interface only)
+export type AppLanguage = 'vi' | 'en' | 'jp' | 'es' | 'cn'; 
+
+// Layer 2: Video Content Language (Script, Voice, SEO)
+export type ContentLanguage = 'vi' | 'en' | 'es' | 'jp' | 'cn';
 
 export interface VideoConfig {
   resolution: VideoResolution;
@@ -42,6 +48,7 @@ export interface VideoConfig {
   scriptModel: ScriptModel;
   visualModel: VisualModel;
   voiceModel: VoiceModel;
+  outputLanguage: ContentLanguage; 
 }
 
 export interface DeepAnalysis {
@@ -185,7 +192,7 @@ export interface StudioSettings {
   
   // Script Settings
   videoFormat: 'Shorts' | 'Long Form';
-  language: 'vi' | 'en' | 'es';
+  contentLanguage: ContentLanguage; // STRICT SEPARATION
   topic: string;
   
   // Generation

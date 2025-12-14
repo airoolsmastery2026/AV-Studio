@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   BookOpen, Dna, Infinity as InfinityIcon, Zap, Shield, 
   ChevronRight, Play, Settings, Target, Video, 
@@ -17,6 +17,16 @@ const Documentation: React.FC = () => {
   const [activeSection, setActiveSection] = useState<DocSection>('intro');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const pdfRef = useRef<HTMLDivElement>(null);
+  
+  // Ref for Content Scroll Container
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // EFFECT: Scroll to top when active section changes
+  useEffect(() => {
+    if (contentRef.current) {
+        contentRef.current.scrollTop = 0;
+    }
+  }, [activeSection]);
 
   const menuItems: { id: DocSection; label: string; icon: any }[] = [
     { id: 'intro', label: '1. Tổng quan & Triết lý', icon: BookOpen },
@@ -111,7 +121,7 @@ const Documentation: React.FC = () => {
       </div>
 
       {/* CONTENT AREA (Preview) */}
-      <div className="flex-1 overflow-y-auto p-8 bg-slate-900 scroll-smooth">
+      <div ref={contentRef} className="flex-1 overflow-y-auto p-8 bg-slate-900 scroll-smooth">
         <div className="max-w-3xl mx-auto space-y-12">
           {activeSection === 'intro' && (
             <div className="space-y-6">

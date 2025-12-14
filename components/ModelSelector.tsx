@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrainCircuit, Check, Palette, Mic, Cpu, Sparkles, Zap, MonitorPlay, Ratio, Scan, MessageSquare } from 'lucide-react';
+import { BrainCircuit, Check, Palette, Mic, Cpu, Sparkles, Zap, MonitorPlay, Ratio, Scan, MessageSquare, Speaker } from 'lucide-react';
 import { ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 
 interface ModelSelectorProps {
@@ -14,6 +14,7 @@ interface ModelSelectorProps {
   setResolution: (res: VideoResolution) => void;
   aspectRatio: AspectRatio;
   setAspectRatio: (ratio: AspectRatio) => void;
+  t?: any;
 }
 
 const ModelSelector: React.FC<ModelSelectorProps> = ({
@@ -21,29 +22,71 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   visualModel, setVisualModel,
   voiceModel, setVoiceModel,
   resolution, setResolution,
-  aspectRatio, setAspectRatio
+  aspectRatio, setAspectRatio,
+  t
 }) => {
+  const texts = t || {};
+
+  // Common Card Style with Delayed Hover Effect
+  const renderModelCard = (
+    id: string, 
+    name: string, 
+    desc: string, 
+    badge: string, 
+    Icon: any, 
+    isSelected: boolean, 
+    onClick: () => void,
+    accentColor: string
+  ) => (
+    <button 
+        key={id}
+        onClick={onClick}
+        className={`group text-left p-2.5 rounded-lg border transition-all duration-300 relative w-full overflow-hidden ${
+            isSelected 
+            ? `bg-${accentColor}-900/20 border-${accentColor}-500 shadow-[0_0_10px_rgba(var(--${accentColor}),0.2)]` 
+            : 'bg-slate-900/50 border-slate-800 hover:border-slate-600 hover:bg-slate-900'
+        }`}
+    >
+        <div className="flex justify-between items-center h-8">
+            <span className={`font-bold text-xs flex items-center gap-2 ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                <Icon size={14} className={isSelected ? `text-${accentColor}-400` : "text-slate-500"} />
+                {name}
+            </span>
+            {isSelected && <div className={`bg-${accentColor}-500 rounded-full p-0.5`}><Check size={10} className="text-white" /></div>}
+        </div>
+        
+        {/* Hidden Details with 1.5s Delay */}
+        <div className="max-h-0 opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-500 ease-out delay-[1500ms] overflow-hidden">
+            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed border-t border-slate-800/50 pt-1">{desc}</p>
+            <div className="mt-1">
+                <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                    isSelected
+                    ? `bg-${accentColor}-500/20 text-${accentColor}-300 border-${accentColor}-500/30` 
+                    : 'bg-slate-950 text-slate-500 border-slate-800'
+                }`}>{badge}</span>
+            </div>
+        </div>
+    </button>
+  );
+
   return (
-    <div className="animate-fade-in space-y-8">
+    <div className="animate-fade-in space-y-6">
       
-      {/* GLOBAL SPECS */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
-          <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2 mb-4">
-              <MonitorPlay size={16} className="text-primary" /> Output Specifications
+      {/* GLOBAL SPECS (Compact) */}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+          <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2 mb-3">
+              <MonitorPlay size={14} className="text-primary" /> {texts.specs_title || "Output Specifications"}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
               <div>
-                  <label className="text-[10px] text-slate-500 uppercase font-bold mb-2 block flex items-center gap-1">
-                      <Scan size={12} /> Resolution
-                  </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                       {['720p', '1080p', '4K'].map((res) => (
                           <button
                               key={res}
                               onClick={() => setResolution(res as VideoResolution)}
-                              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
+                              className={`flex-1 py-1.5 px-2 rounded text-[10px] font-bold transition-all border ${
                                   resolution === res 
-                                  ? 'bg-primary/20 border-primary text-white shadow-[0_0_10px_rgba(14,165,164,0.2)]' 
+                                  ? 'bg-primary/20 border-primary text-white' 
                                   : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
                               }`}
                           >
@@ -53,17 +96,14 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                   </div>
               </div>
               <div>
-                  <label className="text-[10px] text-slate-500 uppercase font-bold mb-2 block flex items-center gap-1">
-                      <Ratio size={12} /> Aspect Ratio
-                  </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                       {['9:16', '16:9', '1:1'].map((ratio) => (
                           <button
                               key={ratio}
                               onClick={() => setAspectRatio(ratio as AspectRatio)}
-                              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
+                              className={`flex-1 py-1.5 px-2 rounded text-[10px] font-bold transition-all border ${
                                   aspectRatio === ratio 
-                                  ? 'bg-primary/20 border-primary text-white shadow-[0_0_10px_rgba(14,165,164,0.2)]' 
+                                  ? 'bg-primary/20 border-primary text-white' 
                                   : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
                               }`}
                           >
@@ -75,124 +115,56 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* SCRIPT INTEL */}
-          <div className="space-y-4">
+          <div className="space-y-2">
              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2">
-                    <BrainCircuit size={16} className="text-purple-400" /> Script Intelligence
+                <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2">
+                    <BrainCircuit size={14} className="text-purple-400" /> {texts.script_title || "Script Intelligence"}
                 </h3>
-                <span className="text-[10px] bg-purple-900/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">Reasoning Core</span>
              </div>
-             <div className="grid gap-3">
+             <div className="grid gap-2">
                 {[
                   { id: 'Gemini 2.5 Flash', name: 'Gemini 2.5 Flash', desc: 'Fastest, low latency. Best for viral hooks.', badge: 'Speed', icon: Zap },
                   { id: 'Gemini 3 Pro', name: 'Gemini 3 Pro', desc: 'Deep reasoning. Best for tutorials & analysis.', badge: 'Logic', icon: BrainCircuit },
                   { id: 'GPT-4o', name: 'GPT-4o (OpenAI)', desc: 'Creative storytelling & nuance.', badge: 'Creative', icon: Sparkles },
                   { id: 'Grok Beta', name: 'Grok Beta (xAI)', desc: 'Real-time knowledge, roast-heavy & unfiltered.', badge: 'Rebel', icon: MessageSquare },
-                ].map((m) => (
-                   <button 
-                      key={m.id}
-                      onClick={() => setScriptModel(m.id as ScriptModel)}
-                      className={`text-left p-4 rounded-xl border transition-all relative overflow-hidden group w-full ${
-                        scriptModel === m.id 
-                        ? 'bg-purple-900/20 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]' 
-                        : 'bg-slate-900/50 border-slate-800 hover:border-slate-600 hover:bg-slate-900'
-                      }`}
-                   >
-                      <div className="flex justify-between items-start mb-2">
-                         <span className={`font-bold flex items-center gap-2 ${scriptModel === m.id ? 'text-white' : 'text-slate-300'}`}>
-                            <m.icon size={16} className={scriptModel === m.id ? "text-purple-400" : "text-slate-500"} />
-                            {m.name}
-                         </span>
-                         {scriptModel === m.id && <div className="bg-purple-500 rounded-full p-0.5"><Check size={12} className="text-white" /></div>}
-                      </div>
-                      <p className="text-xs text-slate-500 mb-3 leading-relaxed">{m.desc}</p>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
-                          scriptModel === m.id 
-                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' 
-                          : 'bg-slate-950 text-slate-500 border-slate-800'
-                      }`}>{m.badge}</span>
-                   </button>
-                ))}
+                ].map((m) => renderModelCard(m.id, m.name, m.desc, m.badge, m.icon, scriptModel === m.id, () => setScriptModel(m.id as ScriptModel), 'purple'))}
              </div>
           </div>
 
           {/* VISUAL ENGINE */}
-          <div className="space-y-4">
+          <div className="space-y-2">
              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2">
-                    <Palette size={16} className="text-blue-400" /> Visual Engine
+                <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2">
+                    <Palette size={14} className="text-blue-400" /> {texts.visual_title || "Visual Engine"}
                 </h3>
-                <span className="text-[10px] bg-blue-900/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">Image & Video</span>
              </div>
-             <div className="grid gap-3">
+             <div className="grid gap-2">
                 {[
                   { id: 'VEO', name: 'Google Veo', desc: 'High-fidelity video generation. (Preview)', badge: 'Video' },
                   { id: 'IMAGEN', name: 'Imagen 3', desc: 'Photorealistic image generation.', badge: 'Image' },
                   { id: 'SORA', name: 'Sora (OpenAI)', desc: 'Cinematic video physics.', badge: 'Video' },
                   { id: 'KLING', name: 'Kling AI', desc: 'Realistic motion handling.', badge: 'Video' },
                   { id: 'MIDJOURNEY', name: 'Midjourney', desc: 'Artistic & stylized visuals.', badge: 'Art' },
-                ].map((m) => (
-                   <button 
-                      key={m.id}
-                      onClick={() => setVisualModel(m.id as VisualModel)}
-                      className={`text-left p-4 rounded-xl border transition-all relative overflow-hidden group w-full ${
-                        visualModel === m.id 
-                        ? 'bg-blue-900/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' 
-                        : 'bg-slate-900/50 border-slate-800 hover:border-slate-600 hover:bg-slate-900'
-                      }`}
-                   >
-                      <div className="flex justify-between items-start mb-2">
-                         <span className={`font-bold ${visualModel === m.id ? 'text-white' : 'text-slate-300'}`}>{m.name}</span>
-                         {visualModel === m.id && <div className="bg-blue-500 rounded-full p-0.5"><Check size={12} className="text-white" /></div>}
-                      </div>
-                      <p className="text-xs text-slate-500 mb-3 leading-relaxed">{m.desc}</p>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
-                          visualModel === m.id 
-                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' 
-                          : 'bg-slate-950 text-slate-500 border-slate-800'
-                      }`}>{m.badge}</span>
-                   </button>
-                ))}
+                ].map((m) => renderModelCard(m.id, m.name, m.desc, m.badge, Palette, visualModel === m.id, () => setVisualModel(m.id as VisualModel), 'blue'))}
              </div>
           </div>
 
           {/* VOICE SYNTHESIS */}
-          <div className="space-y-4">
+          <div className="space-y-2">
              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white uppercase flex items-center gap-2">
-                    <Mic size={16} className="text-green-400" /> Voice Synthesis
+                <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2">
+                    <Mic size={14} className="text-green-400" /> {texts.voice_title || "Voice Synthesis"}
                 </h3>
-                <span className="text-[10px] bg-green-900/20 text-green-300 px-2 py-0.5 rounded border border-green-500/30">TTS Audio</span>
              </div>
-             <div className="grid gap-3">
+             <div className="grid gap-2">
                 {[
                   { id: 'Google Chirp', name: 'Google Chirp (USM)', desc: 'Universal Speech Model. Multi-lingual.', badge: 'Native' },
+                  { id: 'Vbee TTS', name: 'Vbee AIVoice (VN)', desc: 'Giọng đọc cảm xúc chuẩn Việt Nam (Bắc/Nam/Huế).', badge: 'Local', icon: Speaker },
                   { id: 'ElevenLabs', name: 'ElevenLabs', desc: 'Most expressive & emotional voices.', badge: 'Premium' },
                   { id: 'OpenAI TTS', name: 'OpenAI TTS', desc: 'Natural & consistent tone.', badge: 'Standard' },
-                ].map((m) => (
-                   <button 
-                      key={m.id}
-                      onClick={() => setVoiceModel(m.id as VoiceModel)}
-                      className={`text-left p-4 rounded-xl border transition-all relative overflow-hidden group w-full ${
-                        voiceModel === m.id 
-                        ? 'bg-green-900/20 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]' 
-                        : 'bg-slate-900/50 border-slate-800 hover:border-slate-600 hover:bg-slate-900'
-                      }`}
-                   >
-                      <div className="flex justify-between items-start mb-2">
-                         <span className={`font-bold ${voiceModel === m.id ? 'text-white' : 'text-slate-300'}`}>{m.name}</span>
-                         {voiceModel === m.id && <div className="bg-green-500 rounded-full p-0.5"><Check size={12} className="text-white" /></div>}
-                      </div>
-                      <p className="text-xs text-slate-500 mb-3 leading-relaxed">{m.desc}</p>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
-                          voiceModel === m.id 
-                          ? 'bg-green-500/20 text-green-300 border-green-500/30' 
-                          : 'bg-slate-950 text-slate-500 border-slate-800'
-                      }`}>{m.badge}</span>
-                   </button>
-                ))}
+                ].map((m) => renderModelCard(m.id, m.name, m.desc, m.badge, m.icon || Mic, voiceModel === m.id, () => setVoiceModel(m.id as VoiceModel), 'green'))}
              </div>
           </div>
 
