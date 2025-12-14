@@ -7,7 +7,7 @@ import {
   BarChart, Maximize2, RefreshCw, Box, FileJson,
   LayoutTemplate, Image as ImageIcon, Wand2, ShieldAlert,
   Gauge, TrendingUp, Lock, Unlock, FileCheck,
-  Sliders, Video, Banknote
+  Sliders, Video, Banknote, User, FileVideo, UserSquare2
 } from 'lucide-react';
 import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig } from '../types';
 import NeonButton from './NeonButton';
@@ -24,11 +24,15 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
   // --- STATE ---
   const [activeStudioTab, setActiveStudioTab] = useState<StudioTab>('source');
   
+  // Channels Input State
   const [channels, setChannels] = useState<CompetitorChannel[]>([
     { id: '1', url: '', name: 'Channel 1', status: 'pending' },
     { id: '2', url: '', name: 'Channel 2', status: 'pending' },
     { id: '3', url: '', name: 'Channel 3', status: 'pending' }
   ]);
+  
+  // Face Swap State
+  const [uploadedFaces, setUploadedFaces] = useState<string[]>([]);
   
   const [dnaProfile, setDnaProfile] = useState<ViralDNAProfile | null>(null);
   
@@ -53,7 +57,23 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
   const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
 
   const updateChannelUrl = (id: string, url: string) => {
-    setChannels(channels.map(c => c.id === id ? { ...c, url } : c));
+    setChannels(channels.map(c => c.id === id ? { ...c, url, status: 'pending' } : c));
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, id?: string) => {
+      // Simulate file upload logic
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      if (id) {
+          // Channel Video Upload
+          const fakeUrl = `file://local_upload/${file.name}`;
+          setChannels(channels.map(c => c.id === id ? { ...c, url: fakeUrl, name: file.name } : c));
+      } else {
+          // Face Image Upload
+          const fakeUrl = URL.createObjectURL(file);
+          setUploadedFaces(prev => [...prev, fakeUrl]);
+      }
   };
 
   const getQualityColor = (score: number) => {
@@ -129,6 +149,25 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
           addLog(`❌ Lỗi tạo script: ${e.message}`);
           setStatus('idle');
       }
+  };
+
+  const handleAutoClone = async () => {
+      if (!generatedPlan) {
+          alert("Vui lòng tạo kịch bản (Script) trước khi Auto-Clone.");
+          return;
+      }
+      
+      setStatus('rendering');
+      addLog("🚀 KHỞI ĐỘNG QUY TRÌNH AUTO-CLONE (RECREATE)...");
+      addLog(`   > Model: ${studioSettings.model}`);
+      addLog(`   > Consistency: ${studioSettings.characterLock ? "LOCKED" : "UNLOCKED"}`);
+      if (uploadedFaces.length > 0) addLog(`   > Face Swap: Active (${uploadedFaces.length} faces)`);
+      
+      // Simulation
+      await new Promise(r => setTimeout(r, 2000));
+      addLog("✅ Render hoàn tất! Chuyển sang Quality Gate.");
+      setActiveStudioTab('quality');
+      setStatus('done');
   };
 
   const handleDownloadPackage = () => {
@@ -252,11 +291,18 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                     <div className={`pl-6 bg-slate-950 border ${analyzingChannelId === channel.id ? 'border-yellow-500 animate-pulse' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-1 flex items-center gap-2 transition-colors`}>
                                         <input 
                                             type="text" 
-                                            placeholder={`Link Kênh/Video Đối Thủ #${idx + 1}`}
+                                            placeholder={`Link Kênh/Video Đối Thủ #${idx + 1} hoặc Upload File`}
                                             value={channel.url}
                                             onChange={(e) => updateChannelUrl(channel.id, e.target.value)}
                                             className="flex-1 bg-transparent border-none text-xs text-white px-3 py-2 focus:ring-0 placeholder:text-slate-600"
                                         />
+                                        
+                                        {/* File Upload Button */}
+                                        <label className="p-2 cursor-pointer text-slate-500 hover:text-blue-400 transition-colors" title="Upload Video File">
+                                            <input type="file" className="hidden" accept="video/*" onChange={(e) => handleFileUpload(e, channel.id)} />
+                                            <FileVideo size={16} />
+                                        </label>
+
                                         {channel.status === 'done' && <CheckCircle size={16} className="text-green-500 mr-2" />}
                                         {analyzingChannelId === channel.id && <RefreshCw size={16} className="text-yellow-500 animate-spin mr-2" />}
                                     </div>
@@ -442,23 +488,62 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                     </div>
                 )}
 
-                {/* 4. CHARACTER & STYLE (Placeholder logic for now) */}
+                {/* 4. CHARACTER & STYLE (UPDATED: FACE SWAP) */}
                 {activeStudioTab === 'character' && (
-                    <div className="space-y-6 animate-fade-in text-center py-12">
-                        <ImageIcon size={64} className="mx-auto text-slate-800 mb-4" />
-                        <h3 className="text-xl font-bold text-slate-600">Character Consistency Engine</h3>
-                        <p className="text-slate-500 text-sm max-w-md mx-auto">
-                            Tính năng khóa nhân vật và đồng nhất phong cách hình ảnh đang được phát triển.
-                            Hiện tại hệ thống sẽ tự động duy trì sự nhất quán dựa trên Prompt.
-                        </p>
-                        <div className="flex justify-center gap-4 mt-6">
-                            <div className="flex items-center gap-2 opacity-50">
-                                <input type="checkbox" checked readOnly />
-                                <span className="text-sm text-slate-400">Lock Face</span>
+                    <div className="space-y-6 animate-fade-in">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <UserSquare2 size={20} className="text-yellow-500" /> AI Face Swap & Consistency
+                            </h3>
+                            <span className="text-[10px] bg-yellow-900/20 text-yellow-300 px-2 py-0.5 rounded border border-yellow-500/30">Beta Feature</span>
+                        </div>
+
+                        <div className="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                            <h4 className="text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2">
+                                <User size={16} /> Upload Face / KOL (Replacement)
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {uploadedFaces.map((face, i) => (
+                                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-slate-700 group">
+                                        <img src={face} alt="KOL Face" className="w-full h-full object-cover" />
+                                        <button 
+                                            onClick={() => setUploadedFaces(uploadedFaces.filter((_, idx) => idx !== i))}
+                                            className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <label className="aspect-square rounded-xl border-2 border-dashed border-slate-700 hover:border-yellow-500 hover:bg-yellow-900/10 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                                    <Plus size={24} className="text-slate-500 mb-2" />
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase">Add Face</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e)} />
+                                </label>
                             </div>
-                            <div className="flex items-center gap-2 opacity-50">
-                                <input type="checkbox" checked readOnly />
-                                <span className="text-sm text-slate-400">Lock Outfit</span>
+                            <p className="text-[10px] text-slate-500 mt-2 italic">* Upload 1-3 clear images of the face you want to use in the generated video.</p>
+                        </div>
+
+                        <div className="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                            <h4 className="text-sm font-bold text-slate-300 uppercase mb-4">Consistency Lock</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <label className="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-700 cursor-pointer">
+                                    <span className="text-xs font-bold text-slate-200">Lock Character</span>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={studioSettings.characterLock}
+                                        onChange={() => setStudioSettings({...studioSettings, characterLock: !studioSettings.characterLock})}
+                                        className="w-4 h-4 accent-yellow-500"
+                                    />
+                                </label>
+                                <label className="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-700 cursor-pointer">
+                                    <span className="text-xs font-bold text-slate-200">Lock Visual Style</span>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={studioSettings.styleLock}
+                                        onChange={() => setStudioSettings({...studioSettings, styleLock: !studioSettings.styleLock})}
+                                        className="w-4 h-4 accent-yellow-500"
+                                    />
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -542,9 +627,14 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                         <h4 className="text-sm font-bold text-white">Quality Gate Passed</h4>
                                         <p className="text-xs text-slate-400">All metrics exceed the minimum threshold for viral distribution.</p>
                                     </div>
-                                    <NeonButton onClick={handleDownloadPackage} size="sm" className="ml-auto">
-                                        Export Package
-                                    </NeonButton>
+                                    <div className="ml-auto flex gap-2">
+                                        <NeonButton onClick={handleAutoClone} size="sm" variant="danger">
+                                            Auto-Clone Video
+                                        </NeonButton>
+                                        <NeonButton onClick={handleDownloadPackage} size="sm">
+                                            Export Package
+                                        </NeonButton>
+                                    </div>
                                 </div>
                             </>
                         ) : (
@@ -608,10 +698,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
 // Helper Component for Radar Chart using SVG
 const CompetitorRadarChart = ({ data, labels }: { data: any[], labels: string[] }) => {
     // Normalize data for chart (0-100 scale)
-    // Hook Style: Visual=90, Narrative=70, Text=50
-    // Pacing: Fast=95, Moderate=70, Slow=40
-    // Risk: High=80, Moderate=50, Safe=20 (Inverted context usually, but for radar we chart intensity)
-    
     const getScore = (val: string) => {
         if (!val) return 50;
         const v = val.toLowerCase();
@@ -625,10 +711,10 @@ const CompetitorRadarChart = ({ data, labels }: { data: any[], labels: string[] 
         color: i === 0 ? '#3b82f6' : i === 1 ? '#ef4444' : '#10b981', // Blue, Red, Green
         values: [
             getScore(d.report?.hook_style),
-            getScore(d.report?.post_frequency), // Assuming freq mapped to intensity
+            getScore(d.report?.post_frequency), 
             d.report?.algorithm_fit || 50,
             d.report?.risk_score || 50,
-            getScore(d.report?.avg_duration) // Short duration = high intensity usually in viral context
+            getScore(d.report?.avg_duration) 
         ]
     }));
 
