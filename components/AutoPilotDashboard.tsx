@@ -3,9 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Infinity as InfinityIcon, Power, Activity, Terminal, Shield, 
   Cpu, Globe, Zap, Clock, Video, Share2, 
-  AlertTriangle, RotateCcw, FileText, Check, DollarSign, Download, PlayCircle, Target
+  AlertTriangle, RotateCcw, FileText, Check, DollarSign, Download, PlayCircle, Target, ChevronDown, Layers, MonitorPlay, Palette, Mic, BrainCircuit
 } from 'lucide-react';
-import { ApiKeyConfig, AutoPilotLog, AutoPilotStats, SourceMetadata, PostingJob, CompletedVideo } from '../types';
+import { ApiKeyConfig, AutoPilotLog, AutoPilotStats, SourceMetadata, PostingJob, CompletedVideo, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 import { huntAffiliateProducts, generateVideoPlan } from '../services/geminiService';
 import { postVideoToSocial } from '../services/socialService';
 
@@ -15,11 +15,67 @@ interface AutoPilotDashboardProps {
   onVideoGenerated?: (video: CompletedVideo) => void;
   completedVideos?: CompletedVideo[];
   t?: any;
+
+  // Model State Props
+  scriptModel?: ScriptModel;
+  setScriptModel?: (model: ScriptModel) => void;
+  visualModel?: VisualModel;
+  setVisualModel?: (model: VisualModel) => void;
+  voiceModel?: VoiceModel;
+  setVoiceModel?: (model: VoiceModel) => void;
+  resolution?: VideoResolution;
+  setResolution?: (res: VideoResolution) => void;
+  aspectRatio?: AspectRatio;
+  setAspectRatio?: (ratio: AspectRatio) => void;
 }
 
 const AUTOPILOT_STORAGE_KEY = 'av_studio_autopilot_state_v1';
 
-const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddToQueue, onVideoGenerated, completedVideos = [], t }) => {
+// Reusable Compact Select Component
+const ConfigSelect = ({ 
+    label, 
+    value, 
+    onChange, 
+    options, 
+    icon: Icon,
+    disabled = false
+}: { 
+    label?: string, 
+    value: string, 
+    onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void, 
+    options: { value: string, label: string }[], 
+    icon?: any,
+    disabled?: boolean
+}) => (
+    <div className="relative group w-full">
+        {label && <label className="text-[9px] uppercase font-bold text-slate-500 mb-1 block pl-1">{label}</label>}
+        <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-primary transition-colors pointer-events-none">
+                {Icon && <Icon size={14} />}
+            </div>
+            <select 
+                value={value}
+                onChange={onChange}
+                disabled={disabled}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-9 pr-8 text-[11px] font-medium text-white appearance-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all cursor-pointer hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                <ChevronDown size={12} />
+            </div>
+        </div>
+    </div>
+);
+
+const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ 
+    apiKeys, onAddToQueue, onVideoGenerated, completedVideos = [], t,
+    scriptModel = 'Gemini 2.5 Flash', setScriptModel = (_: ScriptModel) => {},
+    visualModel = 'SORA', setVisualModel = (_: VisualModel) => {},
+    voiceModel = 'Google Chirp', setVoiceModel = (_: VoiceModel) => {},
+    resolution = '1080p', setResolution = (_: VideoResolution) => {},
+    aspectRatio = '9:16', setAspectRatio = (_: AspectRatio) => {},
+}) => {
   const texts = t || {};
   const getInitialState = () => {
       try {
@@ -161,11 +217,11 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                 notes: `Auto-Hunter Intel: Promote "${bestProduct.product_name}" as a ${angle}. Focus on commission: ${bestProduct.commission_est}. Reason: ${bestProduct.reason_to_promote}`,
                 prefer_google_stack: bestProduct.product_name.toLowerCase().includes('google'),
                 video_config: {
-                    resolution: '1080p',
-                    aspectRatio: '9:16',
-                    scriptModel: 'Gemini 2.5 Flash',
-                    visualModel: 'SORA',
-                    voiceModel: 'Google Chirp',
+                    resolution: resolution as VideoResolution,
+                    aspectRatio: aspectRatio as AspectRatio,
+                    scriptModel: scriptModel as ScriptModel,
+                    visualModel: visualModel as VisualModel,
+                    voiceModel: voiceModel as VoiceModel,
                     outputLanguage: 'vi'
                 }
             };
@@ -353,83 +409,171 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
            
            <div className="lg:col-span-1 space-y-4">
-               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
-                   <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                       <Target size={16} className="text-blue-400" /> {texts.config_title}
-                   </h3>
+               {/* CONFIG PANEL - REFACTORED */}
+               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                   <div className="flex items-center justify-between mb-4">
+                       <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                           <Target size={16} className="text-blue-400" /> {texts.config_title}
+                       </h3>
+                       <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-slate-600'}`}></div>
+                   </div>
                    
                    <div className="space-y-4">
-                       <div>
-                           <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">{texts.niche_label}</label>
-                           <select 
-                               value={selectedNiche}
-                               onChange={(e) => setSelectedNiche(e.target.value)}
-                               disabled={isRunning}
-                               className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 px-3 text-xs text-white focus:border-primary disabled:opacity-50"
-                           >
-                               <option value="AUTO">🤖 AUTO (Smart Sales Rotation)</option>
-                               <optgroup label="🔥 High Ticket Affiliate">
-                                   <option value="AI SaaS & Tools">🧠 AI SaaS (Software)</option>
-                                   <option value="Crypto & Finance">💰 Crypto & Investment</option>
-                                   <option value="Make Money Online">💸 MMO / BizOpp</option>
-                                   <option value="Digital Marketing">📈 Marketing Tools</option>
-                               </optgroup>
-                           </select>
-                       </div>
                        
+                       {/* Section 1: Mission Params */}
                        <div>
-                           <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Cooldown</label>
-                           <input 
-                               type="number"
-                               min="10"
-                               value={intervalTime}
-                               onChange={(e) => setIntervalTime(Math.max(10, Number(e.target.value)))}
-                               disabled={isRunning}
-                               className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 px-3 text-xs text-white font-mono disabled:opacity-50" 
-                           />
-                       </div>
-
-                       <div>
-                           <label className="flex items-center justify-between cursor-pointer p-2 bg-slate-950 border border-slate-800 rounded-lg hover:border-slate-700 transition-colors">
-                               <div className="flex items-center gap-2">
-                                   <FileText size={14} className={draftMode ? "text-yellow-500" : "text-slate-500"} />
+                           <div className="space-y-3">
+                                <ConfigSelect 
+                                    label={texts.niche_label}
+                                    value={selectedNiche} 
+                                    onChange={(e) => setSelectedNiche(e.target.value)} 
+                                    disabled={isRunning}
+                                    options={[
+                                        { value: "AUTO", label: "🤖 AUTO (Smart Rotation)" },
+                                        { value: "AI SaaS & Tools", label: "🧠 AI SaaS" },
+                                        { value: "Crypto & Finance", label: "💰 Crypto" },
+                                        { value: "Make Money Online", label: "💸 MMO" }
+                                    ]}
+                                    icon={Layers}
+                                />
+                               
+                               <div className="grid grid-cols-2 gap-2">
                                    <div>
-                                       <span className="text-[10px] font-bold text-white block">{texts.draft_mode}</span>
+                                       <label className="text-[9px] uppercase font-bold text-slate-500 mb-1 block pl-1">Cooldown (s)</label>
+                                       <div className="relative">
+                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                                <Clock size={14} />
+                                            </div>
+                                            <input 
+                                                type="number"
+                                                min="10"
+                                                value={intervalTime}
+                                                onChange={(e) => setIntervalTime(Math.max(10, Number(e.target.value)))}
+                                                disabled={isRunning}
+                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-9 pr-2 text-[11px] font-medium text-white font-mono disabled:opacity-50 focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none" 
+                                            />
+                                       </div>
+                                   </div>
+
+                                   <div>
+                                       <label className="text-[9px] uppercase font-bold text-slate-500 mb-1 block pl-1">Mode</label>
+                                       <button 
+                                           onClick={() => !isRunning && setDraftMode(!draftMode)}
+                                           disabled={isRunning}
+                                           className={`w-full py-2 px-3 rounded-lg border flex items-center justify-between text-[11px] font-bold transition-all h-[34px] ${
+                                               draftMode 
+                                               ? 'bg-yellow-900/20 border-yellow-500/50 text-yellow-400' 
+                                               : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
+                                           } disabled:opacity-50`}
+                                       >
+                                           <span className="truncate">{draftMode ? 'Draft' : 'Public'}</span>
+                                           <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${draftMode ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                                       </button>
                                    </div>
                                </div>
-                               <button 
-                                   onClick={() => !isRunning && setDraftMode(!draftMode)}
-                                   disabled={isRunning}
-                                   className={`w-8 h-4 rounded-full p-0.5 transition-colors ${draftMode ? 'bg-yellow-500' : 'bg-slate-700'} disabled:opacity-50`}
-                               >
-                                   <div className={`w-3 h-3 bg-white rounded-full transition-transform ${draftMode ? 'translate-x-4' : ''}`}></div>
-                               </button>
-                           </label>
+                           </div>
+                       </div>
+
+                       {/* Section 2: AI Engine Specs */}
+                       <div className="border-t border-slate-800 pt-3">
+                            <h4 className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-2 mb-2 pl-1">
+                                <Cpu size={10} /> AI Engine Config
+                            </h4>
+                            
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <ConfigSelect 
+                                        value={resolution} 
+                                        onChange={(e) => setResolution(e.target.value as VideoResolution)} 
+                                        options={[
+                                            { value: '720p', label: '720p' },
+                                            { value: '1080p', label: '1080p' },
+                                            { value: '4K', label: '4K' }
+                                        ]}
+                                        icon={MonitorPlay}
+                                        disabled={isRunning}
+                                    />
+                                    <ConfigSelect 
+                                        value={aspectRatio} 
+                                        onChange={(e) => setAspectRatio(e.target.value as AspectRatio)} 
+                                        options={[
+                                            { value: '9:16', label: '9:16' },
+                                            { value: '16:9', label: '16:9' },
+                                            { value: '1:1', label: '1:1' }
+                                        ]}
+                                        disabled={isRunning}
+                                    />
+                                </div>
+
+                                <ConfigSelect 
+                                    label="Script Intelligence"
+                                    value={scriptModel} 
+                                    onChange={(e) => setScriptModel(e.target.value as ScriptModel)} 
+                                    options={[
+                                        { value: 'Gemini 2.5 Flash', label: 'Gemini 2.5 Flash' },
+                                        { value: 'Gemini 3 Pro', label: 'Gemini 3 Pro' },
+                                        { value: 'GPT-4o', label: 'GPT-4o (OpenAI)' },
+                                        { value: 'Grok Beta', label: 'Grok Beta (xAI)' }
+                                    ]}
+                                    icon={BrainCircuit}
+                                    disabled={isRunning}
+                                />
+
+                                <ConfigSelect 
+                                    label="Visual Engine"
+                                    value={visualModel} 
+                                    onChange={(e) => setVisualModel(e.target.value as VisualModel)} 
+                                    options={[
+                                        { value: 'VEO', label: 'Google Veo' },
+                                        { value: 'IMAGEN', label: 'Imagen 3' },
+                                        { value: 'SORA', label: 'Sora (OpenAI)' },
+                                        { value: 'KLING', label: 'Kling AI' },
+                                        { value: 'MIDJOURNEY', label: 'Midjourney' }
+                                    ]}
+                                    icon={Palette}
+                                    disabled={isRunning}
+                                />
+
+                                <ConfigSelect 
+                                    label="Voice Synthesis"
+                                    value={voiceModel} 
+                                    onChange={(e) => setVoiceModel(e.target.value as VoiceModel)} 
+                                    options={[
+                                        { value: 'Google Chirp', label: 'Google Chirp (USM)' },
+                                        { value: 'Vbee TTS', label: 'Vbee AIVoice (VN)' },
+                                        { value: 'ElevenLabs', label: 'ElevenLabs' },
+                                        { value: 'OpenAI TTS', label: 'OpenAI TTS' }
+                                    ]}
+                                    icon={Mic}
+                                    disabled={isRunning}
+                                />
+                            </div>
                        </div>
                    </div>
                </div>
 
+               {/* Stats Panels */}
                <div className="grid grid-cols-2 gap-4">
-                   <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                       <div className="text-[10px] text-slate-500 uppercase font-bold">{texts.stats_videos}</div>
-                       <div className="text-2xl font-mono text-white font-bold">{stats.videosCreated}</div>
+                   <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                       <div className="text-[9px] text-slate-500 uppercase font-bold">{texts.stats_videos}</div>
+                       <div className="text-xl font-mono text-white font-bold">{stats.videosCreated}</div>
                    </div>
-                   <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                       <div className="text-[10px] text-slate-500 uppercase font-bold">{texts.stats_posted}</div>
-                       <div className="text-2xl font-mono text-green-400 font-bold">{stats.postedCount}</div>
+                   <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                       <div className="text-[9px] text-slate-500 uppercase font-bold">{texts.stats_posted}</div>
+                       <div className="text-xl font-mono text-green-400 font-bold">{stats.postedCount}</div>
                    </div>
-                   <div className="col-span-2 bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                   <div className="col-span-2 bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
                        <div>
-                           <div className="text-[10px] text-slate-500 uppercase font-bold">{texts.stats_uptime}</div>
-                           <div className="text-xl font-mono text-blue-400 font-bold">{formatUptime(stats.uptime)}</div>
+                           <div className="text-[9px] text-slate-500 uppercase font-bold">{texts.stats_uptime}</div>
+                           <div className="text-lg font-mono text-blue-400 font-bold">{formatUptime(stats.uptime)}</div>
                        </div>
-                       <Activity className={isRunning ? "text-blue-500 animate-pulse" : "text-slate-700"} />
+                       <Activity size={18} className={isRunning ? "text-blue-500 animate-pulse" : "text-slate-700"} />
                    </div>
                </div>
            </div>
 
-           <div className="lg:col-span-3 bg-black border border-slate-800 rounded-xl p-0 flex flex-col h-[500px] font-mono text-xs relative overflow-hidden shadow-2xl">
-               <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
+           <div className="lg:col-span-3 bg-black border border-slate-800 rounded-xl p-0 flex flex-col h-[650px] font-mono text-xs relative overflow-hidden shadow-2xl">
+               <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex justify-between items-center">
                    <div className="flex items-center gap-2 text-slate-400">
                        <Terminal size={14} />
                        <span className="font-bold">{texts.logs_title}</span>

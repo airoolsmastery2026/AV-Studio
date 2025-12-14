@@ -50,12 +50,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onCl
         colorClass: 'from-blue-500/10 to-cyan-500/10 border-blue-500/30 text-blue-400 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:border-blue-400'
     },
     { 
-        id: 'models', 
-        icon: Cpu, 
-        label: labels.models || 'AI Models Engine',
-        colorClass: 'from-violet-500/10 to-purple-500/10 border-violet-500/30 text-violet-400 hover:shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:border-violet-400'
-    },
-    { 
         id: 'analytics', 
         icon: BarChart3, 
         label: labels.analytics || 'Strategic Intel',

@@ -9,19 +9,33 @@ import {
   Gauge, TrendingUp, Lock, Unlock, FileCheck,
   Sliders, Video, Banknote, User, FileVideo, UserSquare2,
   Copy, Link, Upload, Youtube, Facebook, Instagram, FileText, Paperclip, Sparkles, Languages,
-  MinusCircle, BrainCircuit, Globe, Fingerprint, Clapperboard
+  MinusCircle, BrainCircuit, Globe, Fingerprint, Clapperboard, ChevronDown, ChevronUp, Cpu
 } from 'lucide-react';
-import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig, AppLanguage, ContentLanguage } from '../types';
+import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig, AppLanguage, ContentLanguage, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 import NeonButton from './NeonButton';
 import { extractViralDNA, generateProScript } from '../services/geminiService';
 import PlanResult from './PlanResult';
+import ModelSelector from './ModelSelector';
+import ModelFlowDiagram from './ModelFlowDiagram';
 
 interface ViralDNAStudioProps {
   apiKeys: ApiKeyConfig[];
   appLanguage: AppLanguage;
   contentLanguage: ContentLanguage;
   setContentLanguage: (lang: ContentLanguage) => void;
-  t?: any; 
+  t?: any;
+  
+  // Model State
+  scriptModel?: ScriptModel;
+  setScriptModel?: (model: ScriptModel) => void;
+  visualModel?: VisualModel;
+  setVisualModel?: (model: VisualModel) => void;
+  voiceModel?: VoiceModel;
+  setVoiceModel?: (model: VoiceModel) => void;
+  resolution?: VideoResolution;
+  setResolution?: (res: VideoResolution) => void;
+  aspectRatio?: AspectRatio;
+  setAspectRatio?: (ratio: AspectRatio) => void;
 }
 
 type StudioTab = 'cloner' | 'script' | 'studio' | 'quality';
@@ -31,7 +45,12 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
     appLanguage,
     contentLanguage,
     setContentLanguage,
-    t // Translation dictionary passed from App
+    t,
+    scriptModel = 'Gemini 2.5 Flash', setScriptModel = () => {},
+    visualModel = 'SORA', setVisualModel = () => {},
+    voiceModel = 'Google Chirp', setVoiceModel = () => {},
+    resolution = '1080p', setResolution = () => {},
+    aspectRatio = '9:16', setAspectRatio = () => {},
 }) => {
   // Use passed translation or fallback
   const texts = t || {};
@@ -39,6 +58,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   // --- STATE ---
   const [activeStudioTab, setActiveStudioTab] = useState<StudioTab>('cloner');
   const [inputMode, setInputMode] = useState<'link' | 'upload'>('link');
+  const [showModelConfig, setShowModelConfig] = useState(false);
   
   const [channels, setChannels] = useState<CompetitorChannel[]>([
     { id: '1', url: '', name: 'Source 1', status: 'pending' },
@@ -325,6 +345,38 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                     <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="video/mp4,video/webm" onChange={(e) => handleFileUpload(e, 'video', '1')} />
                                     <FileVideo size={32} className="mb-2 text-slate-600" />
                                     <p className="text-xs font-bold text-slate-300">{texts.btn_upload}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* AI MODEL CONFIGURATION (Integrated) */}
+                        <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/30">
+                            <button 
+                                onClick={() => setShowModelConfig(!showModelConfig)}
+                                className="w-full p-3 flex justify-between items-center bg-slate-900/50 hover:bg-slate-900 transition-colors"
+                            >
+                                <span className="text-xs font-bold text-primary flex items-center gap-2">
+                                    <Cpu size={14} /> AI Model Configuration
+                                </span>
+                                {showModelConfig ? <ChevronUp size={14} className="text-slate-500"/> : <ChevronDown size={14} className="text-slate-500"/>}
+                            </button>
+                            
+                            {showModelConfig && (
+                                <div className="p-4 space-y-6 border-t border-slate-800 animate-fade-in">
+                                    <ModelFlowDiagram 
+                                        scriptModel={scriptModel}
+                                        visualModel={visualModel}
+                                        voiceModel={voiceModel}
+                                        resolution={resolution}
+                                        aspectRatio={aspectRatio}
+                                    />
+                                    <ModelSelector 
+                                        scriptModel={scriptModel} setScriptModel={setScriptModel}
+                                        visualModel={visualModel} setVisualModel={setVisualModel}
+                                        voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+                                        resolution={resolution} setResolution={setResolution}
+                                        aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                                    />
                                 </div>
                             )}
                         </div>

@@ -1,21 +1,42 @@
 
 import React, { useState, useEffect } from 'react';
-import { Factory, Play, AlertCircle, CheckCircle, Loader2, FileText, Image as ImageIcon, Video, Clock } from 'lucide-react';
-import { ApiKeyConfig, BatchJobItem, SourceMetadata, PostingJob, ContentWorkflow } from '../types';
+import { Factory, Play, AlertCircle, CheckCircle, Loader2, FileText, Image as ImageIcon, Video, Clock, Cpu, ChevronDown, ChevronUp } from 'lucide-react';
+import { ApiKeyConfig, BatchJobItem, SourceMetadata, PostingJob, ContentWorkflow, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 import NeonButton from './NeonButton';
 import { classifyInput, generateVideoPlan } from '../services/geminiService';
+import ModelSelector from './ModelSelector';
 
 interface BatchProcessorProps {
   apiKeys: ApiKeyConfig[];
   onAddToQueue: (job: PostingJob) => void;
   t?: any;
+  
+  // Model State Props
+  scriptModel?: ScriptModel;
+  setScriptModel?: (model: ScriptModel) => void;
+  visualModel?: VisualModel;
+  setVisualModel?: (model: VisualModel) => void;
+  voiceModel?: VoiceModel;
+  setVoiceModel?: (model: VoiceModel) => void;
+  resolution?: VideoResolution;
+  setResolution?: (res: VideoResolution) => void;
+  aspectRatio?: AspectRatio;
+  setAspectRatio?: (ratio: AspectRatio) => void;
 }
 
 const BATCH_STORAGE_KEY = 'av_studio_batch_jobs_v1';
 
-const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue, t }) => {
+const BatchProcessor: React.FC<BatchProcessorProps> = ({ 
+    apiKeys, onAddToQueue, t,
+    scriptModel = 'Gemini 2.5 Flash', setScriptModel = () => {},
+    visualModel = 'SORA', setVisualModel = () => {},
+    voiceModel = 'Google Chirp', setVoiceModel = () => {},
+    resolution = '1080p', setResolution = () => {},
+    aspectRatio = '9:16', setAspectRatio = () => {},
+}) => {
   const texts = t || {};
   const [inputText, setInputText] = useState('');
+  const [showModelConfig, setShowModelConfig] = useState(false);
   
   // Load initial jobs
   const [jobs, setJobs] = useState<BatchJobItem[]>(() => {
@@ -69,7 +90,15 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue, 
       const metadata: SourceMetadata = {
           url: job.input,
           type: analysis.type,
-          detected_strategy: analysis.strategy as ContentWorkflow
+          detected_strategy: analysis.strategy as ContentWorkflow,
+          video_config: {
+              resolution: resolution as VideoResolution,
+              aspectRatio: aspectRatio as AspectRatio,
+              scriptModel: scriptModel as ScriptModel,
+              visualModel: visualModel as VisualModel,
+              voiceModel: voiceModel as VoiceModel,
+              outputLanguage: 'vi' // Default or passed prop
+          }
       };
 
       const plan = await generateVideoPlan(apiKey, metadata);
@@ -145,6 +174,31 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({ apiKeys, onAddToQueue, 
            
            {/* LEFT: INPUT AREA */}
            <div className="lg:col-span-1 space-y-4">
+               {/* AI Model Config Collapsible */}
+               <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+                    <button 
+                        onClick={() => setShowModelConfig(!showModelConfig)}
+                        className="w-full p-4 flex justify-between items-center hover:bg-slate-800/50 transition-colors"
+                    >
+                        <span className="text-xs font-bold text-primary flex items-center gap-2">
+                            <Cpu size={14} /> AI Model Configuration
+                        </span>
+                        {showModelConfig ? <ChevronUp size={14} className="text-slate-500"/> : <ChevronDown size={14} className="text-slate-500"/>}
+                    </button>
+                    
+                    {showModelConfig && (
+                        <div className="p-4 border-t border-slate-800 animate-fade-in max-h-[400px] overflow-y-auto custom-scrollbar">
+                            <ModelSelector 
+                                scriptModel={scriptModel} setScriptModel={setScriptModel}
+                                visualModel={visualModel} setVisualModel={setVisualModel}
+                                voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+                                resolution={resolution} setResolution={setResolution}
+                                aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                            />
+                        </div>
+                    )}
+               </div>
+
                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 md:p-5">
                    <label className="text-sm font-bold text-white mb-2 block">{texts.input_label || "1. Input Source List"}</label>
                    <textarea 

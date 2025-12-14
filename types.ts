@@ -31,7 +31,7 @@ export type ContentNiche = 'AUTO' | 'TECH' | 'BEAUTY' | 'FINANCE' | 'HEALTH' | '
 // --- NEW VIDEO CONFIG TYPES ---
 export type VideoResolution = '720p' | '1080p' | '4K';
 export type AspectRatio = '9:16' | '16:9' | '1:1';
-export type ScriptModel = 'Gemini 2.5 Flash' | 'Gemini 3 Pro' | 'GPT-4o';
+export type ScriptModel = 'Gemini 2.5 Flash' | 'Gemini 3 Pro' | 'GPT-4o' | 'Grok Beta';
 export type VisualModel = 'VEO' | 'SORA' | 'KLING' | 'IMAGEN' | 'MIDJOURNEY';
 export type VoiceModel = 'ElevenLabs' | 'OpenAI TTS' | 'Google Chirp' | 'Vbee TTS';
 

@@ -40,7 +40,6 @@ const TRANSLATIONS = {
       studio: "Xưởng Viral DNA",
       auto: "Auto-Pilot Vô Cực",
       campaign: "Chiến Dịch Hàng Loạt",
-      models: "Động Cơ AI",
       analytics: "Tình báo Chiến lược",
       market: "Sàn AI Affiliate",
       risk: "Trung tâm Rủi ro",
@@ -94,19 +93,6 @@ const TRANSLATIONS = {
       progress_title: "Tiến độ Sản xuất",
       clear_done: "Xóa job đã xong",
       empty_state: "Danh sách trống. Hãy nhập URL bên trái."
-    },
-    models: {
-      title: "Động Cơ Mô Hình AI",
-      subtitle: "Trực quan hóa và cấu hình các mạng nơ-ron đang vận hành.",
-      specs_title: "Thông số kỹ thuật đầu ra",
-      res_label: "Độ phân giải",
-      ratio_label: "Tỷ lệ khung hình",
-      script_title: "Trí Tuệ Kịch Bản",
-      visual_title: "Động Cơ Hình Ảnh",
-      voice_title: "Tổng Hợp Giọng Nói",
-      badge_reasoning: "Lõi Suy Luận",
-      badge_visual: "Ảnh & Video",
-      badge_audio: "TTS Audio"
     },
     plan_result: {
         viral_score: "Điểm Tiềm Năng Viral",
@@ -224,7 +210,6 @@ const TRANSLATIONS = {
       studio: "Viral DNA Studio",
       auto: "Infinity Auto-Pilot",
       campaign: "Campaign Wizard",
-      models: "AI Models Engine",
       analytics: "Strategic Intel",
       market: "AI Marketplace",
       risk: "Risk Center",
@@ -278,19 +263,6 @@ const TRANSLATIONS = {
       progress_title: "Production Progress",
       clear_done: "Clear completed",
       empty_state: "List empty. Enter URLs on the left."
-    },
-    models: {
-      title: "AI Model Engine",
-      subtitle: "Visualize and configure the neural networks powering your content.",
-      specs_title: "Output Specifications",
-      res_label: "Resolution",
-      ratio_label: "Aspect Ratio",
-      script_title: "Script Intelligence",
-      visual_title: "Visual Engine",
-      voice_title: "Voice Synthesis",
-      badge_reasoning: "Reasoning Core",
-      badge_visual: "Image & Video",
-      badge_audio: "TTS Audio"
     },
     plan_result: {
         viral_score: "Viral Potential Score",
@@ -405,7 +377,7 @@ const TRANSLATIONS = {
   },
   // ... (JP, ES, CN would follow similar structure, kept brief for XML limits but strictly following structure)
   jp: {
-    sidebar: { studio: "バイラルDNAスタジオ", auto: "無限オートパイロット", campaign: "キャンペーン", models: "AIモデル", analytics: "戦略的インテリジェンス", market: "AIマーケット", risk: "リスクセンター", queue: "スケジューラー", docs: "ドキュメント", settings: "設定" },
+    sidebar: { studio: "バイラルDNAスタジオ", auto: "無限オートパイロット", campaign: "キャンペーン", analytics: "戦略的インテリジェンス", market: "AIマーケット", risk: "リスクセンター", queue: "スケジューラー", docs: "ドキュメント", settings: "設定" },
     header: { lang_label: "表示言語", keys: "キー" },
     studio: { title: "バイラルDNAスタジオ", subtitle: "構造分析および複製エンジン", input_section: "データソース", analyze_btn: "構造分析", content_lang_label: "出力言語", tabs: { dna: "1. DNA分析", script: "2. スクリプト", studio: "3. スタジオ", quality: "4. 品質" }, script_engine: { title: "スクリプトエンジン", topic_label: "トピック", generate_btn: "生成", generating: "生成中..." }, video_studio: { title: "ビデオスタジオ", render_btn: "レンダリング", rendering: "処理中..." } },
     analytics: { title: "戦略的インテリジェンスハブ", subtitle: "自動偵察。", view_standard: "標準スキャン", auto_recon_btn: "自動偵察", manual_target: "手動ターゲット", logs_title: "ライブフィード", analysis_title: "分析", winner_title: "勝者", deploy_btn: "展開" },
@@ -416,7 +388,7 @@ const TRANSLATIONS = {
     settings: { title: "コントロールセンター", tabs: { brain: "AIブレイン", vault: "API保管庫", studio: "スタジオ設定", system: "システム" }, sections: { general: "一般設定" } }
   },
   es: {
-    sidebar: { studio: "Estudio Viral", auto: "Piloto Automático", campaign: "Campaña", models: "Modelos IA", analytics: "Inteligencia", market: "Mercado IA", risk: "Riesgo", queue: "Cola", docs: "Docs", settings: "Ajustes" },
+    sidebar: { studio: "Estudio Viral", auto: "Piloto Automático", campaign: "Campaña", analytics: "Inteligencia", market: "Mercado IA", risk: "Riesgo", queue: "Cola", docs: "Docs", settings: "Ajustes" },
     header: { lang_label: "Idioma", keys: "Claves" },
     studio: { title: "Estudio Viral DNA", subtitle: "Motor de Análisis", input_section: "Fuentes", analyze_btn: "Analizar", content_lang_label: "Idioma Salida", tabs: { dna: "1. Análisis", script: "2. Guión", studio: "3. Estudio", quality: "4. Calidad" }, script_engine: { title: "Motor Guión", topic_label: "Tema", generate_btn: "Generar", generating: "Escribiendo..." }, video_studio: { title: "Estudio Video", render_btn: "Renderizar", rendering: "Procesando..." } },
     analytics: { title: "Centro de Inteligencia", subtitle: "Reconocimiento automático.", view_standard: "Escaneo Std", auto_recon_btn: "Auto-Recon", manual_target: "Objetivo Manual", logs_title: "Señal en vivo", analysis_title: "Análisis", winner_title: "Ganador", deploy_btn: "Desplegar" },
@@ -427,7 +399,7 @@ const TRANSLATIONS = {
     settings: { title: "Centro de Control", tabs: { brain: "Cerebro IA", vault: "Bóveda API", studio: "Config Estudio", system: "Sistema" }, sections: { general: "General" } }
   },
   cn: {
-    sidebar: { studio: "病毒工作室", auto: "自动驾驶", campaign: "活动", models: "模型", analytics: "情报", market: "市场", risk: "风控", queue: "队列", docs: "文档", settings: "设置" },
+    sidebar: { studio: "病毒工作室", auto: "自动驾驶", campaign: "活动", analytics: "情报", market: "市场", risk: "风控", queue: "队列", docs: "文档", settings: "设置" },
     header: { lang_label: "语言", keys: "密钥" },
     studio: { title: "病毒DNA工作室", subtitle: "分析引擎", input_section: "数据源", analyze_btn: "分析", content_lang_label: "输出语言", tabs: { dna: "1. DNA分析", script: "2. 脚本", studio: "3. 工作室", quality: "4. 质量" }, script_engine: { title: "脚本引擎", topic_label: "主题", generate_btn: "生成", generating: "生成中..." }, video_studio: { title: "视频工作室", render_btn: "渲染", rendering: "处理中..." } },
     analytics: { title: "战略情报中心", subtitle: "自动侦察。", view_standard: "标准扫描", auto_recon_btn: "自动侦察", manual_target: "手动目标", logs_title: "实时信号", analysis_title: "分析", winner_title: "获胜者", deploy_btn: "部署" },
@@ -924,7 +896,13 @@ ${recentLogs}
                 appLanguage={appLanguage} 
                 contentLanguage={contentLanguage}
                 setContentLanguage={setContentLanguage}
-                t={{ ...t.studio, plan_result: t.plan_result }} // Pass both studio and plan result keys
+                t={{ ...t.studio, plan_result: t.plan_result }} 
+                // Pass Model State
+                scriptModel={scriptModel} setScriptModel={setScriptModel}
+                visualModel={visualModel} setVisualModel={setVisualModel}
+                voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+                resolution={resolution} setResolution={setResolution}
+                aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
             />
         ); 
       case 'docs':
@@ -953,35 +931,13 @@ ${recentLogs}
                 onVideoGenerated={handleVideoCompleted}
                 completedVideos={completedVideos}
                 t={t.autopilot}
-            />
-        );
-      case 'models':
-        return (
-          <div className="max-w-4xl mx-auto animate-fade-in">
-             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">{t.models?.title || "AI Model Engine"}</h2>
-                <p className="text-slate-400 text-sm">{t.models?.subtitle || "Visualize and configure the neural networks powering your content."}</p>
-             </div>
-             
-             {/* VISUAL DIAGRAM */}
-             <ModelFlowDiagram 
-                scriptModel={scriptModel}
-                visualModel={visualModel}
-                voiceModel={voiceModel}
-                resolution={resolution}
-                aspectRatio={aspectRatio}
-             />
-
-             {/* MODEL CONFIGURATION */}
-             <ModelSelector 
+                // Pass Model State
                 scriptModel={scriptModel} setScriptModel={setScriptModel}
                 visualModel={visualModel} setVisualModel={setVisualModel}
                 voiceModel={voiceModel} setVoiceModel={setVoiceModel}
                 resolution={resolution} setResolution={setResolution}
                 aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
-                t={t.models}
-             />
-          </div>
+            />
         );
       case 'settings':
         return (
@@ -1010,7 +966,17 @@ ${recentLogs}
                             BATCH PRODUCTION MODE
                         </div>
                     </div>
-                    <BatchProcessor apiKeys={apiKeys} onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} t={t.campaign} />
+                    <BatchProcessor 
+                        apiKeys={apiKeys} 
+                        onAddToQueue={(job) => setQueueJobs(prev => [job, ...prev])} 
+                        t={t.campaign}
+                        // Pass Model State
+                        scriptModel={scriptModel} setScriptModel={setScriptModel}
+                        visualModel={visualModel} setVisualModel={setVisualModel}
+                        voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+                        resolution={resolution} setResolution={setResolution}
+                        aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                    />
                 </div>
             )
         }
@@ -1134,12 +1100,6 @@ ${recentLogs}
                         <div className="border-t border-slate-800 pt-3">
                            <div className="flex items-center justify-between mb-2">
                                <h5 className="text-[10px] font-bold text-primary flex items-center gap-1"><Cpu size={10} /> AI MODELS</h5>
-                               <button 
-                                  onClick={() => setActiveTab('models')}
-                                  className="text-[10px] text-blue-400 hover:text-white flex items-center gap-1 underline"
-                               >
-                                  Config <Settings size={10} />
-                               </button>
                            </div>
                            <div className="space-y-1 text-[10px] text-slate-400 font-mono">
                                <div>Script: {scriptModel}</div>
