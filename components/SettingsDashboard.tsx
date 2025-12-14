@@ -6,7 +6,8 @@ import {
   ChevronDown, ChevronUp, Check, 
   Terminal, Sparkles, BookOpen, Layers,
   Youtube, ShoppingBag, MessageCircle, Facebook, Instagram, Twitter, Globe, Banknote, CreditCard, ExternalLink, Info, Zap, Smartphone, TrendingUp, Image, Images, Linkedin, Send, Pin, ShoppingCart, Truck, MapPin, Video, MonitorPlay,
-  Download, Upload, AlertOctagon, HardDrive, Bell, Moon, Languages, FileJson, AlertTriangle, Sliders, LayoutTemplate, FileOutput, ShieldAlert
+  Download, Upload, AlertOctagon, HardDrive, Bell, Moon, Languages, FileJson, AlertTriangle, Sliders, LayoutTemplate, FileOutput, ShieldAlert,
+  User
 } from 'lucide-react';
 import NeonButton from './NeonButton';
 import { ApiKeyConfig, KnowledgeBase } from '../types';
@@ -89,10 +90,20 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
       name: 'Zalo OA (Official Account)', 
       url: 'https://developers.zalo.me/', 
       icon: MessageCircle, 
-      desc: 'Vietnam CRM & Zalo Video',
+      desc: 'Vietnam CRM & Zalo Video (Biz)',
       instructions: '1. Truy cập Zalo Developers -> Tools -> API Explorer.\n2. Chọn ứng dụng và OA cần liên kết.\n3. Chọn quyền "zalo_video_publish" (Đăng video) và "oa_manage" (Quản lý).\n4. Copy Access Token (Lưu ý: Token ngắn hạn cần cơ chế refresh).',
       inputLabel: 'OA Access Token',
       keyPlaceholder: 'v4.public.ey...'
+    },
+    { 
+      id: 'zalo_personal', 
+      name: 'Zalo Cá Nhân (Profile)', 
+      url: 'https://chat.zalo.me/', 
+      icon: User, 
+      desc: 'Đăng bài lên Nhật ký (Unofficial)',
+      instructions: '1. Đăng nhập Zalo Web.\n2. F12 -> Application -> Cookies.\n3. Tìm cookie "z_pw_token" hoặc session key tương ứng.\n(Lưu ý: Đây là giải pháp giả lập, token có thể hết hạn nhanh).',
+      inputLabel: 'Session Cookie / Token',
+      keyPlaceholder: 'z_pw_token=...'
     },
     { 
         id: 'youtube', 

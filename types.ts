@@ -1,4 +1,5 @@
 
+
 export interface Scene {
   scene_id: string;
   start: number;
@@ -133,7 +134,7 @@ export interface ApiKeyConfig {
   id: string;
   alias: string;
   key: string;
-  provider: 'google' | 'openai' | 'veo' | 'stitch' | 'wish' | 'switch' | 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'pinterest' | 'telegram' | 'shopee' | 'amazon' | 'ebay' | 'etsy' | 'walmart' | 'aliexpress' | 'upstash' | 'other' | 'zalo' | 'accesstrade' | 'clickbank' | 'digistore24' | 'cj' | 'masoffer' | 'ecomobi' | 'adflex' | 'lazada';
+  provider: 'google' | 'openai' | 'veo' | 'stitch' | 'wish' | 'switch' | 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'pinterest' | 'telegram' | 'shopee' | 'amazon' | 'ebay' | 'etsy' | 'walmart' | 'aliexpress' | 'upstash' | 'other' | 'zalo' | 'zalo_personal' | 'accesstrade' | 'clickbank' | 'digistore24' | 'cj' | 'masoffer' | 'ecomobi' | 'adflex' | 'lazada';
   category: 'model' | 'social' | 'affiliate' | 'storage';
   status: 'active' | 'quota_exceeded' | 'error';
   lastUsed?: string;

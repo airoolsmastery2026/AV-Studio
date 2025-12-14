@@ -20,7 +20,10 @@ export const postVideoToSocial = async (
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     if (apiKeyConfig.provider === 'zalo') {
-        return await mockPostToZalo(apiKeyConfig.key, content);
+        return await mockPostToZaloOA(apiKeyConfig.key, content);
+    }
+    if (apiKeyConfig.provider === 'zalo_personal') {
+        return await mockPostToZaloPersonal(apiKeyConfig.key, content);
     }
 
     // Generic Simulation for other platforms (YouTube, TikTok, etc.)
@@ -36,23 +39,47 @@ export const postVideoToSocial = async (
   }
 };
 
-const mockPostToZalo = async (token: string, content: { title: string, caption: string }): Promise<SocialPostResult> => {
-    console.log("[Zalo Integrator] 1. Initializing Video Upload Session...");
+const mockPostToZaloOA = async (token: string, content: { title: string, caption: string }): Promise<SocialPostResult> => {
+    console.log("[Zalo OA] 1. Initializing Video Upload Session...");
     await new Promise(r => setTimeout(r, 500));
     
-    console.log("[Zalo Integrator] 2. Uploading binary data (Simulated)... [====================] 100%");
+    console.log("[Zalo OA] 2. Uploading binary data... [====================] 100%");
     await new Promise(r => setTimeout(r, 800));
     
-    console.log("[Zalo Integrator] 3. Waiting for video processing...");
+    console.log("[Zalo OA] 3. Waiting for video processing...");
     await new Promise(r => setTimeout(r, 500));
     
-    console.log(`[Zalo Integrator] 4. Creating Article/Post with Video ID.`);
-    console.log(`[Zalo Payload] Title: "${content.title}"`);
+    console.log(`[Zalo OA] 4. Creating Article/Post with Video ID.`);
     
     // Simulate Zalo OA API response
     return { 
         success: true, 
         platform: 'zalo', 
         postId: `zalo_oa_${Date.now().toString().slice(-8)}` 
+    };
+}
+
+const mockPostToZaloPersonal = async (token: string, content: { title: string, caption: string }): Promise<SocialPostResult> => {
+    console.log("[Zalo Personal] 1. Authenticating with Session Token/Cookie...");
+    if (!token.includes("z_pw_token") && token.length < 20) {
+        throw new Error("Invalid Session Token format.");
+    }
+    await new Promise(r => setTimeout(r, 800));
+    
+    console.log("[Zalo Personal] 2. Getting Upload Server URL...");
+    await new Promise(r => setTimeout(r, 500));
+    
+    console.log("[Zalo Personal] 3. Uploading Video Chunk 1/3...");
+    await new Promise(r => setTimeout(r, 500));
+    console.log("[Zalo Personal] 3. Uploading Video Chunk 2/3...");
+    await new Promise(r => setTimeout(r, 500));
+    console.log("[Zalo Personal] 3. Uploading Video Chunk 3/3...");
+    
+    console.log(`[Zalo Personal] 4. Posting to Feed: "${content.title}"`);
+    
+    return { 
+        success: true, 
+        platform: 'zalo_personal', 
+        postId: `zalo_pers_${Date.now().toString().slice(-8)}` 
     };
 }

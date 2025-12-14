@@ -272,23 +272,17 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                             ))}
                         </div>
 
-                        <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 border-dashed">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Phân tích Thuật toán (Algorithm Decoding)</h4>
-                            <div className="grid grid-cols-3 gap-3">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" defaultChecked className="accent-orange-500" />
-                                    <span className="text-xs text-slate-300">Nhịp độ (Pacing)</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" defaultChecked className="accent-orange-500" />
-                                    <span className="text-xs text-slate-300">Điểm giữ chân (Retention)</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" defaultChecked className="accent-orange-500" />
-                                    <span className="text-xs text-slate-300">Từ khóa RPM cao</span>
-                                </label>
+                        {/* COMPARISON RADAR CHART */}
+                        {dnaProfile && dnaProfile.channel_breakdown && (
+                            <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 animate-fade-in">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
+                                    <BarChart size={14} /> Competitive Matrix (DNA Comparison)
+                                </h4>
+                                <div className="h-64 w-full flex items-center justify-center">
+                                    <CompetitorRadarChart data={dnaProfile.channel_breakdown} labels={channels.map(c => c.name)} />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="pt-4">
                             <NeonButton onClick={handleRunAnalysis} disabled={status === 'analyzing'} size="lg" className="w-full">
@@ -609,6 +603,112 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
       </div>
     </div>
   );
+};
+
+// Helper Component for Radar Chart using SVG
+const CompetitorRadarChart = ({ data, labels }: { data: any[], labels: string[] }) => {
+    // Normalize data for chart (0-100 scale)
+    // Hook Style: Visual=90, Narrative=70, Text=50
+    // Pacing: Fast=95, Moderate=70, Slow=40
+    // Risk: High=80, Moderate=50, Safe=20 (Inverted context usually, but for radar we chart intensity)
+    
+    const getScore = (val: string) => {
+        if (!val) return 50;
+        const v = val.toLowerCase();
+        if (v.includes('fast') || v.includes('visual') || v.includes('high')) return 90;
+        if (v.includes('moderate') || v.includes('balanced')) return 60;
+        return 40;
+    };
+
+    const datasets = data.map((d, i) => ({
+        label: labels[i] || `Channel ${i+1}`,
+        color: i === 0 ? '#3b82f6' : i === 1 ? '#ef4444' : '#10b981', // Blue, Red, Green
+        values: [
+            getScore(d.report?.hook_style),
+            getScore(d.report?.post_frequency), // Assuming freq mapped to intensity
+            d.report?.algorithm_fit || 50,
+            d.report?.risk_score || 50,
+            getScore(d.report?.avg_duration) // Short duration = high intensity usually in viral context
+        ]
+    }));
+
+    const axes = ['Hook', 'Frequency', 'Algo Fit', 'Risk', 'Pacing'];
+    const size = 200;
+    const center = size / 2;
+    const radius = 80;
+    const angleSlice = (Math.PI * 2) / axes.length;
+
+    // Helper to get coordinates
+    const getCoords = (value: number, index: number) => {
+        const r = (value / 100) * radius;
+        const angle = index * angleSlice - Math.PI / 2; // Start from top
+        return {
+            x: center + r * Math.cos(angle),
+            y: center + r * Math.sin(angle)
+        };
+    };
+
+    return (
+        <div className="relative flex items-center justify-center w-full h-full">
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
+                {/* Grid Levels */}
+                {[20, 40, 60, 80, 100].map((level, i) => (
+                    <polygon
+                        key={i}
+                        points={axes.map((_, idx) => {
+                            const { x, y } = getCoords(level, idx);
+                            return `${x},${y}`;
+                        }).join(' ')}
+                        fill="none"
+                        stroke="#334155"
+                        strokeWidth="1"
+                        className="opacity-30"
+                    />
+                ))}
+
+                {/* Axes Lines */}
+                {axes.map((axis, i) => {
+                    const { x, y } = getCoords(100, i);
+                    return (
+                        <g key={i}>
+                            <line x1={center} y1={center} x2={x} y2={y} stroke="#334155" strokeWidth="1" />
+                            <text x={x} y={y} fill="#94a3b8" fontSize="8" textAnchor="middle" alignmentBaseline="middle" className="uppercase font-bold">
+                                {axis}
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {/* Data Polygons */}
+                {datasets.map((d, i) => {
+                    const points = d.values.map((v, idx) => {
+                        const { x, y } = getCoords(v, idx);
+                        return `${x},${y}`;
+                    }).join(' ');
+                    
+                    return (
+                        <g key={i}>
+                            <polygon points={points} fill={d.color} fillOpacity="0.2" stroke={d.color} strokeWidth="2" />
+                            {d.values.map((v, idx) => {
+                                const { x, y } = getCoords(v, idx);
+                                return <circle key={idx} cx={x} cy={y} r="2" fill={d.color} />
+                            })}
+                        </g>
+                    );
+                })}
+            </svg>
+            
+            {/* Legend */}
+            <div className="absolute bottom-0 right-0 flex flex-col gap-1 text-[8px]">
+                {datasets.map((d, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }}></div>
+                        <span className="text-slate-400">{d.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 };
 
 // Helper Icons for Quality Gate
