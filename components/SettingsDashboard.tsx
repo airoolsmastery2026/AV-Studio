@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronUp, Check, 
   Terminal, Sparkles, BookOpen, Layers,
   Youtube, ShoppingBag, MessageCircle, Facebook, Instagram, Twitter, Globe, Banknote, CreditCard, ExternalLink, Info, Zap, Smartphone, TrendingUp, Image, Images, Linkedin, Send, Pin, ShoppingCart, Truck, MapPin, Video, MonitorPlay,
-  Download, Upload, AlertOctagon, HardDrive, Bell, Moon, Languages, FileJson, AlertTriangle
+  Download, Upload, AlertOctagon, HardDrive, Bell, Moon, Languages, FileJson, AlertTriangle, Sliders, LayoutTemplate, FileOutput, ShieldAlert
 } from 'lucide-react';
 import NeonButton from './NeonButton';
 import { ApiKeyConfig, KnowledgeBase } from '../types';
@@ -19,6 +19,7 @@ const UI_STATE_STORAGE_KEY = 'av_studio_ui_state_v1';
 const GALLERY_STORAGE_KEY = 'av_studio_gallery_v1';
 const CHAT_STORAGE_KEY = 'av_studio_chat_sessions_v2';
 const AUTOPILOT_STORAGE_KEY = 'av_studio_autopilot_state_v1';
+const STUDIO_CONFIG_KEY = 'av_studio_config_v1';
 
 interface SettingsDashboardProps {
   apiKeys: ApiKeyConfig[];
@@ -26,6 +27,26 @@ interface SettingsDashboardProps {
   knowledgeBase: KnowledgeBase;
   setKnowledgeBase: (kb: KnowledgeBase) => void;
 }
+
+interface StudioGlobalConfig {
+  performanceMode: 'turbo' | 'eco';
+  parallelChannels: number;
+  autoFolder: boolean;
+  autoDownload: boolean;
+  namingRule: string;
+  minOriginality: number;
+  minRetention: number;
+}
+
+const DEFAULT_STUDIO_CONFIG: StudioGlobalConfig = {
+  performanceMode: 'turbo',
+  parallelChannels: 3,
+  autoFolder: true,
+  autoDownload: true,
+  namingRule: '[channel]_[title]_[index]',
+  minOriginality: 85,
+  minRetention: 75
+};
 
 interface ProviderConfig {
   id: string;
@@ -170,7 +191,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   knowledgeBase,
   setKnowledgeBase
 }) => {
-  const [activeTab, setActiveTab] = useState<'brain' | 'vault' | 'system'>('brain');
+  const [activeTab, setActiveTab] = useState<'brain' | 'vault' | 'studio' | 'system'>('brain');
   
   // Vault specific states
   const [activeVaultTab, setActiveVaultTab] = useState<'model'|'social'|'affiliate'|'storage'>('model');
@@ -186,6 +207,9 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [appLanguage, setAppLanguage] = useState<'vi' | 'en'>('vi');
 
+  // Studio Config State
+  const [studioConfig, setStudioConfig] = useState<StudioGlobalConfig>(DEFAULT_STUDIO_CONFIG);
+
   useEffect(() => {
       // Calculate storage usage
       let total = 0;
@@ -198,6 +222,15 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
       // Load saved prefs
       if (localStorage.getItem('av_pref_notifications') === 'true') setNotificationsEnabled(true);
       if (localStorage.getItem('av_pref_language') === 'en') setAppLanguage('en');
+      
+      // Load Studio Config
+      try {
+        const savedConfig = localStorage.getItem(STUDIO_CONFIG_KEY);
+        if (savedConfig) {
+          setStudioConfig({ ...DEFAULT_STUDIO_CONFIG, ...JSON.parse(savedConfig) });
+        }
+      } catch (e) { console.error("Failed to load studio config", e); }
+
   }, []);
 
   // Filter Logic
@@ -244,6 +277,12 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
     }
   };
 
+  // --- STUDIO CONFIG LOGIC ---
+  const handleSaveStudioConfig = () => {
+    localStorage.setItem(STUDIO_CONFIG_KEY, JSON.stringify(studioConfig));
+    alert("Studio Configuration Saved Successfully!");
+  };
+
   // --- SYSTEM LOGIC ---
   const handleBackup = () => {
       const backupData = {
@@ -256,6 +295,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
           chat: localStorage.getItem(CHAT_STORAGE_KEY),
           autopilot: localStorage.getItem(AUTOPILOT_STORAGE_KEY),
           ui: localStorage.getItem(UI_STATE_STORAGE_KEY),
+          studioConfig: localStorage.getItem(STUDIO_CONFIG_KEY),
       };
       
       const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -288,6 +328,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                   if (data.chat) localStorage.setItem(CHAT_STORAGE_KEY, data.chat);
                   if (data.autopilot) localStorage.setItem(AUTOPILOT_STORAGE_KEY, data.autopilot);
                   if (data.ui) localStorage.setItem(UI_STATE_STORAGE_KEY, data.ui);
+                  if (data.studioConfig) localStorage.setItem(STUDIO_CONFIG_KEY, data.studioConfig);
                   
                   alert("Khôi phục thành công! Hệ thống sẽ tự tải lại.");
                   window.location.reload();
@@ -334,16 +375,17 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
       </div>
 
       {/* Main Tabs */}
-      <div className="flex gap-2 border-b border-slate-800 pb-1">
+      <div className="flex gap-2 border-b border-slate-800 pb-1 overflow-x-auto">
         {[
           { id: 'brain', label: 'AI Brain & Learning', icon: Brain },
           { id: 'vault', label: 'API Vault (Kết nối)', icon: Shield },
+          { id: 'studio', label: 'Studio Config', icon: Sliders },
           { id: 'system', label: 'System Config', icon: Terminal },
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-6 py-3 rounded-t-xl text-sm font-bold flex items-center gap-2 transition-all ${
+            className={`px-6 py-3 rounded-t-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
               activeTab === tab.id 
                 ? 'bg-slate-900 text-primary border-t border-x border-slate-800' 
                 : 'text-slate-500 hover:text-white hover:bg-slate-900/50'
@@ -606,6 +648,130 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
           </div>
         )}
 
+        {/* TAB: STUDIO CONFIG */}
+        {activeTab === 'studio' && (
+          <div className="animate-fade-in space-y-6">
+             <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                   <Sliders size={20} className="text-blue-400" /> Viral DNA Studio Defaults
+                </h3>
+                <NeonButton onClick={handleSaveStudioConfig} size="sm">
+                   Save Configuration
+                </NeonButton>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 1. Performance */}
+                <div className="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                   <h4 className="text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2">
+                      <Zap size={16} className="text-yellow-500" /> Performance & Parallelism
+                   </h4>
+                   <div className="space-y-4">
+                      <div>
+                         <label className="text-xs font-bold text-slate-500 mb-1.5 block">Execution Mode</label>
+                         <div className="flex gap-2">
+                            <button 
+                               onClick={() => setStudioConfig({...studioConfig, performanceMode: 'turbo'})}
+                               className={`flex-1 py-2 rounded-lg text-xs font-bold border ${studioConfig.performanceMode === 'turbo' ? 'bg-red-900/20 border-red-500 text-red-400' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
+                            >
+                               TURBO (Fast)
+                            </button>
+                            <button 
+                               onClick={() => setStudioConfig({...studioConfig, performanceMode: 'eco'})}
+                               className={`flex-1 py-2 rounded-lg text-xs font-bold border ${studioConfig.performanceMode === 'eco' ? 'bg-green-900/20 border-green-500 text-green-400' : 'bg-slate-900 border-slate-700 text-slate-400'}`}
+                            >
+                               ECO (Stable)
+                            </button>
+                         </div>
+                      </div>
+                      <div>
+                         <label className="text-xs font-bold text-slate-500 mb-1.5 block">Parallel Channels Analysis (1-5)</label>
+                         <div className="flex items-center gap-4">
+                            <input 
+                               type="range" min="1" max="5" step="1"
+                               value={studioConfig.parallelChannels}
+                               onChange={(e) => setStudioConfig({...studioConfig, parallelChannels: parseInt(e.target.value)})}
+                               className="flex-1 accent-primary h-2 bg-slate-800 rounded-lg appearance-none"
+                            />
+                            <span className="text-lg font-bold text-white font-mono w-8">{studioConfig.parallelChannels}</span>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* 2. File Automation */}
+                <div className="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                   <h4 className="text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2">
+                      <LayoutTemplate size={16} className="text-blue-500" /> File Automation
+                   </h4>
+                   <div className="space-y-4">
+                      <div className="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-800">
+                         <span className="text-sm text-slate-300">Auto-create Folders</span>
+                         <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={studioConfig.autoFolder} onChange={() => setStudioConfig({...studioConfig, autoFolder: !studioConfig.autoFolder})} />
+                            <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                         </label>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-800">
+                         <span className="text-sm text-slate-300">Auto-Download Assets</span>
+                         <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={studioConfig.autoDownload} onChange={() => setStudioConfig({...studioConfig, autoDownload: !studioConfig.autoDownload})} />
+                            <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                         </label>
+                      </div>
+                      <div>
+                         <label className="text-xs font-bold text-slate-500 mb-1.5 block">Naming Convention Rule</label>
+                         <div className="flex gap-2">
+                             <input 
+                                type="text" 
+                                value={studioConfig.namingRule}
+                                onChange={(e) => setStudioConfig({...studioConfig, namingRule: e.target.value})}
+                                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono"
+                             />
+                             <div className="p-2 bg-slate-800 rounded text-xs text-slate-400 font-mono flex items-center">.mp4</div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* 3. Quality Gates */}
+                <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 md:col-span-2">
+                   <h4 className="text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2">
+                      <ShieldAlert size={16} className="text-purple-500" /> Quality Control Gates (Anti-Fluff)
+                   </h4>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                         <div className="flex justify-between text-xs mb-1">
+                            <span className="text-slate-400">Min Originality Score</span>
+                            <span className="text-white font-bold">{studioConfig.minOriginality}%</span>
+                         </div>
+                         <input 
+                            type="range" min="0" max="100" 
+                            value={studioConfig.minOriginality}
+                            onChange={(e) => setStudioConfig({...studioConfig, minOriginality: parseInt(e.target.value)})}
+                            className="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none"
+                         />
+                         <p className="text-[10px] text-slate-500 mt-1">Block export if similarity with competitor is too high.</p>
+                      </div>
+                      <div>
+                         <div className="flex justify-between text-xs mb-1">
+                            <span className="text-slate-400">Min Retention Prediction</span>
+                            <span className="text-white font-bold">{studioConfig.minRetention}%</span>
+                         </div>
+                         <input 
+                            type="range" min="0" max="100" 
+                            value={studioConfig.minRetention}
+                            onChange={(e) => setStudioConfig({...studioConfig, minRetention: parseInt(e.target.value)})}
+                            className="w-full accent-green-500 h-2 bg-slate-800 rounded-lg appearance-none"
+                         />
+                         <p className="text-[10px] text-slate-500 mt-1">Block export if estimated retention is low.</p>
+                      </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+        )}
+
         {/* TAB: SYSTEM */}
         {activeTab === 'system' && (
            <div className="animate-fade-in grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -750,6 +916,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 const SettingsIcon = ({ activeTab }: { activeTab: string }) => {
   if (activeTab === 'brain') return <Brain size={32} className="text-purple-500" />;
   if (activeTab === 'vault') return <Shield size={32} className="text-green-500" />;
+  if (activeTab === 'studio') return <Sliders size={32} className="text-blue-500" />;
   return <Terminal size={32} className="text-slate-500" />;
 }
 
