@@ -183,6 +183,14 @@ export interface StudioSettings {
   storyMode: 'One-shot' | 'Episodic' | 'Documentary';
   riskLevel: 'Safe' | 'Medium' | 'High';
   
+  // Script Settings
+  videoFormat: 'Shorts' | 'Long Form';
+  language: 'vi' | 'en' | 'es';
+  topic: string;
+  
+  // Generation
+  generationMode: 'Free Storyboard' | 'Veo';
+
   // Consistency
   characterLock: boolean;
   styleLock: boolean;

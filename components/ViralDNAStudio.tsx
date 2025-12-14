@@ -7,7 +7,8 @@ import {
   BarChart, Maximize2, RefreshCw, Box, FileJson,
   LayoutTemplate, Image as ImageIcon, Wand2, ShieldAlert,
   Gauge, TrendingUp, Lock, Unlock, FileCheck,
-  Sliders, Video, Banknote, User, FileVideo, UserSquare2
+  Sliders, Video, Banknote, User, FileVideo, UserSquare2,
+  Copy, Link, Upload, Youtube, Facebook, Instagram, FileText, Paperclip
 } from 'lucide-react';
 import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig } from '../types';
 import NeonButton from './NeonButton';
@@ -18,28 +19,43 @@ interface ViralDNAStudioProps {
   apiKeys: ApiKeyConfig[];
 }
 
-type StudioTab = 'source' | 'prompt' | 'settings' | 'character' | 'flow' | 'quality';
+type StudioTab = 'cloner' | 'script' | 'studio' | 'quality';
 
 const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
   // --- STATE ---
-  const [activeStudioTab, setActiveStudioTab] = useState<StudioTab>('source');
+  const [activeStudioTab, setActiveStudioTab] = useState<StudioTab>('cloner');
+  const [inputMode, setInputMode] = useState<'link' | 'upload'>('link');
   
   // Channels Input State
   const [channels, setChannels] = useState<CompetitorChannel[]>([
-    { id: '1', url: '', name: 'Channel 1', status: 'pending' },
-    { id: '2', url: '', name: 'Channel 2', status: 'pending' },
-    { id: '3', url: '', name: 'Channel 3', status: 'pending' }
+    { id: '1', url: '', name: 'Source 1', status: 'pending' },
+    { id: '2', url: '', name: 'Source 2', status: 'pending' },
+    { id: '3', url: '', name: 'Source 3', status: 'pending' }
   ]);
   
   // Face Swap State
   const [uploadedFaces, setUploadedFaces] = useState<string[]>([]);
+
+  // New Reference States
+  const [refImages, setRefImages] = useState<string[]>([]);
+  const [refVideos, setRefVideos] = useState<string[]>([]);
+  const [refContext, setRefContext] = useState<string>('');
   
   const [dnaProfile, setDnaProfile] = useState<ViralDNAProfile | null>(null);
   
   const [studioSettings, setStudioSettings] = useState<StudioSettings>({
+    // Studio
     quality: 'Standard',
     aspectRatio: '9:16',
     model: 'Balanced',
+    generationMode: 'Free Storyboard',
+    
+    // Script
+    videoFormat: 'Shorts',
+    language: 'vi',
+    topic: '',
+    
+    // Config
     hookStrength: 8,
     storyMode: 'One-shot',
     riskLevel: 'Medium',
@@ -60,19 +76,20 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
     setChannels(channels.map(c => c.id === id ? { ...c, url, status: 'pending' } : c));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, id?: string) => {
-      // Simulate file upload logic
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'face' | 'ref_image' | 'ref_video', id?: string) => {
       const file = e.target.files?.[0];
       if (!file) return;
       
-      if (id) {
-          // Channel Video Upload
-          const fakeUrl = `file://local_upload/${file.name}`;
-          setChannels(channels.map(c => c.id === id ? { ...c, url: fakeUrl, name: file.name } : c));
-      } else {
-          // Face Image Upload
-          const fakeUrl = URL.createObjectURL(file);
+      const fakeUrl = URL.createObjectURL(file);
+
+      if (type === 'video' && id) {
+          setChannels(channels.map(c => c.id === id ? { ...c, url: fakeUrl, name: file.name, status: 'done' } : c));
+      } else if (type === 'face') {
           setUploadedFaces(prev => [...prev, fakeUrl]);
+      } else if (type === 'ref_image') {
+          setRefImages(prev => [...prev, fakeUrl]);
+      } else if (type === 'ref_video') {
+          setRefVideos(prev => [...prev, fakeUrl]); // In real app, store file obj
       }
   };
 
@@ -93,13 +110,18 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
 
     const validChannels = channels.filter(c => c.url.trim() !== '');
     if (validChannels.length === 0) {
-        alert("Vui lòng nhập ít nhất 1 URL kênh đối thủ.");
+        alert("Vui lòng nhập nguồn video (Link hoặc Upload).");
         return;
     }
 
     setStatus('analyzing');
-    addLog("--- BẮT ĐẦU QUY TRÌNH STUDIO (CASH COW ENGINE) ---");
+    addLog("--- INITIALIZING VIDEO CLONER & REPLICATOR ---");
     
+    // Log references if any
+    if (refImages.length > 0) addLog(`📸 Included ${refImages.length} reference images for style transfer.`);
+    if (refVideos.length > 0) addLog(`🎞️ Included ${refVideos.length} reference videos for pacing/b-roll.`);
+    if (refContext) addLog(`📝 Context prompt loaded: "${refContext.substring(0, 20)}..."`);
+
     try {
         // Parallel Analysis Simulation
         const analyzedChannels = [...channels];
@@ -107,8 +129,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
         for (let i = 0; i < analyzedChannels.length; i++) {
             if (analyzedChannels[i].url.trim()) {
                 setAnalyzingChannelId(analyzedChannels[i].id);
-                addLog(`📡 Scanning RPM & Tech: ${analyzedChannels[i].name}...`);
-                // Simulate delay per channel for visual effect
+                addLog(`📡 Scanning DNA of: ${analyzedChannels[i].name}...`);
                 await new Promise(r => setTimeout(r, 1000));
                 analyzedChannels[i].status = 'done';
             }
@@ -117,55 +138,73 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
         setChannels(analyzedChannels);
 
         // Call API
-        addLog(`🧬 Trích xuất DNA Viral để tối ưu Views/CPM...`);
+        addLog(`🧬 Extracting Viral DNA Structure...`);
         const dna = await extractViralDNA(googleKey.key, validChannels.map(c => c.url));
         setDnaProfile(dna);
         
-        // Auto-switch to Prompt Tab
-        addLog("✅ Phân tích hoàn tất. Chuyển sang chiến lược Prompt RPM cao.");
-        setActiveStudioTab('prompt');
+        // Use title from DNA if available for Topic
+        if (dna.keywords && dna.keywords.length > 0) {
+            setStudioSettings(prev => ({...prev, topic: `Viral Video about ${dna.keywords[0]}`}));
+        }
+
+        addLog("✅ DNA Extraction Complete. Switching to Script Engine.");
+        setActiveStudioTab('script');
 
     } catch (e: any) {
         console.error(e);
-        addLog(`❌ Lỗi: ${e.message}`);
+        addLog(`❌ Error: ${e.message}`);
         setStatus('idle');
     }
   };
 
   const handleGenerateScript = async () => {
-      if (!dnaProfile) return;
+      if (!dnaProfile && !studioSettings.topic) {
+          alert("Vui lòng phân tích video hoặc nhập Topic trước.");
+          return;
+      }
+      
       const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
       if (!googleKey) return;
 
       setStatus('generating');
-      addLog("📝 Đang viết kịch bản tối ưu Retention (High RPM)...");
+      addLog(`📝 Generating ${studioSettings.videoFormat} script in ${studioSettings.language.toUpperCase()}...`);
+      
       try {
-          const plan = await generateProScript(googleKey.key, dnaProfile, studioSettings);
+          // Use default DNA if not analyzed yet
+          const effectiveDNA = dnaProfile || {
+              structure: { hook_type: 'Generic', pacing: 'Fast', avg_scene_duration: 3 },
+              emotional_curve: ['Curiosity', 'Engagement'],
+              keywords: [studioSettings.topic],
+              algorithm_fit_score: 85,
+              risk_level: 'Safe'
+          } as ViralDNAProfile;
+
+          const plan = await generateProScript(googleKey.key, effectiveDNA, studioSettings);
           setGeneratedPlan(plan);
-          addLog("✅ Kịch bản hoàn tất. Chuyển sang Quality Check.");
-          setActiveStudioTab('quality');
+          addLog("✅ Script Generated. Sending to Video Studio.");
+          setActiveStudioTab('studio');
           setStatus('done');
       } catch (e: any) {
-          addLog(`❌ Lỗi tạo script: ${e.message}`);
+          addLog(`❌ Script Error: ${e.message}`);
           setStatus('idle');
       }
   };
 
   const handleAutoClone = async () => {
       if (!generatedPlan) {
-          alert("Vui lòng tạo kịch bản (Script) trước khi Auto-Clone.");
+          alert("Script blueprint is required for cloning.");
           return;
       }
       
       setStatus('rendering');
-      addLog("🚀 KHỞI ĐỘNG QUY TRÌNH AUTO-CLONE (RECREATE)...");
-      addLog(`   > Model: ${studioSettings.model}`);
-      addLog(`   > Consistency: ${studioSettings.characterLock ? "LOCKED" : "UNLOCKED"}`);
-      if (uploadedFaces.length > 0) addLog(`   > Face Swap: Active (${uploadedFaces.length} faces)`);
+      addLog("🚀 AUTO-CLONE SEQUENCE STARTED...");
+      addLog(`   > Mode: ${studioSettings.generationMode}`);
+      addLog(`   > Face Swap: ${uploadedFaces.length > 0 ? "ACTIVE" : "INACTIVE"}`);
+      addLog(`   > Consistency: ${studioSettings.characterLock ? "LOCKED" : "OFF"}`);
       
       // Simulation
-      await new Promise(r => setTimeout(r, 2000));
-      addLog("✅ Render hoàn tất! Chuyển sang Quality Gate.");
+      await new Promise(r => setTimeout(r, 2500));
+      addLog("✅ Cloning Complete. Verifying Quality...");
       setActiveStudioTab('quality');
       setStatus('done');
   };
@@ -192,7 +231,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
       {/* 1. STUDIO HEADER */}
       <div className="flex items-center justify-between gap-4 mb-6 border-b border-slate-800 pb-4 shrink-0">
         <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg shadow-orange-900/20">
+            <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-900/20">
                 <Dna size={32} className="text-white" />
             </div>
             <div>
@@ -201,385 +240,408 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                 </h1>
                 <p className="text-slate-400 text-xs font-mono flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    CASH COW ENGINE: HIGH RPM & VIEW MONETIZATION
+                    CLONER & REPLICATOR ENGINE
                 </p>
             </div>
         </div>
         
         {/* Progress Stepper */}
         <div className="hidden lg:flex items-center gap-2 bg-slate-900/50 p-2 rounded-xl border border-slate-800">
-            {['Source', 'Prompt', 'Config', 'Script', 'Quality'].map((step, i) => (
+            {['Cloner', 'Script', 'Studio', 'Quality'].map((step, i) => {
+                const stepId = step.toLowerCase();
+                const isActive = activeStudioTab === stepId;
+                const isPassed = ['cloner', 'script', 'studio', 'quality'].indexOf(activeStudioTab) > i;
+                
+                return (
                 <div key={step} className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${
-                        (status === 'idle' && i === 0) ? 'bg-blue-500 animate-pulse' :
-                        (status === 'analyzing' && i <= 1) ? 'bg-yellow-500 animate-pulse' :
-                        (status === 'generating' && i <= 3) ? 'bg-purple-500 animate-pulse' :
-                        (status === 'done') ? 'bg-green-500' : 'bg-slate-700'
-                    }`}></div>
-                    <span className={`text-[10px] font-bold uppercase ${
-                        (status === 'done' || (status === 'analyzing' && i <=1)) ? 'text-white' : 'text-slate-600'
-                    }`}>{step}</span>
-                    {i < 4 && <div className="w-8 h-px bg-slate-800 mx-2"></div>}
+                    <button 
+                        onClick={() => setActiveStudioTab(stepId as StudioTab)}
+                        className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-all ${isActive ? 'bg-indigo-600 text-white' : isPassed ? 'text-indigo-400 hover:text-white' : 'text-slate-600'}`}
+                    >
+                        <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-white animate-pulse' : isPassed ? 'bg-indigo-400' : 'bg-slate-700'}`}></div>
+                        <span className="text-[10px] font-bold uppercase">{step}</span>
+                    </button>
+                    {i < 3 && <div className="w-4 h-px bg-slate-800 mx-1"></div>}
                 </div>
-            ))}
+            )})}
         </div>
       </div>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 overflow-hidden">
         
-        {/* LEFT PANEL: NAVIGATION & HISTORY (2 Cols) */}
+        {/* LEFT PANEL: NAVIGATION (2 Cols) */}
         <div className="hidden lg:flex lg:col-span-2 flex-col gap-2 border-r border-slate-800 pr-4">
-            <h3 className="text-xs font-bold text-slate-500 uppercase mb-2 px-2">Workflow Tabs</h3>
+            <h3 className="text-xs font-bold text-slate-500 uppercase mb-2 px-2">Workstation</h3>
             {[
-                { id: 'source', label: '1. Source & Analysis', icon: Monitor },
-                { id: 'prompt', label: '2. Prompt Control', icon: Wand2 },
-                { id: 'settings', label: '3. Video Settings', icon: Sliders },
-                { id: 'character', label: '4. Character & Style', icon: ImageIcon },
-                { id: 'flow', label: '5. Story Flow', icon: LayoutTemplate },
-                { id: 'quality', label: '6. Quality Gate', icon: ShieldAlert },
+                { id: 'cloner', label: '1. Video Cloner', icon: Copy, desc: 'Input & Face Swap' },
+                { id: 'script', label: '2. Script Engine', icon: FileVideo, desc: 'Text Generation' },
+                { id: 'studio', label: '3. Video Studio', icon: Sliders, desc: 'Production Suite' },
+                { id: 'quality', label: '4. Quality Monitor', icon: ShieldAlert, desc: 'Final Check' },
             ].map(tab => (
                 <button
                     key={tab.id}
                     onClick={() => setActiveStudioTab(tab.id as StudioTab)}
-                    className={`text-left px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-3 transition-all ${
+                    className={`text-left px-4 py-3 rounded-xl flex flex-col gap-1 transition-all border ${
                         activeStudioTab === tab.id 
-                        ? 'bg-slate-800 text-white border-l-4 border-orange-500 shadow-lg' 
-                        : 'text-slate-500 hover:text-white hover:bg-slate-900'
+                        ? 'bg-slate-800 text-white border-indigo-500/50 shadow-lg' 
+                        : 'text-slate-500 hover:text-white hover:bg-slate-900 border-transparent'
                     }`}
                 >
-                    <tab.icon size={16} /> {tab.label}
+                    <div className="flex items-center gap-2 font-bold text-sm">
+                        <tab.icon size={16} /> {tab.label}
+                    </div>
+                    <span className="text-[10px] opacity-70">{tab.desc}</span>
                 </button>
             ))}
-
-            <div className="mt-auto bg-slate-900 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-2">Target Metrics</h4>
-                <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-slate-300">
-                        <span>Min View:</span> <span className="font-mono text-green-400">100K+</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-slate-300">
-                        <span>Goal:</span> <span className="font-mono text-orange-400">High RPM</span>
-                    </div>
-                </div>
-            </div>
         </div>
 
         {/* CENTER PANEL: MAIN WORKSPACE (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
             
-            {/* TAB CONTENT */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 min-h-[500px] relative">
                 
-                {/* 1. SOURCE & ANALYSIS */}
-                {activeStudioTab === 'source' && (
-                    <div className="space-y-6 animate-fade-in">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Monitor size={20} className="text-blue-500" /> Multi-Channel Input
-                            </h3>
-                            <span className="text-xs bg-blue-900/30 text-blue-300 px-2 py-1 rounded border border-blue-500/30 font-mono">
-                                Mode: Competitor Cloning
-                            </span>
+                {/* TAB 1: CLONER & REPLICATOR */}
+                {activeStudioTab === 'cloner' && (
+                    <div className="space-y-8 animate-fade-in">
+                        
+                        {/* INPUT METHOD TABS */}
+                        <div className="flex gap-2 p-1 bg-slate-950 rounded-xl w-fit border border-slate-800">
+                            <button 
+                                onClick={() => setInputMode('link')}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${inputMode === 'link' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                <Link size={14} /> Paste Link
+                            </button>
+                            <button 
+                                onClick={() => setInputMode('upload')}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${inputMode === 'upload' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                <Upload size={14} /> Upload Video
+                            </button>
                         </div>
 
-                        <div className="space-y-3">
-                            {channels.map((channel, idx) => (
-                                <div key={channel.id} className="relative group">
-                                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-800 rounded-full flex items-center justify-center text-xs font-bold border border-slate-700 z-10 text-slate-400">
-                                        {idx + 1}
-                                    </div>
-                                    <div className={`pl-6 bg-slate-950 border ${analyzingChannelId === channel.id ? 'border-yellow-500 animate-pulse' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-1 flex items-center gap-2 transition-colors`}>
-                                        <input 
-                                            type="text" 
-                                            placeholder={`Link Kênh/Video Đối Thủ #${idx + 1} hoặc Upload File`}
-                                            value={channel.url}
-                                            onChange={(e) => updateChannelUrl(channel.id, e.target.value)}
-                                            className="flex-1 bg-transparent border-none text-xs text-white px-3 py-2 focus:ring-0 placeholder:text-slate-600"
-                                        />
-                                        
-                                        {/* File Upload Button */}
-                                        <label className="p-2 cursor-pointer text-slate-500 hover:text-blue-400 transition-colors" title="Upload Video File">
-                                            <input type="file" className="hidden" accept="video/*" onChange={(e) => handleFileUpload(e, channel.id)} />
-                                            <FileVideo size={16} />
-                                        </label>
-
-                                        {channel.status === 'done' && <CheckCircle size={16} className="text-green-500 mr-2" />}
-                                        {analyzingChannelId === channel.id && <RefreshCw size={16} className="text-yellow-500 animate-spin mr-2" />}
-                                    </div>
-                                    
-                                    {/* Simulated Metrics Preview if done */}
-                                    {channel.status === 'done' && dnaProfile?.channel_breakdown && (
-                                        <div className="ml-6 mt-1 flex gap-2 text-[10px] text-slate-500">
-                                            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Hook: {dnaProfile.channel_breakdown[idx]?.report?.hook_style || 'Visual Shock'}</span>
-                                            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Retention: High</span>
+                        {/* INPUT AREA */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <Monitor size={20} className="text-blue-500" /> Source Material
+                            </h3>
+                            
+                            {inputMode === 'link' ? (
+                                <div className="space-y-3">
+                                    {channels.map((channel, idx) => (
+                                        <div key={channel.id} className="relative group">
+                                            <div className={`bg-slate-950 border ${analyzingChannelId === channel.id ? 'border-yellow-500 animate-pulse' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-1 flex items-center gap-2 transition-colors pl-4`}>
+                                                <div className="text-slate-500 text-xs font-bold w-6">{idx + 1}.</div>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="YouTube / TikTok / Facebook Link"
+                                                    value={channel.url}
+                                                    onChange={(e) => updateChannelUrl(channel.id, e.target.value)}
+                                                    className="flex-1 bg-transparent border-none text-xs text-white px-3 py-3 focus:ring-0 placeholder:text-slate-600"
+                                                />
+                                                <div className="flex gap-2 pr-2 text-slate-600">
+                                                    <Youtube size={14} />
+                                                    <Facebook size={14} />
+                                                    <Instagram size={14} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="border-2 border-dashed border-slate-700 rounded-2xl p-8 flex flex-col items-center justify-center text-slate-500 hover:border-indigo-500/50 hover:bg-slate-800/30 transition-all cursor-pointer relative">
+                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="video/mp4,video/webm" onChange={(e) => handleFileUpload(e, 'video', '1')} />
+                                    <FileVideo size={40} className="mb-4 text-slate-600" />
+                                    <p className="text-sm font-bold text-slate-300">Drag & Drop or Click to Upload</p>
+                                    <p className="text-xs mt-1">MP4, WebM (Max 20MB)</p>
+                                    {channels[0].status === 'done' && (
+                                        <div className="mt-4 px-4 py-2 bg-green-900/20 text-green-400 rounded-lg text-xs font-bold flex items-center gap-2">
+                                            <CheckCircle size={14} /> {channels[0].name} Uploaded
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                            )}
                         </div>
 
-                        {/* COMPARISON RADAR CHART */}
-                        {dnaProfile && dnaProfile.channel_breakdown && (
-                            <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 animate-fade-in">
-                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
-                                    <BarChart size={14} /> Competitive Matrix (DNA Comparison)
-                                </h4>
-                                <div className="h-64 w-full flex items-center justify-center">
-                                    <CompetitorRadarChart data={dnaProfile.channel_breakdown} labels={channels.map(c => c.name)} />
+                        {/* FACE SWAP AREA */}
+                        <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <UserSquare2 size={18} className="text-yellow-500" /> AI Character Replacement
+                                </h3>
+                                <span className="text-[10px] uppercase font-bold text-slate-500">Optional</span>
+                            </div>
+                            
+                            <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+                                {uploadedFaces.map((face, i) => (
+                                    <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-600 shrink-0 group">
+                                        <img src={face} alt="Face" className="w-full h-full object-cover" />
+                                        <button onClick={() => setUploadedFaces(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Trash2 size={10} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <label className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-700 hover:border-yellow-500 flex flex-col items-center justify-center cursor-pointer shrink-0 transition-colors">
+                                    <Plus size={20} className="text-slate-500 mb-1" />
+                                    <span className="text-[8px] text-slate-500 uppercase font-bold text-center leading-tight">Upload<br/>Face/KOL</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'face')} />
+                                </label>
+                            </div>
+                            <p className="text-[10px] text-slate-500 mt-2">
+                                AI will maintain this identity in the recreated video.
+                            </p>
+                        </div>
+
+                        {/* NEW: MULTI-MODAL REFERENCE SECTION */}
+                        <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <Paperclip size={18} className="text-purple-500" /> Multi-Modal References
+                                </h3>
+                                <span className="text-[10px] bg-purple-900/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">Style & Context</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                {/* Image References */}
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase mb-2 block flex items-center gap-1">
+                                        <ImageIcon size={12} /> Reference Images (Style/Vibe)
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {refImages.map((img, i) => (
+                                            <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-slate-700 group">
+                                                <img src={img} alt="Ref" className="w-full h-full object-cover" />
+                                                <button onClick={() => setRefImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Trash2 size={10} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <label className="aspect-square rounded-lg border-2 border-dashed border-slate-700 hover:border-purple-500 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-900/50">
+                                            <Plus size={16} className="text-slate-500" />
+                                            <span className="text-[8px] text-slate-500 mt-1">Add Img</span>
+                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'ref_image')} />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Video References */}
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase mb-2 block flex items-center gap-1">
+                                        <FileVideo size={12} /> Reference Videos (B-Roll/Pacing)
+                                    </label>
+                                    <div className="space-y-2">
+                                        {refVideos.map((vid, i) => (
+                                            <div key={i} className="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <Film size={12} className="text-purple-400 shrink-0" />
+                                                    <span className="truncate text-slate-300">Reference Video {i + 1}</span>
+                                                </div>
+                                                <button onClick={() => setRefVideos(prev => prev.filter((_, idx) => idx !== i))} className="text-slate-500 hover:text-red-400">
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <label className="w-full py-2 border-2 border-dashed border-slate-700 hover:border-purple-500 rounded-lg flex items-center justify-center cursor-pointer transition-colors bg-slate-900/50">
+                                            <span className="text-[10px] text-slate-500 flex items-center gap-1"><Upload size={12} /> Upload Video Ref</span>
+                                            <input type="file" className="hidden" accept="video/*" onChange={(e) => handleFileUpload(e, 'ref_video')} />
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
-                        )}
 
-                        <div className="pt-4">
+                            {/* Context Prompt */}
+                            <div>
+                                <label className="text-[10px] text-slate-500 font-bold uppercase mb-2 block flex items-center gap-1">
+                                    <FileText size={12} /> Context Prompt / Notes
+                                </label>
+                                <textarea 
+                                    value={refContext}
+                                    onChange={(e) => setRefContext(e.target.value)}
+                                    placeholder="Add specific instructions: 'Make it cinematic', 'Use red and black color scheme', 'Focus on fast cuts'..."
+                                    className="w-full h-20 bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-white focus:border-purple-500 focus:outline-none resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-800">
                             <NeonButton onClick={handleRunAnalysis} disabled={status === 'analyzing'} size="lg" className="w-full">
                                 {status === 'analyzing' ? (
-                                    <span className="flex items-center gap-2"><RefreshCw className="animate-spin"/> System Analyzing...</span>
+                                    <span className="flex items-center gap-2"><RefreshCw className="animate-spin"/> Analyzing Structure...</span>
                                 ) : (
-                                    <span className="flex items-center gap-2"><Zap /> RUN DEEP ANALYSIS</span>
+                                    <span className="flex items-center gap-2"><Dna /> Analyze & Clone Structure</span>
                                 )}
                             </NeonButton>
                         </div>
                     </div>
                 )}
 
-                {/* 2. PROMPT CONTROL */}
-                {activeStudioTab === 'prompt' && (
-                    <div className="space-y-6 animate-fade-in">
-                        <div className="flex justify-between items-center mb-2">
+                {/* TAB 2: SCRIPT ENGINE */}
+                {activeStudioTab === 'script' && (
+                    <div className="space-y-8 animate-fade-in">
+                        <div className="flex items-center justify-between">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Wand2 size={20} className="text-purple-500" /> Auto Prompt Generator
+                                <FileVideo size={20} className="text-pink-500" /> Script Engine
                             </h3>
-                            <button className="text-xs text-orange-400 underline">Advanced Mode</button>
+                            <span className="text-xs bg-pink-900/20 text-pink-300 px-2 py-1 rounded border border-pink-500/30">Powered by Gemini</span>
                         </div>
 
-                        {/* Generated Prompts per Channel */}
-                        {dnaProfile?.channel_breakdown ? (
-                            <div className="space-y-4">
-                                {dnaProfile.channel_breakdown.map((c, i) => (
-                                    <div key={i} className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                        <div className="flex justify-between mb-2">
-                                            <span className="text-xs font-bold text-slate-400 uppercase">Prompt Chiến lược Kênh {i+1}</span>
-                                            <span className="text-[10px] bg-green-900/20 text-green-400 px-2 py-0.5 rounded border border-green-500/30">Algorithm Fit: High</span>
-                                        </div>
-                                        <p className="text-sm text-slate-200 font-mono leading-relaxed">
-                                            {c.report?.suggested_prompt || "Prompt will appear here after analysis..."}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12 text-slate-500">
-                                <Wand2 size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>Chưa có dữ liệu phân tích. Vui lòng chạy Analysis ở Tab 1 trước.</p>
-                            </div>
-                        )}
-
-                        {/* Global Overrides */}
-                        <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 mt-4">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Tùy chỉnh Hook & Risk</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] text-slate-500 mb-1">Hook Strength (1-10)</label>
-                                    <input 
-                                        type="range" min="1" max="10" 
-                                        value={studioSettings.hookStrength}
-                                        onChange={(e) => setStudioSettings({...studioSettings, hookStrength: parseInt(e.target.value)})}
-                                        className="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none"
-                                    />
-                                    <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-                                        <span>Soft</span>
-                                        <span className="text-white font-bold">{studioSettings.hookStrength}</span>
-                                        <span>Shocking (Clickbait)</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] text-slate-500 mb-1">Risk Level (Reup/Copyright)</label>
-                                    <div className="flex bg-slate-900 rounded-lg p-1">
-                                        {['Safe', 'Medium', 'High'].map(r => (
-                                            <button 
-                                                key={r}
-                                                onClick={() => setStudioSettings({...studioSettings, riskLevel: r as any})}
-                                                className={`flex-1 text-[10px] py-1 rounded transition-colors ${studioSettings.riskLevel === r ? 'bg-slate-800 text-white shadow' : 'text-slate-500'}`}
-                                            >
-                                                {r}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* 3. VIDEO SETTINGS */}
-                {activeStudioTab === 'settings' && (
-                    <div className="space-y-6 animate-fade-in">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-                            <Sliders size={20} className="text-green-500" /> Professional Video Config
-                        </h3>
-                        
                         <div className="grid grid-cols-2 gap-6">
-                            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer group">
-                                <div className="flex justify-between items-center mb-3">
-                                    <span className="text-xs font-bold text-slate-400 uppercase">Quality Profile</span>
-                                    <Monitor size={16} className="text-slate-600 group-hover:text-green-500" />
-                                </div>
-                                <div className="space-y-2">
-                                    {['Draft (Test)', 'Standard (Social)', 'Ultra (Cinematic)'].map(q => (
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Format</label>
+                                <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                    {['Shorts', 'Long Form'].map(f => (
                                         <button 
-                                            key={q}
-                                            onClick={() => setStudioSettings({...studioSettings, quality: q.split(' ')[0] as any})}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-xs border transition-all ${
-                                                studioSettings.quality === q.split(' ')[0] 
-                                                ? 'bg-green-900/20 border-green-500/50 text-green-400' 
-                                                : 'bg-slate-900 border-slate-800 text-slate-500'
-                                            }`}
+                                            key={f}
+                                            onClick={() => setStudioSettings({...studioSettings, videoFormat: f as any})}
+                                            className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${studioSettings.videoFormat === f ? 'bg-pink-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                                         >
-                                            {q}
+                                            {f}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-
-                            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer group">
-                                <div className="flex justify-between items-center mb-3">
-                                    <span className="text-xs font-bold text-slate-400 uppercase">Aspect Ratio</span>
-                                    <Box size={16} className="text-slate-600 group-hover:text-blue-500" />
-                                </div>
-                                <div className="flex gap-2 h-full items-start">
-                                    {['9:16', '16:9', '1:1'].map(r => (
-                                        <button 
-                                            key={r}
-                                            onClick={() => setStudioSettings({...studioSettings, aspectRatio: r as any})}
-                                            className={`flex-1 py-4 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${
-                                                studioSettings.aspectRatio === r 
-                                                ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
-                                                : 'bg-slate-900 border-slate-800 text-slate-500'
-                                            }`}
-                                        >
-                                            <div className={`border-2 border-current rounded-sm ${
-                                                r === '9:16' ? 'w-3 h-5' : r === '16:9' ? 'w-5 h-3' : 'w-4 h-4'
-                                            }`}></div>
-                                            <span className="text-[10px] font-bold">{r}</span>
-                                        </button>
-                                    ))}
-                                </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Language</label>
+                                <select 
+                                    value={studioSettings.language}
+                                    onChange={(e) => setStudioSettings({...studioSettings, language: e.target.value as any})}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-xs text-white focus:outline-none"
+                                >
+                                    <option value="vi">Vietnamese (Tiếng Việt)</option>
+                                    <option value="en">English (US)</option>
+                                    <option value="es">Spanish (Español)</option>
+                                </select>
                             </div>
                         </div>
 
-                        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                             <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Rendering Engine Model</h4>
-                             <div className="flex gap-3">
-                                 {['Fast (Turbo)', 'Balanced (Recommended)', 'Cinematic (Slow)'].map(m => (
-                                     <button 
-                                        key={m}
-                                        onClick={() => setStudioSettings({...studioSettings, model: m.split(' ')[0] as any})}
-                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold border transition-all ${
-                                            studioSettings.model === m.split(' ')[0]
-                                            ? 'bg-white text-black border-white shadow-lg'
-                                            : 'bg-slate-900 text-slate-500 border-slate-800'
-                                        }`}
-                                     >
-                                         {m}
-                                     </button>
-                                 ))}
-                             </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Topic / Hook</label>
+                            <input 
+                                type="text"
+                                value={studioSettings.topic}
+                                onChange={(e) => setStudioSettings({...studioSettings, topic: e.target.value})}
+                                placeholder="e.g., 3 AI tools that will replace your designer..."
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white focus:border-pink-500 focus:outline-none"
+                            />
                         </div>
+
+                        <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs font-bold text-slate-400">Advanced Prompt Control</span>
+                                <button className="text-[10px] text-pink-400 hover:underline">Show</button>
+                            </div>
+                            {/* Hidden by default, simple toggle placeholder */}
+                        </div>
+
+                        <NeonButton onClick={handleGenerateScript} disabled={status === 'generating'} size="lg" className="w-full">
+                            {status === 'generating' ? (
+                                <span className="flex items-center gap-2"><RefreshCw className="animate-spin"/> Writing Script...</span>
+                            ) : (
+                                <span className="flex items-center gap-2"><Wand2 /> Generate Script</span>
+                            )}
+                        </NeonButton>
                     </div>
                 )}
 
-                {/* 4. CHARACTER & STYLE (UPDATED: FACE SWAP) */}
-                {activeStudioTab === 'character' && (
+                {/* TAB 3: VIDEO STUDIO */}
+                {activeStudioTab === 'studio' && (
                     <div className="space-y-6 animate-fade-in">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <UserSquare2 size={20} className="text-yellow-500" /> AI Face Swap & Consistency
-                            </h3>
-                            <span className="text-[10px] bg-yellow-900/20 text-yellow-300 px-2 py-0.5 rounded border border-yellow-500/30">Beta Feature</span>
-                        </div>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <Sliders size={20} className="text-indigo-500" /> Video Studio
+                        </h3>
 
-                        <div className="bg-slate-950 p-5 rounded-xl border border-slate-800">
-                            <h4 className="text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2">
-                                <User size={16} /> Upload Face / KOL (Replacement)
-                            </h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {uploadedFaces.map((face, i) => (
-                                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-slate-700 group">
-                                        <img src={face} alt="KOL Face" className="w-full h-full object-cover" />
-                                        <button 
-                                            onClick={() => setUploadedFaces(uploadedFaces.filter((_, idx) => idx !== i))}
-                                            className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Trash2 size={12} />
-                                        </button>
-                                    </div>
-                                ))}
-                                <label className="aspect-square rounded-xl border-2 border-dashed border-slate-700 hover:border-yellow-500 hover:bg-yellow-900/10 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                                    <Plus size={24} className="text-slate-500 mb-2" />
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase">Add Face</span>
-                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e)} />
-                                </label>
-                            </div>
-                            <p className="text-[10px] text-slate-500 mt-2 italic">* Upload 1-3 clear images of the face you want to use in the generated video.</p>
-                        </div>
-
-                        <div className="bg-slate-950 p-5 rounded-xl border border-slate-800">
-                            <h4 className="text-sm font-bold text-slate-300 uppercase mb-4">Consistency Lock</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                <label className="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-700 cursor-pointer">
-                                    <span className="text-xs font-bold text-slate-200">Lock Character</span>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={studioSettings.characterLock}
-                                        onChange={() => setStudioSettings({...studioSettings, characterLock: !studioSettings.characterLock})}
-                                        className="w-4 h-4 accent-yellow-500"
-                                    />
-                                </label>
-                                <label className="flex items-center justify-between p-3 bg-slate-900 rounded-lg border border-slate-700 cursor-pointer">
-                                    <span className="text-xs font-bold text-slate-200">Lock Visual Style</span>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={studioSettings.styleLock}
-                                        onChange={() => setStudioSettings({...studioSettings, styleLock: !studioSettings.styleLock})}
-                                        className="w-4 h-4 accent-yellow-500"
-                                    />
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* 5. STORY FLOW */}
-                {activeStudioTab === 'flow' && (
-                    <div className="space-y-6 animate-fade-in">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <LayoutTemplate size={20} className="text-pink-500" /> Story Blueprint
-                            </h3>
-                            <button onClick={handleGenerateScript} className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-lg text-xs font-bold transition-colors">
-                                Generate Script Structure
+                        {/* MODE SELECTOR */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <button 
+                                onClick={() => setStudioSettings({...studioSettings, generationMode: 'Free Storyboard'})}
+                                className={`p-4 rounded-xl border text-left transition-all ${studioSettings.generationMode === 'Free Storyboard' ? 'bg-indigo-900/20 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'}`}
+                            >
+                                <div className="font-bold text-sm mb-1">Free Storyboard</div>
+                                <div className="text-[10px] opacity-70">Static images + Ken Burns effect. Fast & Free.</div>
+                            </button>
+                            <button 
+                                onClick={() => setStudioSettings({...studioSettings, generationMode: 'Veo'})}
+                                className={`p-4 rounded-xl border text-left transition-all ${studioSettings.generationMode === 'Veo' ? 'bg-indigo-900/20 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'}`}
+                            >
+                                <div className="font-bold text-sm mb-1 flex items-center gap-2">Veo (Paid) <Zap size={12} className="text-yellow-400" /></div>
+                                <div className="text-[10px] opacity-70">High-fidelity generative video.</div>
                             </button>
                         </div>
 
-                        <div className="border-l-2 border-slate-800 pl-6 space-y-8 relative">
-                            {['Hook (0-3s)', 'Context (3-15s)', 'Climax (15-45s)', 'Resolution (45-60s)'].map((part, i) => (
-                                <div key={i} className="relative">
-                                    <div className="absolute -left-[31px] top-0 w-4 h-4 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center z-10">
-                                        <div className="w-1.5 h-1.5 bg-pink-500 rounded-full"></div>
-                                    </div>
-                                    <h4 className="text-sm font-bold text-white mb-2">{part}</h4>
-                                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl min-h-[80px] text-xs text-slate-500 italic">
-                                        {generatedPlan ? (
-                                            generatedPlan.production_plan.scenes[i]?.vo_text || "Content pending generation..."
-                                        ) : "Waiting for script generation..."}
-                                    </div>
+                        {/* CONFIG GRID */}
+                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
+                            <h4 className="text-xs font-bold text-slate-500 uppercase">Settings</h4>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] text-slate-400 mb-1">Video Quality</label>
+                                    <select 
+                                        value={studioSettings.quality}
+                                        onChange={(e) => setStudioSettings({...studioSettings, quality: e.target.value as any})}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"
+                                    >
+                                        <option value="Draft">Draft</option>
+                                        <option value="Standard">Standard</option>
+                                        <option value="Ultra">Ultra</option>
+                                    </select>
                                 </div>
-                            ))}
+                                <div>
+                                    <label className="block text-[10px] text-slate-400 mb-1">Aspect Ratio</label>
+                                    <select 
+                                        value={studioSettings.aspectRatio}
+                                        onChange={(e) => setStudioSettings({...studioSettings, aspectRatio: e.target.value as any})}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"
+                                    >
+                                        <option value="9:16">9:16 (Shorts)</option>
+                                        <option value="16:9">16:9 (Landscape)</option>
+                                        <option value="1:1">1:1 (Square)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* CONSISTENCY */}
+                            <div className="pt-2 border-t border-slate-800">
+                                <label className="text-[10px] text-slate-500 uppercase block mb-2">Consistency</label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                        <input type="checkbox" checked={studioSettings.characterLock} onChange={() => setStudioSettings({...studioSettings, characterLock: !studioSettings.characterLock})} className="accent-indigo-500"/>
+                                        Character Lock
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                                        <input type="checkbox" checked={studioSettings.styleLock} onChange={() => setStudioSettings({...studioSettings, styleLock: !studioSettings.styleLock})} className="accent-indigo-500"/>
+                                        Style Lock
+                                    </label>
+                                </div>
+                            </div>
                         </div>
+
+                        {/* FLOW PREVIEW */}
+                        {generatedPlan && (
+                            <div className="space-y-2">
+                                <h4 className="text-xs font-bold text-slate-500 uppercase">Flow</h4>
+                                {generatedPlan.production_plan.scenes.slice(0, 3).map((scene, i) => (
+                                    <div key={i} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex gap-3 items-start">
+                                        <div className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500">{i+1}</div>
+                                        <div className="flex-1">
+                                            <div className="text-[10px] text-indigo-400 font-bold mb-1">Scene Prompt</div>
+                                            <p className="text-xs text-slate-300 line-clamp-2">{scene.visual_cues}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <NeonButton onClick={handleAutoClone} disabled={status === 'rendering'} size="lg" className="w-full">
+                            {status === 'rendering' ? (
+                                <span className="flex items-center gap-2"><RefreshCw className="animate-spin"/> Producing...</span>
+                            ) : (
+                                <span className="flex items-center gap-2"><Play /> Play {studioSettings.generationMode}</span>
+                            )}
+                        </NeonButton>
                     </div>
                 )}
 
-                {/* 6. QUALITY GATE */}
+                {/* TAB 4: QUALITY GATE */}
                 {activeStudioTab === 'quality' && (
                     <div className="space-y-6 animate-fade-in">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6">
@@ -599,21 +661,8 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                             <div className="text-xs text-slate-500 uppercase font-bold mb-2">{m.label}</div>
                                             <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
                                                 <svg className="w-full h-full" viewBox="0 0 36 36">
-                                                    <path
-                                                        className="text-slate-800"
-                                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        strokeWidth="3"
-                                                    />
-                                                    <path
-                                                        className={getQualityColor(m.score)}
-                                                        strokeDasharray={`${m.score}, 100`}
-                                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        strokeWidth="3"
-                                                    />
+                                                    <path className="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+                                                    <path className={getQualityColor(m.score)} strokeDasharray={`${m.score}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
                                                 </svg>
                                                 <span className={`absolute text-sm font-bold ${getQualityColor(m.score)}`}>{m.score}</span>
                                             </div>
@@ -628,9 +677,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                         <p className="text-xs text-slate-400">All metrics exceed the minimum threshold for viral distribution.</p>
                                     </div>
                                     <div className="ml-auto flex gap-2">
-                                        <NeonButton onClick={handleAutoClone} size="sm" variant="danger">
-                                            Auto-Clone Video
-                                        </NeonButton>
                                         <NeonButton onClick={handleDownloadPackage} size="sm">
                                             Export Package
                                         </NeonButton>
