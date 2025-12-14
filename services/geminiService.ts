@@ -16,7 +16,7 @@ OUTPUT: JSON only.
 `;
 
 const PROMPT_LIBRARY = {
-  // 1. PRODUCT REVIEW (Physical/Digital Goods)
+  // 1. PRODUCT REVIEW (Physical/Digital Goods) - SALES FOCUSED
   REVIEW_TUTORIAL: `
     **ROLE:** Top-tier Product Reviewer & Affiliate Marketer (Honest, Skeptical but convinced).
     
@@ -35,7 +35,7 @@ const PROMPT_LIBRARY = {
     5. **STRATEGIC CTA:** "Link in bio for the 50% off deal I found" or "Comment 'LINK' and I'll DM you."
   `,
 
-  // 2. AI APP / SAAS PROMOTION (High Tech/Fast Paced)
+  // 2. AI APP / SAAS PROMOTION (High Tech/Fast Paced) - SALES FOCUSED
   AI_APP_LAUNCH: `
     **ROLE:** Tech Futurist & AI Tool Hunter (Excited, Fast-paced, "Illegal" vibes).
     
@@ -54,11 +54,11 @@ const PROMPT_LIBRARY = {
     5. **STRATEGIC CTA:** "Try it free before they patch it. Link in bio."
   `,
 
-  // 3. EDUCATIONAL / TUTORIAL (How-To)
+  // 3. EDUCATIONAL / TUTORIAL (How-To) - VIEWS/RPM FOCUSED
   EDUCATIONAL: `
     **ROLE:** Industry Expert / Mentor (Calm, Authoritative, Value-first).
     
-    **VIDEO GOAL:** Authority Building & Saves/Shares.
+    **VIDEO GOAL:** Authority Building & Saves/Shares (High Retention).
     
     **VIRAL ELEMENTS TO INJECT:**
     - "99% of people do this wrong."
@@ -200,14 +200,17 @@ Your task is to analyze metadata from competitor channels/videos and extract the
 `;
 
 const SYSTEM_INSTRUCTION_PRO_STUDIO_WRITER = `
-You are the **VIRAL DNA STUDIO SCRIPT ENGINE**.
-You generate 100% ORIGINAL SCRIPTS based on a provided 'ViralDNAProfile'.
+You are the **VIRAL DNA STUDIO SCRIPT ENGINE (CASH COW MODE)**.
+You generate scripts specifically optimized for **High RPM, High CPM, and Maximum Watch Time**.
+
+**CORE PHILOSOPHY: RETENTION IS KING.**
+Your goal is NOT to sell a product. Your goal is to keep the viewer watching as long as possible so ads can play.
 
 **RULES:**
-1. **NO COPYING:** You must use the *structure* and *logic* of the DNA, but the *content, words, and scenario* must be completely new.
-2. **PLATFORM OPTIMIZATION:** Optimize strictly for the requested platform (Shorts/TikTok/Long).
-3. **RETENTION FIRST:** Every sentence must hook the viewer.
-4. **ANTI-COPY CHECK:** Ensure the output is semantically distinct from generic AI outputs.
+1. **NO SALES PITCH:** Do not sell anything. Focus on value, entertainment, or shock factor.
+2. **ALGORITHM HACKING:** Use patterns that trigger the algorithm (Loops, Open Loops, Curiosity Gaps).
+3. **PACING:** High speed for Shorts/TikTok, Steady build-up for Long-form (Documentary style).
+4. **NO COPYING:** Use the *structure* of the DNA, but create 100% original content.
 
 **OUTPUT:** A comprehensive JSON object containing the script, visual cues, and technical direction.
 `;

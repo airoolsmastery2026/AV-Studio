@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Infinity as InfinityIcon, Power, Activity, Terminal, Shield, 
   Cpu, Globe, Zap, Clock, Video, Share2, 
-  AlertTriangle, RotateCcw, FileText, Check, DollarSign, Download, PlayCircle
+  AlertTriangle, RotateCcw, FileText, Check, DollarSign, Download, PlayCircle, Target
 } from 'lucide-react';
 import { ApiKeyConfig, AutoPilotLog, AutoPilotStats, SourceMetadata, PostingJob, CompletedVideo } from '../types';
 import { huntAffiliateProducts, generateVideoPlan } from '../services/geminiService';
@@ -372,7 +372,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                            {isRunning && <span className="inline-block w-3 h-3 bg-green-500 rounded-full animate-ping"></span>}
                        </h2>
                        <p className="text-slate-400 font-mono text-sm mt-1">
-                           Autonomous Affiliate Video Production System v3.0 (Smart Schedule)
+                           Affiliate & Sales Engine (Review, Ads, Demo Product)
                        </p>
                    </div>
                </div>
@@ -419,7 +419,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
            <div className="lg:col-span-1 space-y-4">
                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
                    <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                       <Shield size={16} className="text-blue-400" /> Mission Config
+                       <Target size={16} className="text-blue-400" /> Sales Mission Config
                    </h3>
                    
                    <div className="space-y-4">
@@ -431,20 +431,18 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ apiKeys, onAddT
                                disabled={isRunning}
                                className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 px-3 text-xs text-white focus:border-primary disabled:opacity-50"
                            >
-                               <option value="AUTO">🤖 AUTO (Smart AI Rotation)</option>
-                               <optgroup label="🔥 Trending High-Ticket">
-                                   <option value="AI SaaS & Tools">🧠 AI SaaS & Tools</option>
-                                   <option value="Crypto & Finance">💰 Crypto & Finance</option>
-                                   <option value="Make Money Online">💸 Make Money Online</option>
-                                   <option value="Digital Marketing">📈 Digital Marketing</option>
+                               <option value="AUTO">🤖 AUTO (Smart Sales Rotation)</option>
+                               <optgroup label="🔥 High Ticket Affiliate">
+                                   <option value="AI SaaS & Tools">🧠 AI SaaS (Software)</option>
+                                   <option value="Crypto & Finance">💰 Crypto & Investment</option>
+                                   <option value="Make Money Online">💸 MMO / BizOpp</option>
+                                   <option value="Digital Marketing">📈 Marketing Tools</option>
                                </optgroup>
-                               <optgroup label="🛍️ Consumer Goods">
-                                   <option value="Tech & Gadgets">📱 Tech & Gadgets</option>
-                                   <option value="Smart Home">🏠 Smart Home Automation</option>
+                               <optgroup label="🛍️ Consumer Sales">
+                                   <option value="Tech & Gadgets">📱 Tech Gadgets</option>
+                                   <option value="Smart Home">🏠 Smart Home</option>
                                    <option value="Health & Beauty">💄 Health & Beauty</option>
-                                   <option value="Fashion & Accessories">👗 Fashion & Accessories</option>
-                                   <option value="Pet Care">🐶 Pet Care</option>
-                                   <option value="Kitchen & Cooking">🍳 Kitchen & Cooking</option>
+                                   <option value="Kitchen & Cooking">🍳 Kitchen</option>
                                </optgroup>
                            </select>
                        </div>

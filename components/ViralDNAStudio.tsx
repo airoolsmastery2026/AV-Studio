@@ -7,7 +7,7 @@ import {
   BarChart, Maximize2, RefreshCw, Box, FileJson,
   LayoutTemplate, Image as ImageIcon, Wand2, ShieldAlert,
   Gauge, TrendingUp, Lock, Unlock, FileCheck,
-  Sliders, Video
+  Sliders, Video, Banknote
 } from 'lucide-react';
 import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig } from '../types';
 import NeonButton from './NeonButton';
@@ -78,7 +78,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
     }
 
     setStatus('analyzing');
-    addLog("--- BẮT ĐẦU QUY TRÌNH STUDIO (PARALLEL ENGINE) ---");
+    addLog("--- BẮT ĐẦU QUY TRÌNH STUDIO (CASH COW ENGINE) ---");
     
     try {
         // Parallel Analysis Simulation
@@ -87,7 +87,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
         for (let i = 0; i < analyzedChannels.length; i++) {
             if (analyzedChannels[i].url.trim()) {
                 setAnalyzingChannelId(analyzedChannels[i].id);
-                addLog(`📡 Scanning DNA: ${analyzedChannels[i].name}...`);
+                addLog(`📡 Scanning RPM & Tech: ${analyzedChannels[i].name}...`);
                 // Simulate delay per channel for visual effect
                 await new Promise(r => setTimeout(r, 1000));
                 analyzedChannels[i].status = 'done';
@@ -97,12 +97,12 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
         setChannels(analyzedChannels);
 
         // Call API
-        addLog(`🧬 Tổng hợp DNA từ ${validChannels.length} nguồn dữ liệu...`);
+        addLog(`🧬 Trích xuất DNA Viral để tối ưu Views/CPM...`);
         const dna = await extractViralDNA(googleKey.key, validChannels.map(c => c.url));
         setDnaProfile(dna);
         
         // Auto-switch to Prompt Tab
-        addLog("✅ Phân tích hoàn tất. Chuyển sang chiến lược Prompt.");
+        addLog("✅ Phân tích hoàn tất. Chuyển sang chiến lược Prompt RPM cao.");
         setActiveStudioTab('prompt');
 
     } catch (e: any) {
@@ -118,7 +118,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
       if (!googleKey) return;
 
       setStatus('generating');
-      addLog("📝 Đang viết kịch bản PRO (Lock-Logic Engine)...");
+      addLog("📝 Đang viết kịch bản tối ưu Retention (High RPM)...");
       try {
           const plan = await generateProScript(googleKey.key, dnaProfile, studioSettings);
           setGeneratedPlan(plan);
@@ -135,10 +135,10 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
       if (!generatedPlan) return;
       const folderName = `${generatedPlan.generated_content?.title.substring(0, 10).replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
       
-      addLog(`📂 KHỞI TẠO FILE AUTOMATION...`);
+      addLog(`📂 KHỞI TẠO FILE AUTOMATION (CASH COW STRUCT)...`);
       addLog(`   ├── /ViralVideoStudio`);
       addLog(`   │    ├── /${channels[0].name.replace(/\s/g,'_')}`);
-      addLog(`   │    │    ├── /Shorts`);
+      addLog(`   │    │    ├── /High_RPM_Projects`);
       addLog(`   │    │    │    └── ${folderName}`);
       addLog(`   │    │    │         ├── script.json`);
       addLog(`   │    │    │         ├── assets/`);
@@ -162,7 +162,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                 </h1>
                 <p className="text-slate-400 text-xs font-mono flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    ENGINE: TURBO (PARALLEL)
+                    CASH COW ENGINE: HIGH RPM & VIEW MONETIZATION
                 </p>
             </div>
         </div>
@@ -213,13 +213,13 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
             ))}
 
             <div className="mt-auto bg-slate-900 rounded-xl p-4 border border-slate-800">
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-2">Project Info</h4>
+                <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-2">Target Metrics</h4>
                 <div className="space-y-2">
                     <div className="flex justify-between text-xs text-slate-300">
-                        <span>Res:</span> <span className="font-mono text-orange-400">{studioSettings.aspectRatio}</span>
+                        <span>Min View:</span> <span className="font-mono text-green-400">100K+</span>
                     </div>
                     <div className="flex justify-between text-xs text-slate-300">
-                        <span>Qual:</span> <span className="font-mono text-blue-400">{studioSettings.quality}</span>
+                        <span>Goal:</span> <span className="font-mono text-orange-400">High RPM</span>
                     </div>
                 </div>
             </div>
@@ -239,7 +239,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                 <Monitor size={20} className="text-blue-500" /> Multi-Channel Input
                             </h3>
                             <span className="text-xs bg-blue-900/30 text-blue-300 px-2 py-1 rounded border border-blue-500/30 font-mono">
-                                Parallel Engine: Active
+                                Mode: Competitor Cloning
                             </span>
                         </div>
 
@@ -252,7 +252,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                     <div className={`pl-6 bg-slate-950 border ${analyzingChannelId === channel.id ? 'border-yellow-500 animate-pulse' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-1 flex items-center gap-2 transition-colors`}>
                                         <input 
                                             type="text" 
-                                            placeholder={`Dán Link Kênh Đối Thủ #${idx + 1}`}
+                                            placeholder={`Link Kênh/Video Đối Thủ #${idx + 1}`}
                                             value={channel.url}
                                             onChange={(e) => updateChannelUrl(channel.id, e.target.value)}
                                             className="flex-1 bg-transparent border-none text-xs text-white px-3 py-2 focus:ring-0 placeholder:text-slate-600"
@@ -264,8 +264,8 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                     {/* Simulated Metrics Preview if done */}
                                     {channel.status === 'done' && dnaProfile?.channel_breakdown && (
                                         <div className="ml-6 mt-1 flex gap-2 text-[10px] text-slate-500">
-                                            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Hook: {dnaProfile.channel_breakdown[idx]?.report?.hook_style || 'Strong Visual'}</span>
-                                            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Fit: {dnaProfile.channel_breakdown[idx]?.report?.algorithm_fit || 90}%</span>
+                                            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Hook: {dnaProfile.channel_breakdown[idx]?.report?.hook_style || 'Visual Shock'}</span>
+                                            <span className="bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Retention: High</span>
                                         </div>
                                     )}
                                 </div>
@@ -273,19 +273,19 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                         </div>
 
                         <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 border-dashed">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Analysis Target (Mục tiêu phân tích)</h4>
+                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Phân tích Thuật toán (Algorithm Decoding)</h4>
                             <div className="grid grid-cols-3 gap-3">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" defaultChecked className="accent-orange-500" />
-                                    <span className="text-xs text-slate-300">Phân tích Kỹ thuật (Technique)</span>
+                                    <span className="text-xs text-slate-300">Nhịp độ (Pacing)</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" defaultChecked className="accent-orange-500" />
-                                    <span className="text-xs text-slate-300">Phân tích Thuật toán (Algo)</span>
+                                    <span className="text-xs text-slate-300">Điểm giữ chân (Retention)</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" defaultChecked className="accent-orange-500" />
-                                    <span className="text-xs text-slate-300">Phân tích Rủi ro (Risk)</span>
+                                    <span className="text-xs text-slate-300">Từ khóa RPM cao</span>
                                 </label>
                             </div>
                         </div>
@@ -318,8 +318,8 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                 {dnaProfile.channel_breakdown.map((c, i) => (
                                     <div key={i} className="bg-slate-950 p-4 rounded-xl border border-slate-800">
                                         <div className="flex justify-between mb-2">
-                                            <span className="text-xs font-bold text-slate-400 uppercase">Strategy for Channel {i+1}</span>
-                                            <span className="text-[10px] bg-purple-900/20 text-purple-300 px-2 py-0.5 rounded">Relevance: High</span>
+                                            <span className="text-xs font-bold text-slate-400 uppercase">Prompt Chiến lược Kênh {i+1}</span>
+                                            <span className="text-[10px] bg-green-900/20 text-green-400 px-2 py-0.5 rounded border border-green-500/30">Algorithm Fit: High</span>
                                         </div>
                                         <p className="text-sm text-slate-200 font-mono leading-relaxed">
                                             {c.report?.suggested_prompt || "Prompt will appear here after analysis..."}
@@ -336,7 +336,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
 
                         {/* Global Overrides */}
                         <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 mt-4">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Global Controls</h4>
+                            <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Tùy chỉnh Hook & Risk</h4>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] text-slate-500 mb-1">Hook Strength (1-10)</label>
@@ -349,11 +349,11 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                                     <div className="flex justify-between text-[10px] text-slate-500 mt-1">
                                         <span>Soft</span>
                                         <span className="text-white font-bold">{studioSettings.hookStrength}</span>
-                                        <span>Clickbait</span>
+                                        <span>Shocking (Clickbait)</span>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] text-slate-500 mb-1">Risk Level</label>
+                                    <label className="block text-[10px] text-slate-500 mb-1">Risk Level (Reup/Copyright)</label>
                                     <div className="flex bg-slate-900 rounded-lg p-1">
                                         {['Safe', 'Medium', 'High'].map(r => (
                                             <button 
@@ -483,7 +483,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ apiKeys }) => {
                         </div>
 
                         <div className="border-l-2 border-slate-800 pl-6 space-y-8 relative">
-                            {['Hook (0-3s)', 'Problem (3-15s)', 'Solution/Twist (15-45s)', 'CTA (45-60s)'].map((part, i) => (
+                            {['Hook (0-3s)', 'Context (3-15s)', 'Climax (15-45s)', 'Resolution (45-60s)'].map((part, i) => (
                                 <div key={i} className="relative">
                                     <div className="absolute -left-[31px] top-0 w-4 h-4 rounded-full bg-slate-800 border-2 border-slate-600 flex items-center justify-center z-10">
                                         <div className="w-1.5 h-1.5 bg-pink-500 rounded-full"></div>
