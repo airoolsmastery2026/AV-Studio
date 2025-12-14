@@ -87,7 +87,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
              <div className="grid gap-3">
                 {[
                   { id: 'Gemini 2.5 Flash', name: 'Gemini 2.5 Flash', desc: 'Fastest, low latency. Best for viral hooks.', badge: 'Speed', icon: Zap },
-                  { id: 'Gemini 1.5 Pro', name: 'Gemini 1.5 Pro', desc: 'Deep reasoning. Best for tutorials & analysis.', badge: 'Logic', icon: BrainCircuit },
+                  { id: 'Gemini 3 Pro', name: 'Gemini 3 Pro', desc: 'Deep reasoning. Best for tutorials & analysis.', badge: 'Logic', icon: BrainCircuit },
                   { id: 'GPT-4o', name: 'GPT-4o (OpenAI)', desc: 'Creative storytelling & nuance.', badge: 'Creative', icon: Sparkles },
                   { id: 'Grok Beta', name: 'Grok Beta (xAI)', desc: 'Real-time knowledge, roast-heavy & unfiltered.', badge: 'Rebel', icon: MessageSquare },
                 ].map((m) => (

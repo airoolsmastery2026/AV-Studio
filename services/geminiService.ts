@@ -825,7 +825,7 @@ export const extractViralDNA = async (apiKey: string, sources: string[]): Promis
   `;
 
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-pro",
+    model: "gemini-2.5-flash", // Use 2.5-flash for reliability or switch to 'gemini-3-pro-preview' if user has access.
     contents: prompt,
     config: {
       systemInstruction: SYSTEM_INSTRUCTION_DNA_EXTRACTOR,
