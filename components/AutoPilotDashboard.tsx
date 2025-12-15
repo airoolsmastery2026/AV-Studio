@@ -155,7 +155,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
         if (!isRunning) return;
 
         if (!googleKey) {
-            addLog("SYSTEM_CHECK", "Critical: No Google API Key found.", "error");
+            addLog("SYSTEM_CHECK", "Critical: No Google API Key found. Stopping...", "error");
             setIsRunning(false);
             return;
         }
@@ -332,6 +332,10 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
   }, [isRunning]);
 
   const toggleAutoPilot = () => {
+     if (!googleKey && !isRunning) {
+         alert("Please add a Google API Key in Settings > Vault to enable Auto-Pilot.");
+         return;
+     }
      setIsRunning(!isRunning);
      if (!isRunning) {
          addLog("SYSTEM", "Auto-Pilot Engine INITIALIZED.", "success");

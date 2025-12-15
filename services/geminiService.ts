@@ -9,8 +9,6 @@ import {
 } from "../types";
 
 // --- STRICT LANGUAGE PROTOCOL (LAYER 3) ---
-// This text block is injected into every System Instruction to ensure the AI 
-// strictly adheres to the requested Output Language, regardless of the prompt's language or UI.
 const STRICT_LANGUAGE_PROTOCOL = `
 *** CRITICAL SYSTEM DIRECTIVE: LANGUAGE LOCK ***
 1. YOU ARE LOCKED TO THE TARGET LANGUAGE: {{TARGET_LANGUAGE}}.
@@ -29,6 +27,37 @@ const getLanguageName = (lang: ContentLanguage | undefined): string => {
         case 'cn': return "CHINESE (中文)";
         case 'vi': 
         default: return "VIETNAMESE (Tiếng Việt)";
+    }
+};
+
+// --- ROBUST JSON PARSER HELPER ---
+// Fixes the issue where AI returns markdown code blocks (```json ... ```)
+const cleanAndParseJSON = (text: string | undefined): any => {
+    if (!text) throw new Error("AI returned empty response.");
+    
+    let cleanedText = text.trim();
+    
+    // Remove Markdown code blocks if present
+    if (cleanedText.startsWith("```")) {
+        cleanedText = cleanedText.replace(/^```(json)?/, "").replace(/```$/, "");
+    }
+    
+    // Attempt to parse
+    try {
+        return JSON.parse(cleanedText);
+    } catch (e) {
+        console.error("JSON Parse Error. Raw text:", text);
+        // Fallback: Try to find JSON object within text if there's conversational fluff
+        const firstBrace = cleanedText.indexOf('{');
+        const lastBrace = cleanedText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            try {
+                return JSON.parse(cleanedText.substring(firstBrace, lastBrace + 1));
+            } catch (e2) {
+                throw new Error("Failed to extract valid JSON from AI response.");
+            }
+        }
+        throw new Error("Invalid JSON format from AI.");
     }
 };
 
@@ -82,8 +111,7 @@ export const classifyInput = async (apiKey: string, url: string): Promise<{ type
       }
     }
   });
-  if (!response.text) return { type: 'product', strategy: 'REVIEW_TUTORIAL' }; 
-  return JSON.parse(response.text);
+  return cleanAndParseJSON(response.text);
 };
 
 export const generateVideoPlan = async (
@@ -224,8 +252,7 @@ export const generateVideoPlan = async (
     }
   });
 
-  if (!response.text) throw new Error("No response from AI");
-  return JSON.parse(response.text) as OrchestratorResponse;
+  return cleanAndParseJSON(response.text) as OrchestratorResponse;
 };
 
 export const extractViralDNA = async (apiKey: string, sources: string[], additionalContext?: string, language: ContentLanguage = 'vi'): Promise<ViralDNAProfile> => {
@@ -291,8 +318,7 @@ export const extractViralDNA = async (apiKey: string, sources: string[], additio
     }
   });
 
-  if (!response.text) throw new Error("Failed to extract DNA");
-  return JSON.parse(response.text) as ViralDNAProfile;
+  return cleanAndParseJSON(response.text) as ViralDNAProfile;
 };
 
 export const generateProScript = async (
@@ -413,15 +439,129 @@ export const generateProScript = async (
     }
   });
 
-  if (!response.text) throw new Error("Studio failed to generate script");
-  return JSON.parse(response.text) as OrchestratorResponse;
+  return cleanAndParseJSON(response.text) as OrchestratorResponse;
 }
 
-// ... Exports (stubs for brevity) ...
-export const runHunterAnalysis = async (apiKey: string, query: string): Promise<HunterInsight> => { return {} as any; } 
+// ... Exports (stubs for brevity, ensuring they use cleanAndParseJSON if implemented fully) ...
+export const runHunterAnalysis = async (apiKey: string, query: string): Promise<HunterInsight> => { 
+    // Mock implementation for demo purposes as full logic wasn't provided in original file
+    // In production, this would use AI similar to above.
+    return {
+        target_name: query,
+        type: 'NICHE_OPPORTUNITY',
+        match_score: 88,
+        market_status: 'Growing',
+        key_metrics: [],
+        hidden_analysis: { consumer_psychology: '', competitor_weakness: '', profit_potential: 'High', risk_assessment: 'Low' },
+        strategic_suggestion: 'Create comparison videos'
+    }; 
+} 
 export const scanHighValueNetwork = async (apiKey: string, focusArea: string): Promise<NetworkScanResult> => { return {} as any; }
 export const predictGoldenHours = async (apiKey: string, region: string, niche: string, platforms: string[]): Promise<GoldenHourRecommendation[]> => { return [] as any; }
 export const generateDailySchedule = async (apiKey: string, accountName: string, niche: string, region: string, config: any): Promise<ScheduleSlot[]> => { return [] as any; }
-export const generateChannelAudit = async (apiKey: string, channelName: string, platform: string): Promise<ChannelHealthReport> => { return {} as any; }
-export const sendChatToAssistant = async (apiKey: string, history: any[], message: string, appContext: AppContext): Promise<{ text: string, command?: AgentCommand }> => { return {} as any; }
-export const huntAffiliateProducts = async (apiKey: string, niche: string, networks: string[]): Promise<AffiliateHuntResult> => { return {} as any; }
+export const generateChannelAudit = async (apiKey: string, channelName: string, platform: string): Promise<ChannelHealthReport> => { 
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Audit channel: ${channelName} on ${platform}. Assess health.`,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    channel_name: { type: Type.STRING },
+                    platform: { type: Type.STRING },
+                    health_score: { type: Type.NUMBER },
+                    status: { type: Type.STRING, enum: ['HEALTHY', 'AT_RISK', 'CRITICAL'] },
+                    metrics: {
+                        type: Type.OBJECT,
+                        properties: {
+                            views_growth: { type: Type.STRING },
+                            avg_watch_time: { type: Type.STRING },
+                            ctr: { type: Type.STRING }
+                        },
+                        required: ['views_growth', 'avg_watch_time', 'ctr']
+                    },
+                    risks: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                type: { type: Type.STRING },
+                                severity: { type: Type.STRING },
+                                description: { type: Type.STRING }
+                            },
+                            required: ['type', 'severity', 'description']
+                        }
+                    },
+                    ai_diagnosis: { type: Type.STRING },
+                    action_plan: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ['channel_name', 'health_score', 'status', 'metrics', 'risks', 'ai_diagnosis', 'action_plan']
+            }
+        }
+    });
+    return cleanAndParseJSON(response.text);
+}
+
+export const sendChatToAssistant = async (apiKey: string, history: any[], message: string, appContext: AppContext): Promise<{ text: string, command?: AgentCommand }> => { 
+    const ai = new GoogleGenAI({ apiKey });
+    const chat = ai.chats.create({
+        model: "gemini-2.5-flash",
+        history: history,
+        config: {
+            systemInstruction: `You are AV Commander, an AI assistant for Viral DNA Studio.
+            Context: ${JSON.stringify(appContext)}
+            Can execute commands: NAVIGATE(tab_id).
+            If user asks to go to a section, return command JSON at end of response.`
+        }
+    });
+    const result = await chat.sendMessage(message);
+    const text = result.text || "";
+    
+    // Check for command in response (Mock logic for extraction)
+    let command = undefined;
+    if (text.includes("NAVIGATE")) {
+        // Simple heuristic for demo
+        if (text.toLowerCase().includes("studio")) command = { action: 'NAVIGATE', payload: 'studio' };
+        else if (text.toLowerCase().includes("queue")) command = { action: 'NAVIGATE', payload: 'queue' };
+        else if (text.toLowerCase().includes("settings")) command = { action: 'NAVIGATE', payload: 'settings' };
+    }
+    
+    return { text, command: command as any }; 
+}
+
+export const huntAffiliateProducts = async (apiKey: string, niche: string, networks: string[]): Promise<AffiliateHuntResult> => { 
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Find winning affiliate products in niche: ${niche}. Networks: ${networks.join(',')}`,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    products: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                product_name: { type: Type.STRING },
+                                network: { type: Type.STRING },
+                                commission_est: { type: Type.STRING },
+                                opportunity_score: { type: Type.NUMBER },
+                                affiliate_link: { type: Type.STRING },
+                                reason_to_promote: { type: Type.STRING },
+                                content_angle: { type: Type.STRING }
+                            },
+                            required: ['product_name', 'opportunity_score', 'affiliate_link']
+                        }
+                    },
+                    strategy_note: { type: Type.STRING }
+                },
+                required: ['products', 'strategy_note']
+            }
+        }
+    });
+    return cleanAndParseJSON(response.text);
+}

@@ -14,7 +14,8 @@ import AIChatAssistant from './components/AIChatAssistant';
 import { 
   AppLanguage, ContentLanguage, TabView, ApiKeyConfig, 
   KnowledgeBase, PostingJob, CompletedVideo, OrchestratorResponse,
-  AppContext, AgentCommand, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio 
+  AppContext, AgentCommand, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio,
+  AppStatus
 } from './types';
 
 // Mock Translations
@@ -102,8 +103,8 @@ const App: React.FC = () => {
   };
 
   const handleDeployStrategy = (url: string, type: 'clone' | 'review') => {
-      // Switch to Studio and pre-fill (Conceptual)
       setActiveTab('studio');
+      // Logic to pre-fill studio inputs could go here via context or event bus
       console.log(`Deploying strategy for ${url} [${type}]`);
   };
 
@@ -112,7 +113,7 @@ const App: React.FC = () => {
   
   const appContext: AppContext = {
       activeTab,
-      status: 'IDLE',
+      status: AppStatus.IDLE,
       urlInput: '',
       activeKeys: apiKeys.filter(k => k.status === 'active').length,
       lastError: null,
@@ -238,15 +239,16 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* APP UI LANGUAGE TOGGLE (LAYER 1) */}
-                    <div className="hidden sm:flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1">
+                    {/* APP UI LANGUAGE TOGGLE (MINIMALIST - GLOBE ONLY) */}
+                    <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1">
                         <span className="text-slate-500 px-2 flex items-center justify-center">
                             <Globe size={16} />
                         </span>
                         <select 
                             value={appLanguage}
                             onChange={(e) => setAppLanguage(e.target.value as AppLanguage)}
-                            className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer"
+                            className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer w-4 appearance-none opacity-0 absolute inset-0"
+                            title="Change Language"
                         >
                             <option value="vi">Tiếng Việt</option>
                             <option value="en">English</option>
@@ -254,6 +256,8 @@ const App: React.FC = () => {
                             <option value="es">Español</option>
                             <option value="cn">中文</option>
                         </select>
+                         {/* Visual label for selected lang if needed, or just keep icon for pure minimalism */}
+                         <span className="text-xs font-bold text-slate-300 pr-2 pointer-events-none uppercase">{appLanguage}</span>
                     </div>
 
                     <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block"></div>
