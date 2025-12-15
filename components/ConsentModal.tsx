@@ -12,11 +12,13 @@ const ConsentModal: React.FC<ConsentModalProps> = ({ isOpen, onClose, onConfirm 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden transform transition-all scale-100">
+    // Changed: items-center -> items-start, added pt-20 for top alignment ("hiển thị đầu trang")
+    // Changed: z-50 -> z-[100] to ensure it's above sidebar and headers
+    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-20 bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden transform transition-all scale-100 relative">
         
         {/* Header */}
-        <div className="bg-slate-950 p-6 border-b border-slate-800 flex items-center justify-between">
+        <div className="bg-slate-950 p-6 border-b border-slate-800 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3 text-amber-500">
             <ShieldAlert size={28} />
             <h2 className="text-xl font-bold text-white">Xác nhận Tuân thủ Chính sách</h2>
@@ -27,7 +29,7 @@ const ConsentModal: React.FC<ConsentModalProps> = ({ isOpen, onClose, onConfirm 
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4 text-slate-300 text-sm leading-relaxed">
+        <div className="p-6 space-y-4 text-slate-300 text-sm leading-relaxed max-h-[60vh] overflow-y-auto custom-scrollbar">
           <p className="font-semibold text-white">Trước khi bắt đầu quy trình AutoPilot, bạn cần xác nhận:</p>
           
           <ul className="space-y-3">
@@ -57,7 +59,7 @@ const ConsentModal: React.FC<ConsentModalProps> = ({ isOpen, onClose, onConfirm 
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-3">
+        <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-3 sticky bottom-0 z-10">
           <button 
             onClick={onClose}
             className="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-sm font-medium"

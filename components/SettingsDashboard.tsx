@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Cpu, Database, Save, Trash2, Plus, 
@@ -6,10 +7,11 @@ import {
   Terminal, Sparkles, BookOpen, Layers,
   Youtube, ShoppingBag, MessageCircle, Facebook, Instagram, Twitter, Globe, Banknote, CreditCard, ExternalLink, Info, Zap, Smartphone, TrendingUp, Image, Images, Linkedin, Send, Pin, ShoppingCart, Truck, MapPin, Video, MonitorPlay,
   Download, Upload, AlertOctagon, HardDrive, Bell, Moon, Languages, FileJson, AlertTriangle, Sliders, LayoutTemplate, FileOutput, ShieldAlert,
-  User, Power, Music, Share2, Link as LinkIcon, Target
+  User, Power, Music, Share2, Link as LinkIcon, Target, Loader2
 } from 'lucide-react';
 import NeonButton from './NeonButton';
 import { ApiKeyConfig, KnowledgeBase, AppLanguage } from '../types';
+import { synthesizeKnowledge } from '../services/geminiService';
 
 // ... (Storage Keys) ...
 const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
@@ -130,6 +132,10 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   const [newAlias, setNewAlias] = useState('');
   const [selectedProviderId, setSelectedProviderId] = useState<string>('google');
   
+  // Training State
+  const [trainingText, setTrainingText] = useState('');
+  const [isTraining, setIsTraining] = useState(false);
+
   // System State
   const [storageUsage, setStorageUsage] = useState<string>('0 KB');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -237,6 +243,47 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
       window.location.reload();
   };
 
+  // --- BRAIN TRAINING HANDLERS ---
+  const handleTrainBrain = async () => {
+      const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
+      if (!googleKey) {
+          alert("Key Error: Please add a Google API Key in the Vault to use Brain features.");
+          return;
+      }
+      if (!trainingText.trim()) return;
+
+      setIsTraining(true);
+      try {
+          const newInsights = await synthesizeKnowledge(googleKey.key, trainingText, knowledgeBase.learnedPreferences);
+          
+          if (newInsights.length > 0) {
+              setKnowledgeBase({
+                  ...knowledgeBase,
+                  learnedPreferences: [...knowledgeBase.learnedPreferences, ...newInsights],
+                  lastUpdated: Date.now()
+              });
+              setTrainingText('');
+              alert(`Successfully added ${newInsights.length} new insights to the knowledge base.`);
+          } else {
+              alert("No actionable insights found in the text.");
+          }
+      } catch (error: any) {
+          alert(`Training failed: ${error.message}`);
+      } finally {
+          setIsTraining(false);
+      }
+  };
+
+  const handleDeleteKnowledge = (index: number) => {
+      const newPrefs = [...knowledgeBase.learnedPreferences];
+      newPrefs.splice(index, 1);
+      setKnowledgeBase({
+          ...knowledgeBase,
+          learnedPreferences: newPrefs,
+          lastUpdated: Date.now()
+      });
+  };
+
   const currentProviders = PROVIDERS_DATA[activeVaultTab] || [];
   const currentKeys = apiKeys.filter(k => k.category === activeVaultTab);
 
@@ -277,11 +324,78 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 min-h-[500px]">
         
-        {/* === TAB: BRAIN === */}
+        {/* === TAB: BRAIN (Self-Learning) === */}
         {activeTab === 'brain' && (
-            <div className="text-center text-slate-500 py-12">
-                <Brain size={48} className="mx-auto mb-4 opacity-50" />
-                <p>AI Brain Configuration (Coming Soon)</p>
+            <div className="animate-fade-in grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left: Training Input */}
+                <div className="space-y-6">
+                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-5">
+                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                            <Sparkles size={16} className="text-purple-500"/> Neural Ingestion (Training)
+                        </h3>
+                        <p className="text-xs text-slate-400 mb-3">
+                            Paste strategies from <strong>ChatGPT, Grok, or Claude</strong> here. The system will synthesize them into "Universal Truths" for the bot to remember.
+                        </p>
+                        <textarea 
+                            value={trainingText}
+                            onChange={(e) => setTrainingText(e.target.value)}
+                            placeholder="Example: 'Always start videos with a negative hook...' or paste a full strategy guide."
+                            className="w-full h-48 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-purple-500 focus:outline-none mb-4 resize-none"
+                        />
+                        <NeonButton onClick={handleTrainBrain} disabled={isTraining || !trainingText} className="w-full">
+                            {isTraining ? (
+                                <span className="flex items-center gap-2"><Loader2 className="animate-spin" /> Synthesizing Knowledge...</span>
+                            ) : (
+                                <span className="flex items-center gap-2"><Brain size={16}/> Train & Synthesize</span>
+                            )}
+                        </NeonButton>
+                    </div>
+
+                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-5">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-sm font-bold text-white">Auto-Improvement</h3>
+                            <button 
+                                onClick={() => setKnowledgeBase({...knowledgeBase, autoImprovementEnabled: !knowledgeBase.autoImprovementEnabled})}
+                                className={`w-10 h-5 rounded-full p-0.5 transition-colors ${knowledgeBase.autoImprovementEnabled ? 'bg-green-500' : 'bg-slate-700'}`}
+                            >
+                                <div className={`w-4 h-4 bg-white rounded-full transition-transform ${knowledgeBase.autoImprovementEnabled ? 'translate-x-5' : ''}`}></div>
+                            </button>
+                        </div>
+                        <p className="text-xs text-slate-400">
+                            If enabled, the bot will automatically extract preferences from your chat history after every session.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Right: Knowledge Base */}
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 flex flex-col h-full max-h-[600px]">
+                    <div className="flex justify-between items-center mb-4 shrink-0">
+                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            <Database size={16} className="text-blue-500"/> Knowledge Base
+                        </h3>
+                        <span className="text-xs text-slate-500">{knowledgeBase.learnedPreferences.length} nodes</span>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar bg-slate-900/50 rounded-lg p-2">
+                        {knowledgeBase.learnedPreferences.length === 0 && (
+                            <div className="text-center text-slate-500 py-10 text-xs italic">
+                                Brain is empty. Start training...
+                            </div>
+                        )}
+                        {knowledgeBase.learnedPreferences.map((pref, idx) => (
+                            <div key={idx} className="bg-slate-800 border border-slate-700 p-3 rounded-lg flex gap-3 group hover:border-purple-500/50 transition-colors">
+                                <div className="mt-0.5"><Zap size={12} className="text-purple-400"/></div>
+                                <p className="text-xs text-slate-200 flex-1 leading-relaxed">{pref}</p>
+                                <button 
+                                    onClick={() => handleDeleteKnowledge(idx)}
+                                    className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         )}
 

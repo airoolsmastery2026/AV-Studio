@@ -21,12 +21,15 @@ const STRICT_LANGUAGE_PROTOCOL = `
 // Helper to get language name for prompt injection
 const getLanguageName = (lang: ContentLanguage | undefined): string => {
     switch(lang) {
-        case 'en': return "ENGLISH (US)";
-        case 'es': return "SPANISH (Español)";
-        case 'jp': return "JAPANESE (日本語)";
-        case 'cn': return "CHINESE (中文)";
+        case 'en': return "ENGLISH (US) - Native style";
+        case 'es': return "SPANISH (Español) - Neutral/LatAm";
+        case 'jp': return "JAPANESE (日本語) - Natural/Polite";
+        case 'cn': return "CHINESE (中文) - Simplified/Mandarin";
+        case 'de': return "GERMAN (Deutsch) - Professional";
+        case 'fr': return "FRENCH (Français) - Parisian";
+        case 'kr': return "KOREAN (한국어) - Natural";
         case 'vi': 
-        default: return "VIETNAMESE (Tiếng Việt)";
+        default: return "VIETNAMESE (Tiếng Việt) - Northern Accent Standard";
     }
 };
 
@@ -504,28 +507,85 @@ export const generateChannelAudit = async (apiKey: string, channelName: string, 
     return cleanAndParseJSON(response.text);
 }
 
+// --- SYNTHESIZE KNOWLEDGE (Self-Learning) ---
+export const synthesizeKnowledge = async (apiKey: string, text: string, currentKnowledge: string[]): Promise<string[]> => {
+    const ai = new GoogleGenAI({ apiKey });
+    
+    const prompt = `
+        ACT AS A KNOWLEDGE ARCHITECT.
+        
+        INPUT TEXT (Source: User or External AI): 
+        "${text}"
+
+        CURRENT KNOWLEDGE:
+        ${JSON.stringify(currentKnowledge)}
+
+        TASK:
+        1. Extract 3-5 HIGH-VALUE strategic rules, facts, or user preferences from the INPUT TEXT.
+        2. Disregard fluff, conversational filler, or generic advice.
+        3. Format as concise, actionable statements (max 15 words each).
+        4. If input is empty or irrelevant, return empty array.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    newInsights: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING }
+                    }
+                },
+                required: ['newInsights']
+            }
+        }
+    });
+
+    const result = cleanAndParseJSON(response.text);
+    return result.newInsights || [];
+};
+
 export const sendChatToAssistant = async (apiKey: string, history: any[], message: string, appContext: AppContext): Promise<{ text: string, command?: AgentCommand }> => { 
     const ai = new GoogleGenAI({ apiKey });
+    
+    // Inject Knowledge Base into System Instruction
+    const knowledgeString = appContext.knowledgeBase.learnedPreferences.length > 0 
+        ? `\n\n[ACCESSING LONG-TERM MEMORY]:\n${appContext.knowledgeBase.learnedPreferences.map(p => `- ${p}`).join('\n')}`
+        : "";
+
     const chat = ai.chats.create({
         model: "gemini-2.5-flash",
         history: history,
         config: {
             systemInstruction: `You are AV Commander, an AI assistant for Viral DNA Studio.
             Context: ${JSON.stringify(appContext)}
-            Can execute commands: NAVIGATE(tab_id).
+            ${knowledgeString}
+            
+            CAPABILITIES:
+            1. Execute commands: NAVIGATE(tab_id).
+            2. If user types "/train [text]", acknowledge that you are synthesizing this info into the knowledge base (but the frontend handles the actual API call).
+            3. Use the [ACCESSING LONG-TERM MEMORY] section to personalize answers.
+            
             If user asks to go to a section, return command JSON at end of response.`
         }
     });
     const result = await chat.sendMessage(message);
     const text = result.text || "";
     
-    // Check for command in response (Mock logic for extraction)
     let command = undefined;
     if (text.includes("NAVIGATE")) {
-        // Simple heuristic for demo
         if (text.toLowerCase().includes("studio")) command = { action: 'NAVIGATE', payload: 'studio' };
         else if (text.toLowerCase().includes("queue")) command = { action: 'NAVIGATE', payload: 'queue' };
         else if (text.toLowerCase().includes("settings")) command = { action: 'NAVIGATE', payload: 'settings' };
+    }
+    
+    // Auto-detect training command in chat (simulated command for frontend to pick up if needed, though mostly handled by frontend parsing)
+    if (message.startsWith("/train")) {
+       command = { action: 'UPDATE_MEMORY', payload: message.replace("/train", "").trim() };
     }
     
     return { text, command: command as any }; 

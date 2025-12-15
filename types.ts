@@ -37,10 +37,11 @@ export type VoiceModel = 'ElevenLabs' | 'OpenAI TTS' | 'Google Chirp' | 'Vbee TT
 
 // --- SAAS LANGUAGE ARCHITECTURE ---
 // Layer 1: Application UI Language (Interface only)
-export type AppLanguage = 'vi' | 'en' | 'jp' | 'es' | 'cn'; 
+// Added: de (German), fr (French), kr (Korean) for High RPM Markets
+export type AppLanguage = 'vi' | 'en' | 'jp' | 'es' | 'cn' | 'de' | 'fr' | 'kr'; 
 
 // Layer 2: Video Content Language (Script, Voice, SEO)
-export type ContentLanguage = 'vi' | 'en' | 'es' | 'jp' | 'cn';
+export type ContentLanguage = 'vi' | 'en' | 'es' | 'jp' | 'cn' | 'de' | 'fr' | 'kr';
 
 export interface VideoConfig {
   resolution: VideoResolution;

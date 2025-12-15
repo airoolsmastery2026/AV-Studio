@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, X, Minimize2, Maximize2, Sparkles, MessageSquare, Trash2, Cpu, ArrowRight, GripHorizontal, ChevronDown, History, Plus, Edit2 } from 'lucide-react';
 import { AppContext, ChatMessage, ChatSession, AgentCommand } from '../types';
@@ -112,7 +113,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
             role: 'model',
             text: 'Phiên làm việc mới đã được tạo. Tôi có thể giúp gì?',
             timestamp: Date.now()
-          }],
+           }],
           createdAt: Date.now()
       };
       setSessions(prev => [newSession, ...prev]);
@@ -417,7 +418,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder={showHistory ? "Đang xem lịch sử..." : "Ra lệnh cho hệ thống..."}
+                        placeholder={showHistory ? "Đang xem lịch sử..." : "Type /train [text] to learn..."}
                         disabled={showHistory}
                         className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-4 pr-10 py-3 text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-inner disabled:opacity-50"
                     />
@@ -434,7 +435,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
       )}
 
       {/* 3D ROBOT ICON TRIGGER (FIXED POSITION) */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end pointer-events-none">
         <button
             onClick={() => {
                 setIsOpen(!isOpen);
