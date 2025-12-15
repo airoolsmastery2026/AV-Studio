@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Dna, Plus, Trash2, Zap, Play, Settings, 
@@ -288,10 +287,10 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         {/* LEFT PANEL */}
         <div className="hidden lg:flex lg:col-span-2 flex-col gap-2 border-r border-slate-800 pr-4">
             {[
-                { id: 'cloner', label: texts.tabs?.dna, icon: Dna },
-                { id: 'script', label: texts.tabs?.script, icon: FileText },
-                { id: 'studio', label: texts.tabs?.studio, icon: Sliders },
-                { id: 'quality', label: texts.tabs?.quality, icon: ShieldAlert },
+                { id: 'cloner', label: texts.studio_tabs?.dna, icon: Dna },
+                { id: 'script', label: texts.studio_tabs?.script, icon: FileText },
+                { id: 'studio', label: texts.studio_tabs?.studio, icon: Sliders },
+                { id: 'quality', label: texts.studio_tabs?.quality, icon: ShieldAlert },
             ].map(tab => (
                 <button
                     key={tab.id}

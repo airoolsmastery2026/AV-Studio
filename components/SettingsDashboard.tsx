@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Cpu, Database, Save, Trash2, Plus, 
@@ -257,10 +256,10 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
       {/* Main Tabs */}
       <div className="flex gap-2 border-b border-slate-800 pb-1 overflow-x-auto">
         {[
-          { id: 'brain', label: texts.tabs?.brain || 'AI Brain', icon: Brain },
-          { id: 'vault', label: texts.tabs?.vault || 'API Vault', icon: Shield },
-          { id: 'studio', label: texts.tabs?.studio || 'Studio Config', icon: Sliders },
-          { id: 'system', label: texts.tabs?.system || 'System Config', icon: Terminal },
+          { id: 'brain', label: texts.settings_tabs?.brain || 'AI Brain', icon: Brain },
+          { id: 'vault', label: texts.settings_tabs?.vault || 'API Vault', icon: Shield },
+          { id: 'studio', label: texts.settings_tabs?.studio || 'Studio Config', icon: Sliders },
+          { id: 'system', label: texts.settings_tabs?.system || 'System Config', icon: Terminal },
         ].map(tab => (
           <button
             key={tab.id}

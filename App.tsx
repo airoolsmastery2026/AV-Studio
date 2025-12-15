@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, Menu } from 'lucide-react';
+import { Globe, Menu, Clock } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ViralDNAStudio from './components/ViralDNAStudio';
 import AutoPilotDashboard from './components/AutoPilotDashboard';
@@ -18,19 +18,295 @@ import {
   AppStatus
 } from './types';
 
-// Mock Translations
+// Full Translations Dictionary
 const TRANSLATIONS: Record<AppLanguage, any> = {
-  vi: {},
-  en: {},
-  jp: {},
-  es: {},
-  cn: {}
+  vi: {
+    // Sidebar
+    studio: 'Trạm Phân Tích Viral',
+    auto: 'Auto-Pilot Vô Cực',
+    campaign: 'Chiến Dịch Hàng Loạt',
+    analytics: 'Tình Báo Chiến Lược',
+    market: 'Chợ AI & Affiliate',
+    risk: 'Trung Tâm Rủi Ro',
+    queue: 'Lịch Trình & Đăng',
+    docs: 'Hướng Dẫn',
+    settings: 'Cấu Hình Hệ Thống',
+
+    // Viral DNA Studio
+    title: 'Viral DNA Studio',
+    subtitle: 'Giải mã công thức thành công từ đối thủ & Tái tạo nội dung.',
+    studio_tabs: {
+        dna: 'Phân Tích DNA',
+        script: 'Kịch Bản AI',
+        studio: 'Dựng Video',
+        quality: 'Kiểm Duyệt'
+    },
+    input_section: 'Nguồn Dữ Liệu Đầu Vào',
+    input_placeholder: 'Dán liên kết video (TikTok, Shorts, Reels)...',
+    btn_add_source: 'Thêm Nguồn Mới',
+    btn_upload: 'Tải Video Mẫu (mp4)',
+    analyze_btn: 'Trích Xuất Cấu Trúc Viral DNA',
+    script_engine: {
+        title: 'Bộ Máy Viết Kịch Bản Pro',
+        topic_label: 'Chủ Đề Trọng Tâm (Bắt buộc)',
+        generate_btn: 'Viết Kịch Bản Mới',
+        generating: 'Đang Viết...'
+    },
+    video_studio: {
+        title: 'Xưởng Dựng Phim Tự Động',
+        render_btn: 'Render Video (Mô Phỏng)',
+        rendering: 'Đang Dựng...'
+    },
+
+    // Auto Pilot
+    status_label: 'Trạng Thái',
+    config_title: 'Tham Số Nhiệm Vụ',
+    niche_label: 'Ngách Mục Tiêu',
+    stats_videos: 'Video Đã Tạo',
+    stats_posted: 'Đã Đăng',
+    stats_uptime: 'Thời Gian Chạy',
+    logs_title: 'Nhật Ký Hoạt Động (Live Logs)',
+    library_title: 'Kho Nội Dung Tự Động',
+
+    // Queue
+    input_title: 'Tiêu Đề Nội Dung',
+    input_caption: 'Mô Tả & Hashtags',
+    platform_label: 'Nền Tảng Đăng Tải',
+    schedule_label: 'Chế Độ Lên Lịch',
+    mode_smart: 'Thông Minh',
+    mode_auto: 'Tự Động',
+    mode_manual: 'Thủ Công',
+    mode_now: 'Đăng Ngay',
+    btn_analyzing: 'Đang Xử Lý...',
+    btn_post_now: 'Xuất Bản Ngay Lập Tức',
+    btn_schedule: 'Thêm Vào Hàng Chờ',
+    queue_list_title: 'Danh Sách Chờ Đăng',
+
+    // Analytics
+    view_standard: 'Cơ Bản',
+    view_deep: 'Quét Sâu (Deep Scan)',
+    auto_recon_btn: 'Bật Trinh Sát Tự Động',
+    stop_auto_btn: 'Dừng Trinh Sát',
+    manual_target: 'Mục Tiêu Chỉ Định',
+    waiting: 'Đang chờ dữ liệu...',
+    analysis_title: 'Phân Tích Thời Gian Thực',
+    deploy_btn: 'Triển Khai Ngay',
+    winner_title: 'Cơ Hội Tốt Nhất (Winner)',
+
+    // Marketplace
+    tab_market: 'Sàn Sản Phẩm',
+    tab_hunter: 'Thợ Săn (Hunter)',
+    filter_google: 'Hệ Sinh Thái Google',
+    hunter_title: 'AI Product Hunter',
+    hunter_desc: 'Tự động quét các mạng lưới Affiliate để tìm sản phẩm có hoa hồng cao và độ cạnh tranh thấp.',
+    niche_placeholder: 'Nhập ngách cần săn (VD: Gia dụng thông minh...)',
+    activate_btn: 'Kích Hoạt Săn Tìm',
+    hunting: 'Đang Săn...',
+    results_found: 'Sản Phẩm Tìm Thấy',
+
+    // Risk Center
+    btn_scan: 'CHẠY KIỂM TRA TOÀN DIỆN',
+    btn_scanning: 'Đang Quét Mạng Lưới...',
+    alert_key: 'Cần Google API Key để phân tích rủi ro.',
+
+    // Settings
+    sections: {
+        general: 'Tùy Chọn Chung'
+    },
+    settings_tabs: {
+        brain: 'Bộ Não AI',
+        vault: 'Kho Chìa Khóa (Vault)',
+        studio: 'Cấu Hình Studio',
+        system: 'Hệ Thống'
+    },
+
+    // Batch
+    input_label: '1. Danh Sách Nguồn Đầu Vào',
+    import_btn: 'Nhập Vào Hàng Chờ',
+    control_title: '2. Điều Khiển',
+    processing: 'Đang Xử Lý Hàng Loạt...',
+    start_btn: 'Bắt Đầu Sản Xuất',
+    clear_btn: 'Xóa Tất Cả',
+    progress_title: 'Tiến Độ Sản Xuất',
+    empty_state: 'Danh sách trống. Vui lòng nhập liên kết hoặc chủ đề.',
+    done: 'Hoàn thành',
+
+    // Plan Result
+    viral_score: 'Điểm Tiềm Năng Viral',
+    tiktok_trend: 'Xu Hướng TikTok',
+    yt_shorts: 'YouTube Shorts',
+    est_cpm: 'CPM Ước Tính',
+    audience_persona: 'Chân Dung Khán Giả',
+    deep_analysis: 'Phân Tích Chuyên Sâu',
+    script_scenes: 'Kịch Bản & Phân Cảnh',
+    voiceover: 'Lời Thoại (Voiceover)',
+    visual: 'Hình Ảnh Mô Tả',
+    live_preview: 'XEM TRƯỚC (LIVE)',
+    auto_post_timer: 'Tự Động Đăng Sau',
+    posted_success: 'ĐÃ ĐĂNG THÀNH CÔNG',
+    schedule: 'Lên Lịch / Hàng Chờ',
+    post_now: 'ĐĂNG NGAY LẬP TỨC',
+    gen_metadata: 'Metadata Đã Tạo',
+    title_viral: 'Tiêu Đề (Viral Hook)',
+    desc_seo: 'Mô Tả (Chuẩn SEO)',
+    hashtags: 'Hashtags',
+    share: 'Chia Sẻ',
+    download: 'Tải Về JSON',
+
+    // Model Selector
+    specs_title: 'Thông Số Kỹ Thuật Đầu Ra',
+    script_title: 'Trí Tuệ Kịch Bản (Script)',
+    visual_title: 'Động Cơ Hình Ảnh (Visual)',
+    voice_title: 'Tổng Hợp Giọng Nói (Voice)'
+  },
+  en: {
+    // Sidebar
+    studio: 'Viral DNA Studio',
+    auto: 'Infinity Auto-Pilot',
+    campaign: 'Batch Campaign',
+    analytics: 'Strategic Intel',
+    market: 'AI Marketplace',
+    risk: 'Risk Center',
+    queue: 'Scheduler & Queue',
+    docs: 'Documentation',
+    settings: 'System Config',
+
+    // Viral DNA Studio
+    title: 'Viral DNA Studio',
+    subtitle: 'Decode competitor success & Replicate content.',
+    studio_tabs: {
+        dna: 'Viral DNA',
+        script: 'AI Script',
+        studio: 'Video Studio',
+        quality: 'Quality Gate'
+    },
+    input_section: 'Input Data Source',
+    input_placeholder: 'Paste video link (TikTok, Shorts, Reels)...',
+    btn_add_source: 'Add Source',
+    btn_upload: 'Upload Sample (mp4)',
+    analyze_btn: 'Extract Viral DNA',
+    script_engine: {
+        title: 'Pro Script Engine',
+        topic_label: 'Core Topic (Required)',
+        generate_btn: 'Generate Script',
+        generating: 'Writing...'
+    },
+    video_studio: {
+        title: 'Automated Video Studio',
+        render_btn: 'Render Video (Sim)',
+        rendering: 'Rendering...'
+    },
+
+    // Auto Pilot
+    status_label: 'Status',
+    config_title: 'Mission Params',
+    niche_label: 'Target Niche',
+    stats_videos: 'Videos Created',
+    stats_posted: 'Posted',
+    stats_uptime: 'Uptime',
+    logs_title: 'Live Activity Logs',
+    library_title: 'Content Library',
+
+    // Queue
+    input_title: 'Content Title',
+    input_caption: 'Caption & Hashtags',
+    platform_label: 'Target Platforms',
+    schedule_label: 'Schedule Mode',
+    mode_smart: 'Smart',
+    mode_auto: 'Auto',
+    mode_manual: 'Manual',
+    mode_now: 'Post Now',
+    btn_analyzing: 'Processing...',
+    btn_post_now: 'Publish Immediately',
+    btn_schedule: 'Add to Queue',
+    queue_list_title: 'Pending Queue',
+
+    // Analytics
+    view_standard: 'Standard',
+    view_deep: 'Deep Scan',
+    auto_recon_btn: 'Enable Auto-Recon',
+    stop_auto_btn: 'Stop Recon',
+    manual_target: 'Manual Target',
+    waiting: 'Waiting for data...',
+    analysis_title: 'Real-time Analysis',
+    deploy_btn: 'Deploy Strategy',
+    winner_title: 'Best Opportunity',
+
+    // Marketplace
+    tab_market: 'Marketplace',
+    tab_hunter: 'Hunter',
+    filter_google: 'Google Ecosystem',
+    hunter_title: 'AI Product Hunter',
+    hunter_desc: 'Automatically scan affiliate networks for high commission & low competition products.',
+    niche_placeholder: 'Enter niche (e.g. Smart Home...)',
+    activate_btn: 'Activate Hunter',
+    hunting: 'Hunting...',
+    results_found: 'Products Found',
+
+    // Risk Center
+    btn_scan: 'RUN SYSTEM AUDIT',
+    btn_scanning: 'Scanning Network...',
+    alert_key: 'Google API Key required for risk analysis.',
+
+    // Settings
+    sections: {
+        general: 'General Preferences'
+    },
+    settings_tabs: {
+        brain: 'AI Brain',
+        vault: 'API Vault',
+        studio: 'Studio Config',
+        system: 'System'
+    },
+
+    // Batch
+    input_label: '1. Input Source List',
+    import_btn: 'Import to Queue',
+    control_title: '2. Controls',
+    processing: 'Batch Processing...',
+    start_btn: 'Start Production',
+    clear_btn: 'Clear All',
+    progress_title: 'Production Progress',
+    empty_state: 'List empty. Please enter links or topics.',
+    done: 'Done',
+
+    // Plan Result
+    viral_score: 'Viral Potential Score',
+    tiktok_trend: 'TikTok Trend',
+    yt_shorts: 'YouTube Shorts',
+    est_cpm: 'Est. CPM',
+    audience_persona: 'Target Audience',
+    deep_analysis: 'Deep Analysis',
+    script_scenes: 'Script & Scenes',
+    voiceover: 'Voiceover',
+    visual: 'Visual Cues',
+    live_preview: 'LIVE PREVIEW',
+    auto_post_timer: 'Auto-Post Timer',
+    posted_success: 'POSTED SUCCESSFULLY',
+    schedule: 'Schedule / Queue',
+    post_now: 'POST NOW',
+    gen_metadata: 'Generated Metadata',
+    title_viral: 'Title (Viral)',
+    desc_seo: 'Description (SEO)',
+    hashtags: 'Hashtags',
+    share: 'Share',
+    download: 'Download JSON',
+
+    // Model Selector
+    specs_title: 'Output Specifications',
+    script_title: 'Script Intelligence',
+    visual_title: 'Visual Engine',
+    voice_title: 'Voice Synthesis'
+  },
+  // Placeholders for other languages to prevent crash
+  jp: {}, es: {}, cn: {}
 };
 
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState<TabView>('studio');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   
   // Languages
   const [appLanguage, setAppLanguage] = useState<AppLanguage>('vi');
@@ -93,6 +369,12 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem('av_studio_queue_v1', JSON.stringify(jobs)); }, [jobs]);
   useEffect(() => { localStorage.setItem('av_studio_gallery_v1', JSON.stringify(completedVideos)); }, [completedVideos]);
 
+  // --- CLOCK EFFECT ---
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // --- ACTIONS ---
   const handleAddToQueue = (job: PostingJob) => {
       setJobs(prev => [job, ...prev]);
@@ -141,6 +423,9 @@ const App: React.FC = () => {
         aspectRatio, setAspectRatio
     };
 
+    // Use current language translations, fallback to Vietnamese if missing
+    const t = TRANSLATIONS[appLanguage] || TRANSLATIONS['vi'];
+
     switch (activeTab) {
       case 'studio':
         return <ViralDNAStudio 
@@ -148,7 +433,7 @@ const App: React.FC = () => {
             appLanguage={appLanguage} 
             contentLanguage={contentLanguage} 
             setContentLanguage={setContentLanguage}
-            t={TRANSLATIONS[appLanguage]}
+            t={t}
             {...commonModelProps}
         />;
       case 'auto_pilot':
@@ -157,7 +442,7 @@ const App: React.FC = () => {
             onAddToQueue={handleAddToQueue} 
             onVideoGenerated={handleVideoGenerated}
             completedVideos={completedVideos}
-            t={TRANSLATIONS[appLanguage]}
+            t={t}
             {...commonModelProps}
         />;
       case 'queue':
@@ -166,32 +451,32 @@ const App: React.FC = () => {
             currentPlan={currentPlan} 
             jobs={jobs} 
             setJobs={setJobs} 
-            t={TRANSLATIONS[appLanguage]}
+            t={t}
         />;
       case 'analytics':
         return <AnalyticsDashboard 
             apiKeys={apiKeys} 
             onDeployStrategy={handleDeployStrategy}
             onSendReportToChat={(msg) => console.log(msg)}
-            t={TRANSLATIONS[appLanguage]}
+            t={t}
         />;
       case 'marketplace':
         return <AIMarketplace 
             apiKeys={apiKeys} 
             onSelectProduct={(url) => handleDeployStrategy(url, 'review')}
-            t={TRANSLATIONS[appLanguage]}
+            t={t}
         />;
       case 'risk_center':
         return <ChannelHealthDashboard 
             apiKeys={apiKeys} 
             onSendReportToChat={(msg) => console.log(msg)}
-            t={TRANSLATIONS[appLanguage]}
+            t={t}
         />;
       case 'campaign': 
         return <BatchProcessor 
             apiKeys={apiKeys} 
             onAddToQueue={handleAddToQueue}
-            t={TRANSLATIONS[appLanguage]}
+            t={t}
             {...commonModelProps}
         />;
       case 'settings':
@@ -200,7 +485,7 @@ const App: React.FC = () => {
             setApiKeys={setApiKeys} 
             knowledgeBase={knowledgeBase} 
             setKnowledgeBase={setKnowledgeBase}
-            t={TRANSLATIONS[appLanguage]}
+            t={t}
         />;
       case 'docs':
         return <Documentation />;
@@ -210,21 +495,22 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#020617] text-white font-sans overflow-hidden">
+    // Changed h-screen to h-[100dvh] for mobile browser optimization
+    <div className="flex h-[100dvh] bg-[#020617] text-white font-sans overflow-hidden">
         {/* Sidebar */}
         <Sidebar 
             activeTab={activeTab} 
             setActiveTab={setActiveTab} 
             isOpen={sidebarOpen} 
             onClose={() => setSidebarOpen(false)} 
-            t={TRANSLATIONS[appLanguage]}
+            t={TRANSLATIONS[appLanguage] || TRANSLATIONS['vi']}
         />
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 h-full relative">
             
             {/* Top Bar */}
-            <header className="h-16 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-4 shrink-0 z-30">
+            <header className="h-16 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-4 shrink-0 z-30 relative">
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={() => setSidebarOpen(true)}
@@ -234,20 +520,31 @@ const App: React.FC = () => {
                     </button>
                     <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
                         <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-xs">v2.5.0-beta</span>
-                        <span>Enterprise Edition</span>
+                        <span>Enterprise</span>
                     </div>
                 </div>
 
+                {/* CENTRAL CLOCK (FIXED ON HEADER) */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-3 bg-slate-900/50 px-4 py-1.5 rounded-full border border-slate-800/50 shadow-inner backdrop-blur-md group">
+                    <Clock size={14} className="text-primary animate-pulse group-hover:text-white transition-colors" />
+                    <span className="text-sm font-mono font-bold text-slate-200 tracking-widest tabular-nums group-hover:text-primary transition-colors">
+                        {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase border-l border-slate-700 pl-3">
+                         {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </span>
+                </div>
+
                 <div className="flex items-center gap-3">
-                    {/* APP UI LANGUAGE TOGGLE (MINIMALIST - GLOBE ONLY) */}
-                    <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1">
+                    {/* APP UI LANGUAGE TOGGLE */}
+                    <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1 relative">
                         <span className="text-slate-500 px-2 flex items-center justify-center">
                             <Globe size={16} />
                         </span>
                         <select 
                             value={appLanguage}
                             onChange={(e) => setAppLanguage(e.target.value as AppLanguage)}
-                            className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer w-4 appearance-none opacity-0 absolute inset-0"
+                            className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer w-full h-full opacity-0 absolute inset-0 z-10"
                             title="Change Language"
                         >
                             <option value="vi">Tiếng Việt</option>
@@ -256,7 +553,6 @@ const App: React.FC = () => {
                             <option value="es">Español</option>
                             <option value="cn">中文</option>
                         </select>
-                         {/* Visual label for selected lang if needed, or just keep icon for pure minimalism */}
                          <span className="text-xs font-bold text-slate-300 pr-2 pointer-events-none uppercase">{appLanguage}</span>
                     </div>
 
@@ -269,8 +565,8 @@ const App: React.FC = () => {
                 </div>
             </header>
 
-            {/* Scrollable Content Area */}
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 relative scroll-smooth">
+            {/* Scrollable Content Area - Using flex-1 to take remaining space */}
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 relative scroll-smooth bg-[#020617]">
                 {renderContent()}
             </main>
 
