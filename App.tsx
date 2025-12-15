@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Globe, Menu, Clock } from 'lucide-react';
+import { Globe, Menu, Clock, ChevronDown } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ViralDNAStudio from './components/ViralDNAStudio';
 import AutoPilotDashboard from './components/AutoPilotDashboard';
@@ -809,11 +809,38 @@ const TRANSLATIONS: Record<AppLanguage, any> = {
   }
 };
 
+const TIMEZONES = [
+  "Etc/UTC",
+  "Pacific/Midway",
+  "Pacific/Honolulu",
+  "America/Los_Angeles",
+  "America/Denver",
+  "America/Chicago",
+  "America/New_York",
+  "America/Sao_Paulo",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Europe/Moscow",
+  "Africa/Cairo",
+  "Asia/Dubai",
+  "Asia/Karachi",
+  "Asia/Kolkata",
+  "Asia/Bangkok",
+  "Asia/Ho_Chi_Minh",
+  "Asia/Singapore",
+  "Asia/Shanghai",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+  "Pacific/Auckland"
+];
+
 const App: React.FC = () => {
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState<TabView>('studio');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [timeZone, setTimeZone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   
   // Ref for the main content area to handle scrolling
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -1046,15 +1073,41 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* APP UI LANGUAGE TOGGLE - UPDATED BACKGROUND */}
-                    <div className="flex items-center bg-[#1e293b] border border-slate-700 rounded-lg p-1 gap-1 relative hover:bg-slate-700/50 transition-colors">
-                        <span className="text-slate-400 px-2 flex items-center justify-center">
+                    
+                    {/* GLOBAL TIME (3D NEON CLOCK) */}
+                    <div className="hidden md:flex items-center gap-2 px-4 py-1 bg-black/40 rounded-lg border border-slate-700/50 shadow-inner">
+                       <div className="text-2xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600" style={{ textShadow: '0px 0px 5px rgba(6,182,212,0.8), 2px 2px 0px rgba(0,0,0,1)' }}>
+                          {currentTime.toLocaleTimeString('en-US', { timeZone: timeZone, hour12: false })}
+                       </div>
+                    </div>
+
+                    {/* TIMEZONE SELECTOR - UPDATED TO NEON CYAN/TEAL */}
+                    <div className="flex items-center bg-[#0EA5A4] border border-cyan-400 rounded-lg p-1 gap-1 relative hover:bg-cyan-600 transition-colors shadow-[0_0_10px_rgba(14,165,164,0.4)]">
+                        <span className="text-white px-2 flex items-center justify-center">
+                            <ChevronDown size={16} />
+                        </span>
+                        <select 
+                            value={timeZone}
+                            onChange={(e) => setTimeZone(e.target.value)}
+                            className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer w-full h-full opacity-0 absolute inset-0 z-10 [&>option]:bg-slate-900 [&>option]:text-white"
+                            title="Select Timezone"
+                        >
+                            {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                        </select>
+                         <span className="text-xs font-bold text-white pr-2 pointer-events-none uppercase max-w-[100px] truncate">{timeZone.split('/')[1] || timeZone}</span>
+                    </div>
+
+                    <div className="h-4 w-px bg-slate-800 mx-1 hidden sm:block"></div>
+
+                    {/* APP UI LANGUAGE TOGGLE - GREEN (EMERALD-600) */}
+                    <div className="flex items-center bg-emerald-600 border border-emerald-500 rounded-lg p-1 gap-1 relative hover:bg-emerald-500 transition-colors shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                        <span className="text-white px-2 flex items-center justify-center">
                             <Globe size={16} />
                         </span>
                         <select 
                             value={appLanguage}
                             onChange={(e) => setAppLanguage(e.target.value as AppLanguage)}
-                            className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer w-full h-full opacity-0 absolute inset-0 z-10"
+                            className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer w-full h-full opacity-0 absolute inset-0 z-10 [&>option]:bg-slate-900 [&>option]:text-white"
                             title="Change Language"
                         >
                             <option value="en">English (US)</option>
@@ -1066,7 +1119,7 @@ const App: React.FC = () => {
                             <option value="es">Español (ES)</option>
                             <option value="cn">中文 (CN)</option>
                         </select>
-                         <span className="text-xs font-bold text-slate-200 pr-2 pointer-events-none uppercase">{appLanguage}</span>
+                         <span className="text-xs font-bold text-white pr-2 pointer-events-none uppercase">{appLanguage}</span>
                     </div>
 
                     <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block"></div>

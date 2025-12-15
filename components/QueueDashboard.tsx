@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Calendar, Clock, Check, AlertCircle, RefreshCw, Send, 
   Hash, Globe, Video, Youtube, Facebook, Instagram, Twitter, MessageCircle, 
-  MoreVertical, Trash2, Edit3, UploadCloud, PlayCircle, Zap, Sliders, ArrowRight
+  MoreVertical, Trash2, Edit3, UploadCloud, PlayCircle, Zap, Sliders, ArrowRight, ChevronDown
 } from 'lucide-react';
 import { ApiKeyConfig, OrchestratorResponse, PostingJob, TargetRegion, GoldenHourRecommendation, ScheduleSlot } from '../types';
 import NeonButton from './NeonButton';
@@ -176,6 +176,8 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
        
        <div className="flex-1 space-y-6 overflow-y-auto pr-2">
           
+          {/* Clock Removed from Here - Moved to Header */}
+
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
               <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                   <Edit3 size={20} className="text-primary" /> {texts.title}
