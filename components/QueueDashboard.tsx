@@ -40,6 +40,10 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
   const [startHour, setStartHour] = useState<string>("08:00");
   const [endHour, setEndHour] = useState<string>("22:00");
 
+  // World Clock State
+  const [timeZone, setTimeZone] = useState<string>('Asia/Ho_Chi_Minh');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
   const socialKeys = apiKeys.filter(k => k.category === 'social' && k.status === 'active');
 
   useEffect(() => {
@@ -48,6 +52,21 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
       setDraftCaption(currentPlan.production_plan.script_master.substring(0, 150) + "...");
     }
   }, [currentPlan]);
+
+  // Clock Timer Effect
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTimeWithZone = (date: Date, tz: string) => {
+    try {
+        return new Intl.DateTimeFormat('en-US', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            timeZone: tz, hour12: false
+        }).format(date);
+    } catch (e) { return "00:00:00"; }
+  };
 
   const handlePlatformToggle = (providerId: string) => {
     setSelectedPlatforms(prev => 
@@ -290,6 +309,37 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
        </div>
 
        <div className="w-full md:w-96 bg-slate-900/80 border-l border-slate-800 p-6 overflow-y-auto">
+          
+          {/* WORLD CLOCK WIDGET */}
+          <div className="mb-6 bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+              <div className="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
+                  <h4 className="text-xs font-bold text-primary uppercase flex items-center gap-2">
+                      <Globe size={14} /> Global Time
+                  </h4>
+                  <select 
+                      value={timeZone} 
+                      onChange={(e) => setTimeZone(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 rounded text-[10px] text-slate-300 px-2 py-1 outline-none focus:border-primary cursor-pointer hover:bg-slate-800"
+                  >
+                      <option value="Asia/Ho_Chi_Minh">Vietnam (GMT+7)</option>
+                      <option value="UTC">UTC (GMT+0)</option>
+                      <option value="America/New_York">New York (EST)</option>
+                      <option value="America/Los_Angeles">Los Angeles (PST)</option>
+                      <option value="Europe/London">London (GMT)</option>
+                      <option value="Asia/Tokyo">Tokyo (JST)</option>
+                      <option value="Australia/Sydney">Sydney (AEST)</option>
+                  </select>
+              </div>
+              <div className="flex flex-col items-center justify-center py-2">
+                  <div className="text-4xl font-mono font-bold text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]">
+                      {formatTimeWithZone(currentTime, timeZone)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono mt-1 uppercase tracking-widest">
+                      {new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: timeZone }).format(currentTime)}
+                  </div>
+              </div>
+          </div>
+
           <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
               <span>{texts.queue_list_title} ({jobs.filter(j => j.status === 'scheduled').length})</span>
               <UploadCloud size={18} className="text-slate-500" />

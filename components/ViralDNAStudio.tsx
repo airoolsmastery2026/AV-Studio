@@ -88,6 +88,10 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
     musicSync: true
   });
 
+  // Force SORA Visual Model Logic
+  const activeVisualModel = 'SORA';
+  // We ignore external visualModel changes for this component to enforce SORA
+
   // Sync content language prop to internal settings
   useEffect(() => {
       setStudioSettings(prev => ({ ...prev, contentLanguage: contentLanguage }));
@@ -211,6 +215,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
       setStatus('generating');
       addLog(`Generating Script in: ${contentLanguage.toUpperCase()}...`);
+      addLog(`Visual Model Forced: ${activeVisualModel}`);
       
       try {
           const effectiveDNA = dnaProfile || {
@@ -221,7 +226,13 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
               risk_level: 'Safe'
           } as ViralDNAProfile;
 
-          const plan = await generateProScript(googleKey.key, effectiveDNA, studioSettings);
+          // Force SORA Visual Model
+          const enforcedSettings = {
+              ...studioSettings,
+              visualModel: activeVisualModel
+          };
+
+          const plan = await generateProScript(googleKey.key, effectiveDNA, enforcedSettings as any);
           setGeneratedPlan(plan);
           addLog("Script Generated.");
           setActiveStudioTab('studio');
@@ -235,6 +246,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   const handleAutoClone = async () => {
       if (!generatedPlan) return;
       setStatus('rendering');
+      addLog(`Rendering with ${activeVisualModel}...`);
       await new Promise(r => setTimeout(r, 2500));
       setActiveStudioTab('quality');
       setStatus('done');
@@ -365,14 +377,14 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                 <div className="p-4 space-y-6 border-t border-slate-800 animate-fade-in">
                                     <ModelFlowDiagram 
                                         scriptModel={scriptModel}
-                                        visualModel={visualModel}
+                                        visualModel={activeVisualModel}
                                         voiceModel={voiceModel}
                                         resolution={resolution}
                                         aspectRatio={aspectRatio}
                                     />
                                     <ModelSelector 
                                         scriptModel={scriptModel} setScriptModel={setScriptModel}
-                                        visualModel={visualModel} setVisualModel={setVisualModel}
+                                        visualModel={activeVisualModel} setVisualModel={() => {}} 
                                         voiceModel={voiceModel} setVoiceModel={setVoiceModel}
                                         resolution={resolution} setResolution={setResolution}
                                         aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
