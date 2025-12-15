@@ -1045,21 +1045,10 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* CENTRAL CLOCK (FIXED ON HEADER) */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-3 bg-slate-900/50 px-4 py-1.5 rounded-full border border-slate-800/50 shadow-inner backdrop-blur-md group">
-                    <Clock size={14} className="text-primary animate-pulse group-hover:text-white transition-colors" />
-                    <span className="text-sm font-mono font-bold text-slate-200 tracking-widest tabular-nums group-hover:text-primary transition-colors">
-                        {currentTime.toLocaleTimeString('en-US', { hour12: false })}
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-600 uppercase border-l border-slate-700 pl-3">
-                         {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
-                    </span>
-                </div>
-
                 <div className="flex items-center gap-3">
-                    {/* APP UI LANGUAGE TOGGLE */}
-                    <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 gap-1 relative">
-                        <span className="text-slate-500 px-2 flex items-center justify-center">
+                    {/* APP UI LANGUAGE TOGGLE - UPDATED BACKGROUND */}
+                    <div className="flex items-center bg-[#1e293b] border border-slate-700 rounded-lg p-1 gap-1 relative hover:bg-slate-700/50 transition-colors">
+                        <span className="text-slate-400 px-2 flex items-center justify-center">
                             <Globe size={16} />
                         </span>
                         <select 
@@ -1077,7 +1066,7 @@ const App: React.FC = () => {
                             <option value="es">Español (ES)</option>
                             <option value="cn">中文 (CN)</option>
                         </select>
-                         <span className="text-xs font-bold text-slate-300 pr-2 pointer-events-none uppercase">{appLanguage}</span>
+                         <span className="text-xs font-bold text-slate-200 pr-2 pointer-events-none uppercase">{appLanguage}</span>
                     </div>
 
                     <div className="h-4 w-px bg-slate-800 mx-2 hidden sm:block"></div>
