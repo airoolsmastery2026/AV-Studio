@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Globe, Menu, Clock, ChevronDown, Activity, Zap, Server } from 'lucide-react';
+import { Globe, Menu, Clock, ChevronDown, Activity, Zap, Server, AlertTriangle } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ViralDNAStudio from './components/ViralDNAStudio';
 import AutoPilotDashboard from './components/AutoPilotDashboard';
@@ -21,6 +21,7 @@ import {
 import { agentProcessSignal, agentGenerateScript, agentDirectVisuals, agentSynthesizeVoice, huntAffiliateProducts, generateVideoPlan, classifyInput } from './services/geminiService';
 
 const EN_TRANSLATIONS = {
+    // ... (No changes to translations, keep existing) ...
     studio: 'Viral DNA Analyzer',
     auto: 'Infinity Auto-Pilot',
     campaign: 'Batch Campaign',
@@ -118,9 +119,9 @@ const EN_TRANSLATIONS = {
     voice_title: 'Voice Synthesis'
 };
 
-// Full Translations Dictionary - 100% Coverage for High RPM Markets
 const TRANSLATIONS: Record<AppLanguage, any> = {
   vi: {
+    // ... (Keep Vietnamese translations same as previous) ...
     // Sidebar
     studio: 'Viral DNA Analyzer',
     auto: 'Auto-Pilot Vô Cực',
@@ -346,6 +347,10 @@ const App: React.FC = () => {
   const [systemStatus, setSystemStatus] = useState<'IDLE' | 'PROCESSING' | 'ERROR'>('IDLE');
   const processingQueueRef = useRef<Set<string>>(new Set());
 
+  // --- API KEY ROTATION & RATE LIMITING STATE ---
+  const [currentKeyIndex, setCurrentKeyIndex] = useState(0);
+  const [globalCooldown, setGlobalCooldown] = useState(0); // Timestamp when cooldown ends
+
   // --- PERSISTENCE EFFECTS ---
   useEffect(() => { localStorage.setItem('av_studio_api_keys', JSON.stringify(apiKeys)); }, [apiKeys]);
   useEffect(() => { localStorage.setItem('av_studio_kb', JSON.stringify(knowledgeBase)); }, [knowledgeBase]);
@@ -403,6 +408,28 @@ const App: React.FC = () => {
 
   }, []);
 
+  // --- API KEY ROTATION HELPERS ---
+  const getActiveKey = () => {
+      const googleKeys = apiKeys.filter(k => k.provider === 'google' && k.status === 'active');
+      if (googleKeys.length === 0) return null;
+      return googleKeys[currentKeyIndex % googleKeys.length];
+  };
+
+  const handleApiError = (error: any) => {
+      if (error.message.includes('QUOTA_EXCEEDED')) {
+          const googleKeys = apiKeys.filter(k => k.provider === 'google' && k.status === 'active');
+          if (googleKeys.length > 1) {
+              // Rotate to next key
+              setCurrentKeyIndex(prev => (prev + 1) % googleKeys.length);
+              setAutoPilotLogs(prev => [...prev, { timestamp: new Date().toLocaleTimeString(), action: 'ROTATE_KEY', detail: 'Quota Exceeded. Switching to next API Key.', status: 'warning' }]);
+          } else {
+              // Trigger Global Cooldown (60s)
+              setGlobalCooldown(Date.now() + 60000);
+              setAutoPilotLogs(prev => [...prev, { timestamp: new Date().toLocaleTimeString(), action: 'COOLDOWN', detail: 'All keys exhausted. Cooling down for 60s.', status: 'error' }]);
+          }
+      }
+  };
+
   // --- ACTIONS ---
   const handleAddToQueue = (job: PostingJob) => {
       if (!job.pipelineStage) {
@@ -416,17 +443,16 @@ const App: React.FC = () => {
       setCompletedVideos(prev => [video, ...prev]);
   };
 
-  const handleApiKeyIssue = (keyId: string, status: 'quota_exceeded' | 'error') => {
-      setApiKeys(prev => prev.map(k => k.id === keyId ? { ...k, status } : k));
-  };
-
   // --- ENGINE 1: AUTOPILOT HUNTER LOOP ---
   // Runs independently of UI
   useEffect(() => {
       if (!autoPilotActive) return;
 
       const runHunterCycle = async () => {
-          const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
+          // Check Global Cooldown
+          if (Date.now() < globalCooldown) return;
+
+          const googleKey = getActiveKey();
           const affiliateKeys = apiKeys.filter(k => k.category === 'affiliate' && k.status === 'active');
           
           if (!googleKey) {
@@ -437,8 +463,8 @@ const App: React.FC = () => {
 
           try {
               setAutoPilotAction('HUNTING');
-              // Simulate Hunting Delay
-              await new Promise(r => setTimeout(r, 2000));
+              // Safe Delay
+              await new Promise(r => setTimeout(r, 5000));
               
               // Mock Hunt Logic
               const networks = affiliateKeys.length > 0 ? affiliateKeys.map(k => k.provider.toUpperCase()) : ['AMAZON', 'CLICKBANK'];
@@ -448,9 +474,9 @@ const App: React.FC = () => {
               
               const result = await huntAffiliateProducts(googleKey.key, niche, networks);
               
-              // CRITICAL FIX: Ensure products exist before accessing
               if (!result || !result.products || result.products.length === 0) {
-                  throw new Error("No products found in scan.");
+                  setAutoPilotLogs(p => [...p, { timestamp: new Date().toLocaleTimeString(), action: 'RETRY', detail: "No products found. Retrying in next cycle.", status: 'warning'}]);
+                  return;
               }
 
               const product = result.products[0];
@@ -468,6 +494,9 @@ const App: React.FC = () => {
                       video_config: { resolution, aspectRatio, scriptModel, visualModel, voiceModel, outputLanguage: 'vi' }
                   };
                   
+                  // Backoff delay before next API call
+                  await new Promise(r => setTimeout(r, 5000));
+
                   const plan = await generateVideoPlan(googleKey.key, metadata);
                   
                   setAutoPilotAction('QUEUEING');
@@ -489,13 +518,15 @@ const App: React.FC = () => {
               }
 
           } catch (e: any) {
+              handleApiError(e);
               setAutoPilotLogs(p => [...p, { timestamp: new Date().toLocaleTimeString(), action: 'FAIL', detail: e.message, status: 'error'}]);
           } finally {
               setAutoPilotAction('COOLDOWN');
           }
       };
 
-      const interval = setInterval(runHunterCycle, 15000); // Run every 15s (simulated)
+      // Increased Interval to 90 seconds to prevent 429 errors safely
+      const interval = setInterval(runHunterCycle, 90000); 
       
       // Uptime ticker
       const uptimeInt = setInterval(() => setAutoPilotStats(s => ({...s, uptime: s.uptime + 1})), 1000);
@@ -504,7 +535,7 @@ const App: React.FC = () => {
           clearInterval(interval);
           clearInterval(uptimeInt);
       };
-  }, [autoPilotActive, autoPilotNiche, apiKeys, scriptModel, visualModel, resolution]);
+  }, [autoPilotActive, autoPilotNiche, apiKeys, scriptModel, visualModel, resolution, currentKeyIndex, globalCooldown]);
 
   // --- ENGINE 2: BATCH PROCESSOR LOOP ---
   // Runs independently
@@ -512,7 +543,10 @@ const App: React.FC = () => {
       if (!batchProcessing) return;
 
       const processBatchQueue = async () => {
-          const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
+          // Check Global Cooldown
+          if (Date.now() < globalCooldown) return;
+
+          const googleKey = getActiveKey();
           if (!googleKey) { setBatchProcessing(false); return; }
 
           const pendingJob = batchJobs.find(j => j.status === 'queued');
@@ -528,7 +562,7 @@ const App: React.FC = () => {
 
           try {
               updateBatchJob(pendingJob.id, { status: 'analyzing', progress: 10, log: 'Analyzing...' });
-              await new Promise(r => setTimeout(r, 1000));
+              await new Promise(r => setTimeout(r, 2000));
               
               const analysis = await classifyInput(googleKey.key, pendingJob.input);
               updateBatchJob(pendingJob.id, { status: 'scripting', progress: 40, log: `Strategy: ${analysis?.strategy || 'AUTO'}` });
@@ -540,10 +574,13 @@ const App: React.FC = () => {
                   video_config: { resolution, aspectRatio, scriptModel, visualModel, voiceModel, outputLanguage: 'vi' }
               };
               
+              // Backoff delay
+              await new Promise(r => setTimeout(r, 5000));
+
               const plan = await generateVideoPlan(googleKey.key, metadata);
               updateBatchJob(pendingJob.id, { status: 'rendering', progress: 80, log: 'Simulating Render...', result: plan });
               
-              await new Promise(r => setTimeout(r, 1000));
+              await new Promise(r => setTimeout(r, 2000));
               
               if (plan && plan.generated_content) {
                    const postingJob: PostingJob = {
@@ -561,20 +598,25 @@ const App: React.FC = () => {
               updateBatchJob(pendingJob.id, { status: 'completed', progress: 100, log: 'Done.' });
 
           } catch (e: any) {
+              handleApiError(e);
               updateBatchJob(pendingJob.id, { status: 'failed', log: e.message, error: e.message });
           }
       };
 
-      const interval = setInterval(processBatchQueue, 2000);
+      // Interval 30s for safe batch processing
+      const interval = setInterval(processBatchQueue, 30000);
       return () => clearInterval(interval);
-  }, [batchProcessing, batchJobs, apiKeys]);
+  }, [batchProcessing, batchJobs, apiKeys, currentKeyIndex, globalCooldown]);
 
   // --- ENGINE 3: THE BRAIN (PRODUCTION PIPELINE) ---
   // Processes individual 'processing' jobs from queue
   useEffect(() => {
       const runPipeline = async () => {
+          // Check Global Cooldown
+          if (Date.now() < globalCooldown) return;
+
           const activeJob = jobs.find(j => j.status === 'processing' && !processingQueueRef.current.has(j.id));
-          const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active')?.key;
+          const googleKey = getActiveKey();
 
           if (!activeJob) { setSystemStatus('IDLE'); return; }
           if (!googleKey) return;
@@ -601,9 +643,9 @@ const App: React.FC = () => {
               switch (activeJob.pipelineStage) {
                   case 'SIGNAL_ANALYSIS':
                       addPipelineLog(`Deciphering signal...`);
-                      await new Promise(r => setTimeout(r, 1000)); 
+                      await new Promise(r => setTimeout(r, 2000)); 
                       if (activeJob.caption.startsWith('http')) {
-                          const metadata = await agentProcessSignal(googleKey, activeJob.caption);
+                          const metadata = await agentProcessSignal(googleKey.key, activeJob.caption);
                           updateJob({ sourceMetadata: metadata, pipelineStage: 'SCRIPTING' });
                       } else {
                           updateJob({ pipelineStage: 'SCRIPTING' });
@@ -612,13 +654,15 @@ const App: React.FC = () => {
                   case 'SCRIPTING':
                       addPipelineLog(`Writing script with ${scriptModel}...`);
                       const dummyMeta: any = activeJob.sourceMetadata || { url: activeJob.caption, type: 'topic' };
-                      const scriptData = await agentGenerateScript(googleKey, dummyMeta);
+                      await new Promise(r => setTimeout(r, 2000)); // Delay for API backoff
+                      const scriptData = await agentGenerateScript(googleKey.key, dummyMeta);
                       updateJob({ scriptData, pipelineStage: 'VISUAL_PROMPTING', content_title: scriptData.generated_content?.title });
                       break;
                   case 'VISUAL_PROMPTING':
                       addPipelineLog(`Prompting ${visualModel}...`);
                       if (!activeJob.scriptData) throw new Error("No script");
-                      const prompts = await agentDirectVisuals(googleKey, activeJob.scriptData);
+                      await new Promise(r => setTimeout(r, 2000)); // Delay for API backoff
+                      const prompts = await agentDirectVisuals(googleKey.key, activeJob.scriptData);
                       updateJob({ visualAssets: prompts, pipelineStage: 'VOICE_SYNTHESIS' });
                       break;
                   case 'VOICE_SYNTHESIS':
@@ -642,15 +686,17 @@ const App: React.FC = () => {
                       break;
               }
           } catch (e: any) {
+              handleApiError(e);
               updateJob({ status: 'failed', pipelineStage: 'FAILED' });
           } finally {
               processingQueueRef.current.delete(activeJob.id);
           }
       };
 
-      const interval = setInterval(runPipeline, 1500);
+      // Increased interval to 10s to reduce background pressure
+      const interval = setInterval(runPipeline, 10000);
       return () => clearInterval(interval);
-  }, [jobs, apiKeys, scriptModel, visualModel, voiceModel]);
+  }, [jobs, apiKeys, scriptModel, visualModel, voiceModel, currentKeyIndex, globalCooldown]);
 
   // ... (Clock Effect, Scroll Effect, Chat Handlers - Unchanged) ...
   useEffect(() => {
@@ -683,6 +729,9 @@ const App: React.FC = () => {
   };
 
   const t = TRANSLATIONS[appLanguage] || TRANSLATIONS['en'];
+
+  // Countdown for Cooldown
+  const cooldownRemaining = Math.max(0, Math.ceil((globalCooldown - Date.now()) / 1000));
 
   const renderContent = () => {
     switch (activeTab) {
@@ -794,17 +843,26 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                     {/* System Status */}
-                    <div className={`hidden md:flex items-center gap-2 px-3 py-1 rounded-full border ${
-                        systemStatus === 'PROCESSING' || autoPilotActive || batchProcessing
-                        ? 'bg-purple-900/20 border-purple-500/50 text-purple-400' 
-                        : 'bg-slate-900 border-slate-700 text-slate-500'
-                    }`}>
-                        <Activity size={14} />
-                        <span className="text-[10px] font-bold tracking-wider">
-                            {(systemStatus === 'PROCESSING' || batchProcessing) ? 'PROCESSING' : autoPilotActive ? 'AUTOPILOT ON' : 'IDLE'}
-                        </span>
-                    </div>
+                     {/* System Status / Cooldown Warning */}
+                    {cooldownRemaining > 0 ? (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/20 border border-red-500/50 text-red-400 animate-pulse">
+                            <AlertTriangle size={14} />
+                            <span className="text-[10px] font-bold tracking-wider">
+                                RATE LIMIT: COOLING DOWN ({cooldownRemaining}s)
+                            </span>
+                        </div>
+                    ) : (
+                        <div className={`hidden md:flex items-center gap-2 px-3 py-1 rounded-full border ${
+                            systemStatus === 'PROCESSING' || autoPilotActive || batchProcessing
+                            ? 'bg-purple-900/20 border-purple-500/50 text-purple-400' 
+                            : 'bg-slate-900 border-slate-700 text-slate-500'
+                        }`}>
+                            <Activity size={14} />
+                            <span className="text-[10px] font-bold tracking-wider">
+                                {(systemStatus === 'PROCESSING' || batchProcessing) ? 'PROCESSING' : autoPilotActive ? 'AUTOPILOT ON' : 'IDLE'}
+                            </span>
+                        </div>
+                    )}
 
                     <div className="group relative flex items-center gap-3 px-4 py-2 bg-slate-900/40 hover:bg-slate-900/60 border border-white/5 hover:border-white/10 rounded-full backdrop-blur-md transition-all duration-500 shadow-[0_0_15px_rgba(0,0,0,0.2)]">
                         <div className="relative z-10 font-mono text-base md:text-lg font-medium tracking-widest text-slate-200 group-hover:text-white transition-colors">
@@ -832,7 +890,7 @@ const App: React.FC = () => {
             </main>
 
             <AIChatAssistant 
-                apiKey={apiKeys.find(k => k.provider === 'google' && k.status === 'active')?.key} 
+                apiKey={getActiveKey()?.key} 
                 appContext={appContext} 
                 onCommand={handleAgentCommand} 
             />
