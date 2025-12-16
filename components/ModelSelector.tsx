@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { BrainCircuit, Check, Palette, Mic, Cpu, Sparkles, Zap, MonitorPlay, Ratio, Scan, MessageSquare, Speaker } from 'lucide-react';
+import React, { useState } from 'react';
+import { BrainCircuit, Palette, Mic, MonitorPlay, Zap, Sparkles, MessageSquare, Video, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
 import { ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 
 interface ModelSelectorProps {
@@ -26,149 +26,134 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   t
 }) => {
   const texts = t || {};
+  // Default to expanded to ensure user sees options first, but allow manual collapse
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  // Common Card Style with Delayed Hover Effect
-  const renderModelCard = (
-    id: string, 
-    name: string, 
-    desc: string, 
-    badge: string, 
-    Icon: any, 
-    isSelected: boolean, 
-    onClick: () => void,
-    accentColor: string
-  ) => (
-    <button 
-        key={id}
-        onClick={onClick}
-        className={`group text-left p-2.5 rounded-lg border transition-all duration-300 relative w-full overflow-hidden ${
-            isSelected 
-            ? `bg-${accentColor}-900/20 border-${accentColor}-500 shadow-[0_0_10px_rgba(var(--${accentColor}),0.2)]` 
-            : 'bg-slate-900/50 border-slate-800 hover:border-slate-600 hover:bg-slate-900'
-        }`}
-    >
-        <div className="flex justify-between items-center h-8">
-            <span className={`font-bold text-xs flex items-center gap-2 ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                <Icon size={14} className={isSelected ? `text-${accentColor}-400` : "text-slate-500"} />
-                {name}
-            </span>
-            {isSelected && <div className={`bg-${accentColor}-500 rounded-full p-0.5`}><Check size={10} className="text-white" /></div>}
+  const SelectInput = ({ label, value, options, onChange, icon: Icon, color }: any) => (
+    <div className="flex flex-col gap-1 min-w-[140px] flex-1">
+      <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5">
+        {Icon && <Icon size={12} className={color} />} {label}
+      </label>
+      <div className="relative group">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-slate-900 border border-slate-700 hover:border-slate-500 rounded-lg py-2 pl-2 pr-8 text-xs text-white appearance-none focus:outline-none focus:border-primary transition-colors cursor-pointer shadow-sm"
+          onClick={(e) => e.stopPropagation()} // Prevent bubble up closing
+        >
+          {options.map((opt: any) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors">
+           <ChevronDown size={14} />
         </div>
-        
-        {/* Hidden Details with 1.5s Delay */}
-        <div className="max-h-0 opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-500 ease-out delay-[1500ms] overflow-hidden">
-            <p className="text-[10px] text-slate-500 mt-1 leading-relaxed border-t border-slate-800/50 pt-1">{desc}</p>
-            <div className="mt-1">
-                <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${
-                    isSelected
-                    ? `bg-${accentColor}-500/20 text-${accentColor}-300 border-${accentColor}-500/30` 
-                    : 'bg-slate-950 text-slate-500 border-slate-800'
-                }`}>{badge}</span>
-            </div>
-        </div>
-    </button>
+      </div>
+    </div>
   );
 
   return (
-    <div className="animate-fade-in space-y-6">
-      
-      {/* GLOBAL SPECS (Compact) */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-          <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2 mb-3">
-              <MonitorPlay size={14} className="text-primary" /> {texts.specs_title || "Output Specifications"}
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-              <div>
-                  <div className="flex gap-1">
-                      {['720p', '1080p', '4K'].map((res) => (
-                          <button
-                              key={res}
-                              onClick={() => setResolution(res as VideoResolution)}
-                              className={`flex-1 py-1.5 px-2 rounded text-[10px] font-bold transition-all border ${
-                                  resolution === res 
-                                  ? 'bg-primary/20 border-primary text-white' 
-                                  : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
-                              }`}
-                          >
-                              {res}
-                          </button>
-                      ))}
-                  </div>
-              </div>
-              <div>
-                  <div className="flex gap-1">
-                      {['9:16', '16:9', '1:1'].map((ratio) => (
-                          <button
-                              key={ratio}
-                              onClick={() => setAspectRatio(ratio as AspectRatio)}
-                              className={`flex-1 py-1.5 px-2 rounded text-[10px] font-bold transition-all border ${
-                                  aspectRatio === ratio 
-                                  ? 'bg-primary/20 border-primary text-white' 
-                                  : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'
-                              }`}
-                          >
-                              {ratio}
-                          </button>
-                      ))}
-                  </div>
-              </div>
-          </div>
-      </div>
+    <div 
+        className="w-full bg-slate-950 border-t border-slate-800 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-40 flex flex-col shrink-0 transition-all duration-300 ease-in-out"
+        style={{ height: isExpanded ? 'auto' : '40px' }}
+    >
+        {/* Toggle Header */}
+        <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-10 w-full flex items-center justify-between px-4 md:px-6 bg-slate-900/50 hover:bg-slate-900 transition-colors border-b border-slate-800/50 cursor-pointer group"
+            title={isExpanded ? "Collapse Configuration" : "Expand Configuration"}
+        >
+            <div className="flex items-center gap-2">
+                <Settings2 size={14} className="text-primary" />
+                <span className="text-xs font-bold text-slate-300 group-hover:text-white uppercase tracking-wider">
+                    {texts.specs_title || "AI Model Configuration"} 
+                    {!isExpanded && <span className="text-slate-500 ml-2 font-normal lowercase">- {scriptModel} • {visualModel} • {resolution}</span>}
+                </span>
+            </div>
+            <div className="text-slate-500 group-hover:text-white">
+                {isExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            </div>
+        </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* SCRIPT INTEL */}
-          <div className="space-y-2">
-             <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2">
-                    <BrainCircuit size={14} className="text-purple-400" /> {texts.script_title || "Script Intelligence"}
-                </h3>
-             </div>
-             <div className="grid gap-2">
-                {[
-                  { id: 'Gemini 2.5 Flash', name: 'Gemini 2.5 Flash', desc: 'Fastest, low latency. Best for viral hooks.', badge: 'Speed', icon: Zap },
-                  { id: 'Gemini 3 Pro', name: 'Gemini 3 Pro', desc: 'Deep reasoning. Best for tutorials & analysis.', badge: 'Logic', icon: BrainCircuit },
-                  { id: 'GPT-4o', name: 'GPT-4o (OpenAI)', desc: 'Creative storytelling & nuance.', badge: 'Creative', icon: Sparkles },
-                  { id: 'Grok Beta', name: 'Grok Beta (xAI)', desc: 'Real-time knowledge, roast-heavy & unfiltered.', badge: 'Rebel', icon: MessageSquare },
-                ].map((m) => renderModelCard(m.id, m.name, m.desc, m.badge, m.icon, scriptModel === m.id, () => setScriptModel(m.id as ScriptModel), 'purple'))}
-             </div>
-          </div>
+        {/* Content Area */}
+        {isExpanded && (
+            <div className="p-4 md:px-6 pb-6 animate-fade-in">
+                <div className="flex flex-col xl:flex-row gap-6 xl:items-end justify-between max-w-[1600px] mx-auto">
+                    
+                    {/* AI MODELS */}
+                    <div className="flex flex-wrap gap-4 flex-1">
+                        <SelectInput 
+                            label={texts.script_title || "Script Intelligence"}
+                            value={scriptModel}
+                            onChange={setScriptModel}
+                            icon={BrainCircuit}
+                            color="text-purple-400"
+                            options={[
+                                { value: 'Gemini 2.5 Flash', label: 'Gemini 2.5 Flash (Fast)' },
+                                { value: 'Gemini 3 Pro', label: 'Gemini 3 Pro (Deep)' },
+                                { value: 'GPT-4o', label: 'GPT-4o (Creative)' },
+                                { value: 'Grok Beta', label: 'Grok Beta (Edgy)' },
+                            ]}
+                        />
+                        <SelectInput 
+                            label={texts.visual_title || "Visual Engine"}
+                            value={visualModel}
+                            onChange={setVisualModel}
+                            icon={Palette}
+                            color="text-blue-400"
+                            options={[
+                                { value: 'VEO', label: 'Google Veo (Video)' },
+                                { value: 'SORA', label: 'Sora (OpenAI)' },
+                                { value: 'IMAGEN', label: 'Imagen 3 (HQ Photos)' },
+                                { value: 'KLING', label: 'Kling AI (Motion)' },
+                                { value: 'MIDJOURNEY', label: 'Midjourney (Art)' },
+                            ]}
+                        />
+                        <SelectInput 
+                            label={texts.voice_title || "Voice Synthesis"}
+                            value={voiceModel}
+                            onChange={setVoiceModel}
+                            icon={Mic}
+                            color="text-green-400"
+                            options={[
+                                { value: 'Google Chirp', label: 'Google Chirp (Multi-ling)' },
+                                { value: 'Vbee TTS', label: 'Vbee VN (Local)' },
+                                { value: 'ElevenLabs', label: 'ElevenLabs (Emotive)' },
+                                { value: 'OpenAI TTS', label: 'OpenAI TTS (Clean)' },
+                            ]}
+                        />
+                    </div>
 
-          {/* VISUAL ENGINE */}
-          <div className="space-y-2">
-             <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2">
-                    <Palette size={14} className="text-blue-400" /> {texts.visual_title || "Visual Engine"}
-                </h3>
-             </div>
-             <div className="grid gap-2">
-                {[
-                  { id: 'VEO', name: 'Google Veo', desc: 'High-fidelity video generation. (Preview)', badge: 'Video' },
-                  { id: 'IMAGEN', name: 'Imagen 3', desc: 'Photorealistic image generation.', badge: 'Image' },
-                  { id: 'SORA', name: 'Sora (OpenAI)', desc: 'Cinematic video physics.', badge: 'Video' },
-                  { id: 'KLING', name: 'Kling AI', desc: 'Realistic motion handling.', badge: 'Video' },
-                  { id: 'MIDJOURNEY', name: 'Midjourney', desc: 'Artistic & stylized visuals.', badge: 'Art' },
-                ].map((m) => renderModelCard(m.id, m.name, m.desc, m.badge, Palette, visualModel === m.id, () => setVisualModel(m.id as VisualModel), 'blue'))}
-             </div>
-          </div>
-
-          {/* VOICE SYNTHESIS */}
-          <div className="space-y-2">
-             <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2">
-                    <Mic size={14} className="text-green-400" /> {texts.voice_title || "Voice Synthesis"}
-                </h3>
-             </div>
-             <div className="grid gap-2">
-                {[
-                  { id: 'Google Chirp', name: 'Google Chirp (USM)', desc: 'Universal Speech Model. Multi-lingual.', badge: 'Native' },
-                  { id: 'Vbee TTS', name: 'Vbee AIVoice (VN)', desc: 'Giọng đọc cảm xúc chuẩn Việt Nam (Bắc/Nam/Huế).', badge: 'Local', icon: Speaker },
-                  { id: 'ElevenLabs', name: 'ElevenLabs', desc: 'Most expressive & emotional voices.', badge: 'Premium' },
-                  { id: 'OpenAI TTS', name: 'OpenAI TTS', desc: 'Natural & consistent tone.', badge: 'Standard' },
-                ].map((m) => renderModelCard(m.id, m.name, m.desc, m.badge, m.icon || Mic, voiceModel === m.id, () => setVoiceModel(m.id as VoiceModel), 'green'))}
-             </div>
-          </div>
-
-      </div>
+                    {/* OUTPUT SPECS */}
+                    <div className="flex gap-4 border-l border-slate-800 pl-6 xl:ml-4 shrink-0">
+                        <SelectInput 
+                            label="Quality"
+                            value={resolution}
+                            onChange={setResolution}
+                            icon={MonitorPlay}
+                            color="text-slate-400"
+                            options={[
+                                { value: '720p', label: '720p (HD)' },
+                                { value: '1080p', label: '1080p (FHD)' },
+                                { value: '4K', label: '4K (UHD)' },
+                            ]}
+                        />
+                        <SelectInput 
+                            label="Ratio"
+                            value={aspectRatio}
+                            onChange={setAspectRatio}
+                            icon={Video}
+                            color="text-slate-400"
+                            options={[
+                                { value: '9:16', label: '9:16 (Shorts)' },
+                                { value: '16:9', label: '16:9 (Landscape)' },
+                                { value: '1:1', label: '1:1 (Square)' },
+                            ]}
+                        />
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 };

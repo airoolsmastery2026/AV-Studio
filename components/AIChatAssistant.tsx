@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Send, X, Minimize2, Maximize2, Sparkles, MessageSquare, Trash2, Cpu, ArrowRight, GripHorizontal, ChevronDown, History, Plus, Edit2 } from 'lucide-react';
+import { Bot, Send, X, Minimize2, Maximize2, Sparkles, MessageSquare, Trash2, Cpu, ArrowRight, GripHorizontal, ChevronDown, History, Plus, Edit2, Zap } from 'lucide-react';
 import { AppContext, ChatMessage, ChatSession, AgentCommand } from '../types';
 import { sendChatToAssistant } from '../services/geminiService';
 
@@ -28,9 +28,26 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
   const messages = currentSession?.messages || [];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatWindowRef = useRef<HTMLDivElement>(null);
 
-  // Dragging State
-  const [position, setPosition] = useState({ x: window.innerWidth - 480, y: window.innerHeight - 650 });
+  // Dragging State with Initial Responsive Position
+  const [position, setPosition] = useState(() => {
+    if (typeof window !== 'undefined') {
+        const isMobile = window.innerWidth < 768;
+        const width = isMobile ? window.innerWidth * 0.92 : 450;
+        const height = isMobile ? 500 : 600;
+        
+        let startX = isMobile ? (window.innerWidth - width) / 2 : window.innerWidth - 480;
+        let startY = window.innerHeight - height - 20; // 20px padding from bottom
+        
+        // Ensure not off-screen initially
+        startX = Math.max(0, Math.min(startX, window.innerWidth - width));
+        startY = Math.max(0, Math.min(startY, window.innerHeight - height));
+        
+        return { x: startX, y: startY };
+    }
+    return { x: 0, y: 0 };
+  });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
@@ -55,7 +72,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
            messages: [{
             id: 'init',
             role: 'model',
-            text: 'Chào chỉ huy! Tôi là AV Commander. Tôi có thể điều khiển ứng dụng, phân tích dữ liệu và ghi nhớ chỉ thị của bạn. Hãy ra lệnh!',
+            text: 'Chào chỉ huy! Tôi là AV Commander. Hệ thống Brain Engine v2.0 đã được kích hoạt. Tôi có thể tự động điều phối quy trình sản xuất (Script -> Visual -> Voice).',
             timestamp: Date.now()
            }],
            createdAt: Date.now()
@@ -71,11 +88,10 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
     setSessions(loaded);
     setCurrentSessionId(loaded[0].id);
 
-    // EVENT LISTENER FOR EXTERNAL UPDATES (e.g., from AnalyticsDashboard)
+    // EVENT LISTENER FOR EXTERNAL UPDATES
     const handleStorageUpdate = () => {
         const updated = loadSessionsFromStorage();
         setSessions(updated);
-        // Ensure current session ID is still valid, else fallback
         if (!updated.find(s => s.id === currentSessionId)) {
             setCurrentSessionId(updated[0].id);
         }
@@ -85,17 +101,15 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
     return () => {
         window.removeEventListener('chat-storage-updated', handleStorageUpdate);
     };
-  }, []); // Run once on mount
+  }, []); 
 
   // --- PERSISTENCE ---
-  // Save sessions to localStorage whenever they change
   useEffect(() => {
     if (sessions.length > 0) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
     }
   }, [sessions]);
 
-  // Auto scroll
   useEffect(() => {
     if (!showHistory) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -125,7 +139,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
       e.stopPropagation();
       const newSessions = sessions.filter(s => s.id !== id);
       if (newSessions.length === 0) {
-          // If deleted last one, create a fresh one
           createNewSession();
       } else {
           setSessions(newSessions);
@@ -138,7 +151,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
   const updateCurrentSessionMessages = (newMessages: ChatMessage[]) => {
       setSessions(prev => prev.map(s => {
           if (s.id === currentSessionId) {
-              // Auto-rename if it's the first user message and name is default
               let name = s.name;
               if (s.messages.length <= 1 && newMessages.length > 1) {
                   const firstUserMsg = newMessages.find(m => m.role === 'user');
@@ -154,23 +166,39 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
 
   // --- DRAG LOGIC ---
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Prevent drag if clicking buttons
     if ((e.target as HTMLElement).closest('button')) return;
-
+    if (!chatWindowRef.current) return;
+    
     setIsDragging(true);
+    // Calculate offset relative to the element
+    const rect = chatWindowRef.current.getBoundingClientRect();
     dragOffset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
     };
   };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
+      if (!isDragging || !chatWindowRef.current) return;
+
+      const rect = chatWindowRef.current.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      const viewportW = window.innerWidth;
+      const viewportH = window.innerHeight;
+
+      // New position based on mouse - offset
       let newX = e.clientX - dragOffset.current.x;
       let newY = e.clientY - dragOffset.current.y;
+
+      // Boundary Constraints
+      newX = Math.max(0, Math.min(newX, viewportW - w));
+      newY = Math.max(0, Math.min(newY, viewportH - h));
+
       setPosition({ x: newX, y: newY });
     };
+
     const handleMouseUp = () => setIsDragging(false);
 
     if (isDragging) {
@@ -211,7 +239,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
     setIsLoading(true);
 
     try {
-        const apiHistory = updatedMessages.map(m => ({
+        // Fix: Use 'messages' (previous state) for history, excluding the current user message being sent
+        const apiHistory = messages.map(m => ({
             role: m.role,
             parts: [{ text: m.text }]
         }));
@@ -250,12 +279,13 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
       {/* CHAT WINDOW (Floating Portal) */}
       {isOpen && (
         <div 
+            ref={chatWindowRef}
             style={{ 
-                left: position.x, 
-                top: position.y,
+                left: `${position.x}px`, 
+                top: `${position.y}px`,
                 position: 'fixed' 
             }}
-            className="z-[9999] w-[350px] md:w-[450px] h-[600px] bg-slate-900/95 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in transition-shadow duration-300"
+            className="z-[9999] w-[92vw] md:w-[450px] h-[500px] md:h-[600px] max-w-full max-h-screen bg-slate-900/95 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in transition-shadow duration-300"
         >
             {/* Header (Draggable Handle) */}
             <div 
@@ -263,7 +293,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                 className={`h-14 bg-gradient-to-r from-slate-950 to-slate-900 border-b border-slate-700 flex items-center justify-between px-3 shrink-0 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} active:bg-slate-900`}
             >
                 <div className="flex items-center gap-3">
-                     {/* History Toggle */}
                      <button 
                         onClick={() => setShowHistory(!showHistory)}
                         className={`p-2 rounded-lg transition-colors ${showHistory ? 'bg-primary text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
@@ -274,10 +303,10 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
 
                     <div className="pointer-events-none">
                         <h3 className="text-sm font-bold text-white leading-none flex items-center gap-2">
-                           AV COMMANDER
+                           AV COMMANDER <span className="text-[9px] bg-primary/20 text-primary px-1 rounded border border-primary/30">BRAIN</span>
                         </h3>
                         <p className="text-[10px] text-green-400 mt-0.5 flex items-center gap-1 truncate max-w-[150px]">
-                           {currentSession?.name || 'New Chat'}
+                           {appContext.status === 'PLANNING' ? <span className="animate-pulse">Thinking...</span> : (currentSession?.name || 'New Chat')}
                         </p>
                     </div>
                 </div>
@@ -290,7 +319,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                      >
                         <Plus size={18} />
                     </button>
-                    {/* HIDE / MINIMIZE BUTTON (Down Arrow) */}
                     <button 
                         onClick={() => setIsOpen(false)} 
                         className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
@@ -301,10 +329,10 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                 </div>
             </div>
 
-            {/* CONTENT AREA: EITHER HISTORY OR MESSAGES */}
+            {/* CONTENT AREA */}
             <div className="flex-1 overflow-hidden relative bg-[#050B14]">
                 
-                {/* HISTORY SIDEBAR OVERLAY */}
+                {/* HISTORY SIDEBAR */}
                 {showHistory && (
                     <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-md flex flex-col animate-fade-in">
                         <div className="p-4 border-b border-slate-800 flex justify-between items-center">
@@ -344,14 +372,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                                 </div>
                             ))}
                         </div>
-                        <div className="p-3 border-t border-slate-800">
-                             <button 
-                                onClick={createNewSession}
-                                className="w-full py-2 bg-primary/20 text-primary border border-primary/30 rounded-lg hover:bg-primary hover:text-white transition-all text-sm font-bold flex items-center justify-center gap-2"
-                             >
-                                <Plus size={16} /> Tạo đoạn chat mới
-                             </button>
-                        </div>
                     </div>
                 )}
 
@@ -388,7 +408,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                                     </div>
                                     <div className="flex-1">
                                         <span className="font-bold opacity-70">EXECUTING:</span> {msg.command.action}
-                                        {msg.command.payload && <span className="block text-slate-400 font-mono truncate max-w-[200px]">{JSON.stringify(msg.command.payload)}</span>}
                                     </div>
                                     <ArrowRight size={12} />
                                 </div>
@@ -401,8 +420,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                             <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-primary">
                                 <Bot size={12} />
                             </div>
-                            <div className="text-xs text-primary animate-pulse font-mono">
-                                Processing Request...
+                            <div className="text-xs text-primary animate-pulse font-mono flex items-center gap-1">
+                                <Zap size={10} className="animate-bounce"/> Analyzing intent...
                             </div>
                         </div>
                     )}
@@ -418,9 +437,9 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder={showHistory ? "Đang xem lịch sử..." : "Type /train [text] to learn..."}
+                        placeholder={showHistory ? "Đang xem lịch sử..." : "Type instruction..."}
                         disabled={showHistory}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-4 pr-10 py-3 text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-inner disabled:opacity-50"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-4 pr-10 py-3 text-base md:text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-inner disabled:opacity-50"
                     />
                     <button 
                         onClick={handleSendMessage}
@@ -434,33 +453,37 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
         </div>
       )}
 
-      {/* 3D ROBOT ICON TRIGGER (FIXED POSITION) */}
+      {/* 3D ROBOT ICON */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end pointer-events-none">
         <button
             onClick={() => {
                 setIsOpen(!isOpen);
-                // When reopening, ensure we stay at the last known position
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             className={`pointer-events-auto relative group transition-all duration-300 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
         >
-            {/* Glow Effects */}
-            <div className="absolute inset-0 bg-primary rounded-full blur-xl opacity-40 animate-pulse group-hover:opacity-60 transition-opacity"></div>
+            <div className={`absolute inset-0 bg-primary rounded-full blur-xl opacity-40 transition-opacity ${appContext.status !== 'IDLE' ? 'animate-pulse opacity-80' : 'group-hover:opacity-60'}`}></div>
             
-            {/* Robot Body (CSS 3D) */}
             <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-slate-800 via-slate-900 to-black border border-slate-600 shadow-[inset_0_2px_10px_rgba(255,255,255,0.1),0_10px_20px_rgba(0,0,0,0.5)] flex items-center justify-center transform group-hover:-translate-y-1 transition-transform duration-300">
-                {/* Robot Eye/Face */}
                 <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/20"></div>
-                    {/* Blinking Eyes */}
+                    {/* Dynamic Eyes based on Brain Status */}
                     <div className="flex gap-1.5 z-10">
-                        <div className="w-1.5 h-3 bg-cyan-400 rounded-full shadow-[0_0_5px_cyan] animate-[blink_4s_infinite]"></div>
-                        <div className="w-1.5 h-3 bg-cyan-400 rounded-full shadow-[0_0_5px_cyan] animate-[blink_4s_infinite]"></div>
+                        {appContext.status === 'PLANNING' ? (
+                             <>
+                                <div className="w-3 h-1 bg-red-400 rounded-full shadow-[0_0_5px_red] animate-pulse"></div>
+                                <div className="w-3 h-1 bg-red-400 rounded-full shadow-[0_0_5px_red] animate-pulse"></div>
+                             </>
+                        ) : (
+                             <>
+                                <div className="w-1.5 h-3 bg-cyan-400 rounded-full shadow-[0_0_5px_cyan] animate-[blink_4s_infinite]"></div>
+                                <div className="w-1.5 h-3 bg-cyan-400 rounded-full shadow-[0_0_5px_cyan] animate-[blink_4s_infinite]"></div>
+                             </>
+                        )}
                     </div>
                 </div>
                 
-                {/* Notification Badge */}
                 {appContext.lastError && (
                     <span className="absolute -top-1 -right-1 flex h-4 w-4">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -469,10 +492,9 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
                 )}
             </div>
             
-            {/* Tooltip */}
             {isHovered && !isOpen && (
                 <div className="absolute bottom-full right-0 mb-3 whitespace-nowrap px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white shadow-lg animate-fade-in">
-                    AI Commander (Click để ra lệnh)
+                    AI Commander (Active)
                 </div>
             )}
         </button>

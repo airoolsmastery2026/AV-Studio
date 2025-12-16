@@ -329,6 +329,25 @@ export interface NetworkScanResult {
   }[];
 }
 
+// --- PIPELINE & AUTOMATION TYPES ---
+export type PipelineStage = 
+  | 'IDLE' 
+  | 'SIGNAL_ANALYSIS'   // Step 1: Decode input
+  | 'SCRIPTING'         // Step 2: Write script
+  | 'VISUAL_PROMPTING'  // Step 3: Create image/video prompts
+  | 'VOICE_SYNTHESIS'   // Step 4: Generate audio
+  | 'RENDERING'         // Step 5: Merge into video
+  | 'PUBLISHING'        // Step 6: Upload
+  | 'COMPLETED'
+  | 'FAILED';
+
+export interface ProductionLog {
+    stage: PipelineStage;
+    message: string;
+    timestamp: number;
+    agentName: string;
+}
+
 export interface PostingJob {
     id: string;
     content_title: string;
@@ -336,7 +355,16 @@ export interface PostingJob {
     hashtags: string[];
     platforms: string[];
     scheduled_time: number;
-    status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed';
+    status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'processing';
+    
+    // --- PIPELINE DATA (The "Brain" State) ---
+    pipelineStage?: PipelineStage;
+    pipelineLogs?: ProductionLog[];
+    sourceMetadata?: SourceMetadata; // Original Input
+    scriptData?: OrchestratorResponse; // Script Output
+    visualAssets?: string[]; // Generated URLs/Prompt IDs
+    audioUrl?: string; // Voiceover URL
+    
     thumbnail_url?: string;
 }
 
