@@ -202,7 +202,7 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue, t }
                             <p className="text-xs text-slate-400 hidden md:block">Forensic Analysis • Competitor Gap • Monetization</p>
                         </div>
                         </div>
-                        <div className="text-[10px] md:text-xs font-mono px-2 md:px-3 py-1 bg-purple-900/30 border border-purple-500/30 text-purple-300 rounded-full animate-pulse">
+                        <div className="text-[10px] md:text-xs font-mono px-2 md:px-3 py-1 bg-purple-900/30 border border-purple-500/30 text-purple-300 rounded-full">
                         ULTIMATE MODE
                         </div>
                     </div>
@@ -326,16 +326,16 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue, t }
            <div className="xl:sticky xl:top-6 space-y-6">
               
               {/* VIDEO PLAYER CARD */}
-              <div className="bg-slate-950 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl relative group select-none">
+              <div className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl relative group select-none">
                   <div className={`${aspectClass} bg-black relative flex items-center justify-center overflow-hidden transition-all duration-500 max-h-[60vh] md:max-h-none`}>
                       
                       {/* Live Video Simulation */}
                       {isPlaying ? (
-                          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 animate-pulse">
-                              {/* LIVE BADGE */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900">
+                              {/* LIVE BADGE - No Pulse */}
                               <div className="absolute top-4 left-4 z-20">
-                                <span className="flex items-center gap-1.5 px-2 py-1 bg-red-600/90 text-white text-[10px] font-bold rounded animate-pulse shadow-lg backdrop-blur-sm">
-                                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span> {texts.live_preview || "LIVE PREVIEW"}
+                                <span className="flex items-center gap-1.5 px-2 py-1 bg-red-600/90 text-white text-[10px] font-bold rounded shadow-lg backdrop-blur-sm">
+                                  <span className="w-1.5 h-1.5 bg-white rounded-full"></span> {texts.live_preview || "LIVE PREVIEW"}
                                 </span>
                               </div>
 
@@ -404,7 +404,8 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue, t }
                   <div className="bg-slate-900 p-4 border-t border-slate-800">
                      <div className="flex justify-between items-center mb-3">
                          <div className="flex items-center gap-2">
-                            <Clock size={16} className={isAutoPosting ? "text-yellow-500 animate-pulse" : "text-slate-500"} />
+                            {/* Removed Pulse */}
+                            <Clock size={16} className={isAutoPosting ? "text-yellow-500" : "text-slate-500"} />
                             <span className="text-sm font-bold text-white">{texts.auto_post_timer || "Auto-Post Timer"}</span>
                          </div>
                          <span className="font-mono text-xl font-bold text-yellow-500">{formatTime(autoPostTime)}</span>

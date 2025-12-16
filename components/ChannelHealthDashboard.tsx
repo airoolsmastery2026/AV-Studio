@@ -111,8 +111,8 @@ const ChannelHealthDashboard: React.FC<ChannelHealthDashboardProps> = ({ apiKeys
         <div>
            <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
              <div className="relative">
-                 <HeartPulse className={`text-red-500 ${isScanning ? 'animate-pulse' : ''}`} size={28} />
-                 {isScanning && <span className="absolute top-0 right-0 w-2 h-2 bg-red-400 rounded-full animate-ping"></span>}
+                 {/* Removed animate-pulse */}
+                 <HeartPulse className="text-red-500" size={28} />
              </div>
              {texts.title || "Channel Health & Risk Center"}
            </h2>
@@ -152,7 +152,7 @@ const ChannelHealthDashboard: React.FC<ChannelHealthDashboardProps> = ({ apiKeys
                       <div className="h-full bg-green-500 transition-all duration-300 ease-out" style={{ width: `${scanProgress}%` }}></div>
                   </div>
               </div>
-              <p className="text-slate-500 text-xs animate-pulse">AI is analyzing metadata patterns...</p>
+              <p className="text-slate-500 text-xs">AI is analyzing metadata patterns...</p>
           </div>
       )}
 

@@ -88,32 +88,30 @@ const PROVIDERS_DATA: Record<string, ProviderConfig[]> = {
     }
   ],
   social: [
-      { id: 'zalo', name: 'Zalo OA', url: 'https://oa.zalo.me/manage/setting', icon: MessageCircle, desc: 'Vietnam CRM', instructions: 'Lấy Access Token từ Zalo Developers.', inputLabel: 'Access Token', keyPlaceholder: 'oA_Token...' },
-      { id: 'tiktok', name: 'TikTok API', url: 'https://developers.tiktok.com/', icon: Music, desc: 'Viral Video', instructions: 'Tạo App trên TikTok Developers.', inputLabel: 'Access Token', keyPlaceholder: 'tk_...' },
-      { id: 'youtube', name: 'YouTube Data API', url: 'https://console.cloud.google.com/', icon: Youtube, desc: 'Video Hosting', instructions: 'Enable YouTube Data API v3.', inputLabel: 'API Key', keyPlaceholder: 'AIzaSy...' },
-      { id: 'facebook', name: 'Facebook Graph API', url: 'https://developers.facebook.com/', icon: Facebook, desc: 'Social Network', instructions: 'Lấy Page Access Token.', inputLabel: 'Page Token', keyPlaceholder: 'EAA...' },
-      { id: 'instagram', name: 'Instagram Graph API', url: 'https://developers.facebook.com/', icon: Instagram, desc: 'Visual Social', instructions: 'Liên kết Insta Business với FB Page.', inputLabel: 'Access Token', keyPlaceholder: 'EAA...' },
-      { id: 'twitter', name: 'X (Twitter) API', url: 'https://developer.twitter.com/en/portal/dashboard', icon: Twitter, desc: 'Real-time News', instructions: 'API Key & Secret.', inputLabel: 'Bearer Token', keyPlaceholder: 'AAAA...' },
-      { id: 'linkedin', name: 'LinkedIn API', url: 'https://www.linkedin.com/developers/', icon: Linkedin, desc: 'B2B Network', instructions: 'Create App in Developer Portal.', inputLabel: 'Access Token', keyPlaceholder: 'AQ...' },
-      { id: 'pinterest', name: 'Pinterest API', url: 'https://developers.pinterest.com/', icon: Pin, desc: 'Visual Discovery', instructions: 'App ID & Secret.', inputLabel: 'Access Token', keyPlaceholder: 'pina_...' },
-      { id: 'telegram', name: 'Telegram Bot API', url: 'https://t.me/BotFather', icon: Send, desc: 'Messaging', instructions: 'Chat with @BotFather to get token.', inputLabel: 'Bot Token', keyPlaceholder: '123456:ABC-...' }
+      { id: 'zalo', name: 'Zalo OA', url: 'https://developers.zalo.me/app', icon: MessageCircle, desc: 'Vietnam CRM', instructions: 'Vào "Quản lý ứng dụng" -> Tạo ứng dụng -> Lấy OA Access Token.', inputLabel: 'Access Token', keyPlaceholder: 'oA_Token...' },
+      { id: 'tiktok', name: 'TikTok API', url: 'https://developers.tiktok.com/console', icon: Music, desc: 'Viral Video', instructions: 'Vào Console -> Manage Apps -> Lấy Client Key/Secret.', inputLabel: 'Access Token', keyPlaceholder: 'tk_...' },
+      { id: 'youtube', name: 'YouTube Data API', url: 'https://console.cloud.google.com/apis/credentials', icon: Youtube, desc: 'Video Hosting', instructions: 'Vào Google Cloud Console -> Credentials -> Create Credentials -> API Key.', inputLabel: 'API Key', keyPlaceholder: 'AIzaSy...' },
+      { id: 'facebook', name: 'Facebook Graph API', url: 'https://developers.facebook.com/apps/', icon: Facebook, desc: 'Social Network', instructions: 'Vào Apps -> Tạo App -> Lấy Page Access Token trong Graph API Explorer.', inputLabel: 'Page Token', keyPlaceholder: 'EAA...' },
+      { id: 'instagram', name: 'Instagram Graph API', url: 'https://developers.facebook.com/apps/', icon: Instagram, desc: 'Visual Social', instructions: 'Tương tự Facebook Dev. Cần liên kết tài khoản Instagram Business.', inputLabel: 'Access Token', keyPlaceholder: 'EAA...' },
+      { id: 'twitter', name: 'X (Twitter) API', url: 'https://developer.twitter.com/en/portal/dashboard', icon: Twitter, desc: 'Real-time News', instructions: 'Vào Developer Portal -> Projects & Apps -> Keys and Tokens.', inputLabel: 'Bearer Token', keyPlaceholder: 'AAAA...' },
+      { id: 'linkedin', name: 'LinkedIn API', url: 'https://www.linkedin.com/developers/apps', icon: Linkedin, desc: 'B2B Network', instructions: 'Vào My Apps -> Create App -> Auth -> OAuth 2.0 tools.', inputLabel: 'Access Token', keyPlaceholder: 'AQ...' },
+      { id: 'pinterest', name: 'Pinterest API', url: 'https://developers.pinterest.com/apps/', icon: Pin, desc: 'Visual Discovery', instructions: 'Vào My Apps -> Create App -> Lấy Access Token.', inputLabel: 'Access Token', keyPlaceholder: 'pina_...' },
+      { id: 'telegram', name: 'Telegram Bot API', url: 'https://t.me/BotFather', icon: Send, desc: 'Messaging', instructions: 'Mở Telegram -> Chat với @BotFather -> Gõ /newbot -> Nhận Token.', inputLabel: 'Bot Token', keyPlaceholder: '123456:ABC-...' }
   ],
   affiliate: [
-      { id: 'shopee', name: 'Shopee Affiliate', url: 'https://shopee.vn/affiliate', icon: ShoppingBag, desc: 'E-commerce VN', instructions: 'Lấy API Key từ Shopee Open Platform.', inputLabel: 'API Key', keyPlaceholder: 'shopee_...' },
-      { id: 'lazada', name: 'Lazada Affiliate', url: 'https://adsense.lazada.vn/', icon: ShoppingCart, desc: 'E-commerce SEA', instructions: 'Lấy Token từ Lazada Adsense.', inputLabel: 'Token', keyPlaceholder: 'laz_...' },
-      { id: 'accesstrade', name: 'AccessTrade', url: 'https://pub.accesstrade.vn/', icon: LinkIcon, desc: 'Affiliate Network VN', instructions: 'Lấy API Key trong Profile.', inputLabel: 'Access Key', keyPlaceholder: 'H8s...' },
-      { id: 'masoffer', name: 'MasOffer', url: 'https://pub.masoffer.com/', icon: Target, desc: 'CPA Network VN', instructions: 'API Token trong Settings.', inputLabel: 'Token', keyPlaceholder: 'mo_...' },
-      { id: 'ecomobi', name: 'Ecomobi (SSP)', url: 'https://ssp.ecomobi.com/', icon: Smartphone, desc: 'Social Selling', instructions: 'API Key from Dashboard.', inputLabel: 'API Key', keyPlaceholder: 'eco_...' },
-      { id: 'adflex', name: 'AdFlex', url: 'https://cpo.adflex.vn/', icon: Zap, desc: 'CPO Network', instructions: 'User ID & Key.', inputLabel: 'API Key', keyPlaceholder: 'adf_...' },
-      { id: 'amazon', name: 'Amazon Associates', url: 'https://affiliate-program.amazon.com/', icon: Globe, desc: 'Global E-commerce', instructions: 'Product Advertising API.', inputLabel: 'Access Key', keyPlaceholder: 'AKIA...' },
-      { id: 'clickbank', name: 'ClickBank', url: 'https://www.clickbank.com/', icon: Banknote, desc: 'High Ticket Digital', instructions: 'Developer API Keys.', inputLabel: 'Clerk API Key', keyPlaceholder: 'DEV-...' },
-      { id: 'digistore24', name: 'Digistore24', url: 'https://www.digistore24.com/', icon: CreditCard, desc: 'Digital Products', instructions: 'API Key in Account Settings.', inputLabel: 'API Key', keyPlaceholder: 'ds24_...' },
-      { id: 'cj', name: 'CJ Affiliate', url: 'https://developers.cj.com/', icon: Layers, desc: 'Global Brands', instructions: 'Personal Access Token.', inputLabel: 'Bearer Token', keyPlaceholder: 'cj_...' },
-      { id: 'ebay', name: 'eBay Partner', url: 'https://developer.ebay.com/', icon: ShoppingBag, desc: 'Auction & Retail', instructions: 'Developer Program.', inputLabel: 'App ID', keyPlaceholder: 'ebay_...' },
-      { id: 'aliexpress', name: 'AliExpress Portals', url: 'https://portals.aliexpress.com/', icon: Truck, desc: 'Global Dropship', instructions: 'API Signature.', inputLabel: 'App Key', keyPlaceholder: 'ali_...' }
+      { id: 'shopee', name: 'Shopee Open Platform', url: 'https://open.shopee.com/', icon: ShoppingBag, desc: 'E-commerce VN', instructions: 'Đăng ký Shopee Open Platform -> Console -> Tạo App để lấy Key.', inputLabel: 'Partner Key', keyPlaceholder: 'shopee_...' },
+      { id: 'lazada', name: 'Lazada Open Platform', url: 'https://open.lazada.com/apps/index', icon: ShoppingCart, desc: 'E-commerce SEA', instructions: 'Vào Console -> App Management -> Lấy App Key.', inputLabel: 'App Key', keyPlaceholder: 'laz_...' },
+      { id: 'accesstrade', name: 'AccessTrade', url: 'https://pub.accesstrade.vn/tools/api', icon: LinkIcon, desc: 'Affiliate Network VN', instructions: 'Vào Công cụ -> API -> Tạo khóa API mới.', inputLabel: 'Access Key', keyPlaceholder: 'H8s...' },
+      { id: 'masoffer', name: 'MasOffer', url: 'https://pub.masoffer.com/user/profile', icon: Target, desc: 'CPA Network VN', instructions: 'Vào Profile -> API Token.', inputLabel: 'Token', keyPlaceholder: 'mo_...' },
+      { id: 'amazon', name: 'Amazon Associates', url: 'https://affiliate-program.amazon.com/assoc_credentials/home', icon: Globe, desc: 'Global E-commerce', instructions: 'Vào Tools -> Product Advertising API -> Manage Credentials.', inputLabel: 'Access Key', keyPlaceholder: 'AKIA...' },
+      { id: 'clickbank', name: 'ClickBank', url: 'https://accounts.clickbank.com/master/', icon: Banknote, desc: 'High Ticket Digital', instructions: 'Vào Account Settings -> Developer API Keys.', inputLabel: 'Dev API Key', keyPlaceholder: 'DEV-...' },
+      { id: 'digistore24', name: 'Digistore24', url: 'https://www.digistore24.com/account/details', icon: CreditCard, desc: 'Digital Products', instructions: 'Account -> Details -> API Key (Cần bật chế độ Vendor/Affiliate).', inputLabel: 'API Key', keyPlaceholder: 'ds24_...' },
+      { id: 'cj', name: 'CJ Affiliate', url: 'https://developers.cj.com/account/personal-access-tokens', icon: Layers, desc: 'Global Brands', instructions: 'Vào Developers Portal -> Personal Access Tokens -> Register.', inputLabel: 'Personal Token', keyPlaceholder: 'cj_...' },
+      { id: 'ebay', name: 'eBay Partner', url: 'https://developer.ebay.com/my/keys', icon: ShoppingBag, desc: 'Auction & Retail', instructions: 'Vào Developer Program -> Get your Application Keys.', inputLabel: 'App ID', keyPlaceholder: 'ebay_...' },
+      { id: 'aliexpress', name: 'AliExpress Portals', url: 'https://console.aliexpress.com/', icon: Truck, desc: 'Global Dropship', instructions: 'Vào Console -> App Management.', inputLabel: 'App Key', keyPlaceholder: 'ali_...' }
   ],
   storage: [
-      { id: 'upstash', name: 'Upstash Redis', url: 'https://upstash.com/', icon: Database, desc: 'Serverless Data', instructions: 'REST API Url & Token.', inputLabel: 'REST URL', keyPlaceholder: 'https://...' }
+      { id: 'upstash', name: 'Upstash Redis', url: 'https://console.upstash.com/', icon: Database, desc: 'Serverless Data', instructions: 'Tạo Database -> REST API -> Lấy URL & Token.', inputLabel: 'REST URL', keyPlaceholder: 'https://...' }
   ]
 };
 

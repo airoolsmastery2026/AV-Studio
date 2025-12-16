@@ -277,7 +277,8 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                         {texts.title} <span className="text-[10px] bg-white text-black px-2 py-0.5 rounded font-black tracking-widest">PRO</span>
                     </h1>
                     <p className="text-slate-400 text-xs font-mono flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        {/* Static Green Dot - No Pulse */}
+                        <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]"></span>
                         {texts.subtitle}
                     </p>
                 </div>
@@ -360,7 +361,8 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                 {filteredChannels.length > 0 ? (
                                     filteredChannels.map((channel, idx) => (
                                         <div key={channel.id} className="relative group animate-fade-in">
-                                            <div className={`bg-slate-900 border ${analyzingChannelId === channel.id ? 'border-yellow-500 animate-pulse' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-3 flex items-center gap-3 transition-colors`}>
+                                            {/* No pulse on border, just solid colors/shadows */}
+                                            <div className={`bg-slate-900 border ${analyzingChannelId === channel.id ? 'border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-3 flex items-center gap-3 transition-colors`}>
                                                 <div className="text-slate-500 text-sm font-bold w-8 text-center bg-slate-800 rounded py-1">#{idx + 1}</div>
                                                 <input 
                                                     type="text" 

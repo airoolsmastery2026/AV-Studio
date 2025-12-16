@@ -1,13 +1,11 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Infinity as InfinityIcon, Play, Pause, Zap, Crosshair, BarChart3, AlertTriangle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import React, { useRef, useEffect } from 'react';
+import { Infinity as InfinityIcon, Play, Pause, Zap, Crosshair, BarChart3, Loader2, Activity } from 'lucide-react';
 import { 
     ApiKeyConfig, PostingJob, CompletedVideo, ScriptModel, VisualModel, VoiceModel, 
-    VideoResolution, AspectRatio, SourceMetadata, ContentWorkflow, AutoPilotStats, AutoPilotLog 
+    VideoResolution, AspectRatio, AutoPilotStats, AutoPilotLog 
 } from '../types';
 import NeonButton from './NeonButton';
-import { huntAffiliateProducts, generateVideoPlan } from '../services/geminiService';
-import ModelSelector from './ModelSelector';
 
 interface AutoPilotDashboardProps {
   apiKeys: ApiKeyConfig[];
@@ -27,173 +25,27 @@ interface AutoPilotDashboardProps {
   setResolution: (res: VideoResolution) => void;
   aspectRatio: AspectRatio;
   setAspectRatio: (ratio: AspectRatio) => void;
+
+  // Injected Global State
+  isRunning: boolean;
+  setIsRunning: (v: boolean) => void;
+  stats: AutoPilotStats;
+  logs: AutoPilotLog[];
+  currentAction: string;
+  selectedNiche: string;
+  setSelectedNiche: (n: string) => void;
 }
 
 const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ 
-    apiKeys, onAddToQueue, onVideoGenerated, completedVideos, t,
-    scriptModel, setScriptModel,
-    visualModel, setVisualModel,
-    voiceModel, setVoiceModel,
-    resolution, setResolution,
-    aspectRatio, setAspectRatio,
+    t, scriptModel, visualModel, voiceModel,
+    isRunning, setIsRunning, stats, logs, currentAction, selectedNiche, setSelectedNiche
 }) => {
     const texts = t || {};
-    const [isRunning, setIsRunning] = useState(false);
-    const [selectedNiche, setSelectedNiche] = useState<string>('AUTO');
-    const [currentAction, setCurrentAction] = useState<string>('IDLE');
-    
-    const [stats, setStats] = useState<AutoPilotStats>({
-        cyclesRun: 0,
-        videosCreated: completedVideos.length,
-        postedCount: 0,
-        uptime: 0
-    });
-
-    const [logs, setLogs] = useState<AutoPilotLog[]>([]);
     const logsEndRef = useRef<HTMLDivElement>(null);
-    const processedLinks = useRef<Set<string>>(new Set());
-
-    const affiliateKeys = apiKeys.filter(k => k.category === 'affiliate' && k.status === 'active');
-    const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
 
     useEffect(() => {
         logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [logs]);
-
-    useEffect(() => {
-        let timer: ReturnType<typeof setInterval>;
-        if (isRunning) {
-            timer = setInterval(() => {
-                setStats(prev => ({...prev, uptime: prev.uptime + 1}));
-            }, 1000);
-        }
-        return () => clearInterval(timer);
-    }, [isRunning]);
-
-    const addLog = (action: string, detail: string, status: 'info' | 'success' | 'warning' | 'error' = 'info') => {
-        const newLog: AutoPilotLog = {
-            timestamp: new Date().toLocaleTimeString(),
-            action,
-            detail,
-            status
-        };
-        setLogs(prev => [...prev.slice(-20), newLog]);
-    };
-
-    const handleRunCycle = async () => {
-        if (!googleKey) {
-            addLog("ERROR", "Google API Key missing. Stopping.", "error");
-            setIsRunning(false);
-            return;
-        }
-
-        try {
-            // STEP 1: HUNTING
-            setCurrentAction("HUNTING");
-            let targetNiche = selectedNiche;
-            if (selectedNiche === 'AUTO') {
-                const trendingNiches = [
-                    'New AI Video Generators 2025', 
-                    'Undetectable AI Writing Tools', 
-                    'AI Side Hustle Automation',
-                    'AI Crypto Trading Bots', 
-                    'Hidden AI Marketing Tools', 
-                    'High Ticket AI SaaS Affiliate',
-                    'AI Avatar Generators',
-                    'Autonomous AI Agents'
-                ];
-                targetNiche = trendingNiches[stats.cyclesRun % trendingNiches.length];
-                addLog("AUTO_SCOUT", `🤖 Targeting High-Growth Sector: "${targetNiche}"`, "info");
-            }
-
-            const networkList = affiliateKeys.length > 0 ? affiliateKeys.map(k => k.provider.toUpperCase()) : ['AMAZON', 'CLICKBANK', 'SHOPEE', 'DIGISTORE24'];
-            
-            // Artificial delay for realism
-            await new Promise(r => setTimeout(r, 1200));
-            const huntResult = await huntAffiliateProducts(googleKey.key, targetNiche, networkList);
-            
-            if (!huntResult || huntResult.products.length === 0) {
-                throw new Error("No products found in this sector.");
-            }
-            
-            const freshProducts = huntResult.products.filter(p => !processedLinks.current.has(p.affiliate_link));
-            
-            if (freshProducts.length === 0) {
-                 addLog("SKIPPING", "All found products have been processed recently. Skipping to next niche.", "warning");
-                 // Don't throw, just return to loop next cycle
-                 return;
-            }
-
-            const sortedProducts = freshProducts.sort((a, b) => b.opportunity_score - a.opportunity_score);
-            const bestProduct = sortedProducts[0];
-            processedLinks.current.add(bestProduct.affiliate_link);
-
-            addLog("WINNER_FOUND", `💎 Selected: ${bestProduct.product_name} (${bestProduct.opportunity_score}/100)`, "success");
-            addLog("STRATEGY_INTEL", `💡 Angle: "${bestProduct.content_angle}" | Comm: ${bestProduct.commission_est}`, "info");
-
-            // STEP 2: PLANNING
-            setCurrentAction("PLANNING");
-            const angle = bestProduct.content_angle || "Viral Review & Demo";
-            
-            const metadata: SourceMetadata = {
-                url: bestProduct.affiliate_link,
-                type: 'product',
-                detected_strategy: 'REVIEW_TUTORIAL', 
-                manual_niche: 'AUTO',
-                notes: `Auto-Hunter Intel: Promote "${bestProduct.product_name}" as a ${angle}. Focus on commission: ${bestProduct.commission_est}. Reason: ${bestProduct.reason_to_promote}`,
-                prefer_google_stack: bestProduct.product_name.toLowerCase().includes('google'),
-                video_config: {
-                    resolution: resolution as VideoResolution,
-                    aspectRatio: aspectRatio as AspectRatio,
-                    scriptModel: scriptModel as ScriptModel,
-                    visualModel: visualModel as VisualModel,
-                    voiceModel: voiceModel as VoiceModel,
-                    outputLanguage: 'vi'
-                }
-            };
-
-            const plan = await generateVideoPlan(googleKey.key, metadata);
-            addLog("SCRIPTING", `Generated Script: "${plan.generated_content?.title}"`, "success");
-
-            // STEP 3: EXECUTION (Simulated add to queue)
-            setCurrentAction("QUEUEING");
-            if (plan.generated_content) {
-                const newJob: PostingJob = {
-                    id: crypto.randomUUID(),
-                    content_title: plan.generated_content.title,
-                    caption: plan.generated_content.description,
-                    hashtags: plan.generated_content.hashtags,
-                    platforms: ['youtube', 'tiktok'],
-                    scheduled_time: Date.now() + 3600000,
-                    status: 'scheduled',
-                    scriptData: plan
-                };
-                onAddToQueue(newJob);
-                addLog("DISPATCH", "Job sent to Production Queue", "success");
-                setStats(prev => ({...prev, cyclesRun: prev.cyclesRun + 1, videosCreated: prev.videosCreated + 1}));
-            }
-
-        } catch (e: any) {
-            addLog("ERROR", e.message, "error");
-        } finally {
-            setCurrentAction("COOLDOWN");
-        }
-    };
-
-    useEffect(() => {
-        let interval: ReturnType<typeof setTimeout>;
-        if (isRunning && googleKey) {
-            const loop = async () => {
-                await handleRunCycle();
-                if (isRunning) {
-                    addLog("COOLDOWN", "Cooling down engines (10s)...", "info");
-                    interval = setTimeout(loop, 10000);
-                }
-            };
-            loop();
-        }
-        return () => clearTimeout(interval);
-    }, [isRunning, googleKey]);
 
     const formatUptime = (sec: number) => {
         const h = Math.floor(sec / 3600);
@@ -209,15 +61,15 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <InfinityIcon size={32} className={isRunning ? "text-primary animate-pulse" : "text-slate-600"} />
+                        <InfinityIcon size={32} className={isRunning ? "text-primary drop-shadow-[0_0_8px_rgba(14,165,164,0.8)]" : "text-slate-600"} />
                         {texts.auto || "Infinity Auto-Pilot"}
                     </h2>
-                    <p className="text-slate-400 text-sm">{texts.hunter_desc || "Autonomous Agent Loop: Hunt -> Plan -> Create -> Repeat"}</p>
+                    <p className="text-slate-400 text-sm">Autonomous Agent Loop: Hunt -> Plan -> Create -> Repeat</p>
                 </div>
 
                 <div className="flex gap-4 items-center">
                     <div className="text-right hidden md:block">
-                        <div className="text-xs text-slate-500 font-bold uppercase">Uptime</div>
+                        <div className="text-xs text-slate-500 font-bold uppercase">Uptime (Session)</div>
                         <div className="font-mono text-xl text-white">{formatUptime(stats.uptime)}</div>
                     </div>
                     
@@ -227,7 +79,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
                         size="lg"
                     >
                         {isRunning ? (
-                            <span className="flex items-center gap-2"><Pause fill="currentColor" /> STOP ENGINE</span>
+                            <span className="flex items-center gap-2"><Pause fill="currentColor" /> PAUSE ENGINE</span>
                         ) : (
                             <span className="flex items-center gap-2"><Play fill="currentColor" /> START ENGINE</span>
                         )}
@@ -302,22 +154,30 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
                 {/* Right: Live Terminal & Visualizer */}
                 <div className="lg:col-span-2 flex flex-col gap-6">
                     
-                    {/* Status Display */}
-                    <div className="grid grid-cols-4 gap-2">
-                        {['HUNTING', 'PLANNING', 'QUEUEING', 'COOLDOWN'].map((step, i) => {
-                            const isActive = currentAction === step;
-                            const isPast = ['HUNTING', 'PLANNING', 'QUEUEING', 'COOLDOWN'].indexOf(currentAction) > i;
-                            return (
-                                <div key={step} className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all ${
-                                    isActive 
-                                    ? 'bg-primary/20 border-primary text-white shadow-[0_0_15px_rgba(14,165,164,0.3)]' 
-                                    : isPast ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-950 border-slate-800 text-slate-700'
-                                }`}>
-                                    <div className={`text-xs font-bold mb-1 ${isActive ? 'animate-pulse' : ''}`}>{step}</div>
-                                    {isActive && <Loader2 size={14} className="animate-spin" />}
+                    {/* Compact Status Display */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-lg">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-full ${isRunning ? 'bg-primary/20 text-primary' : 'bg-slate-800 text-slate-500'}`}>
+                                <Activity size={18} className={isRunning ? "animate-pulse" : ""} />
+                            </div>
+                            <div>
+                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Current Action</div>
+                                <div className="text-lg font-bold text-white flex items-center gap-2">
+                                    {currentAction}
+                                    {isRunning && currentAction !== 'IDLE' && currentAction !== 'COOLDOWN' && (
+                                        <Loader2 size={14} className="animate-spin text-primary" />
+                                    )}
                                 </div>
-                            )
-                        })}
+                            </div>
+                        </div>
+                        {isRunning && (
+                            <div className="flex gap-1.5">
+                                <span className="w-1.5 h-6 bg-primary/20 rounded-full animate-[pulse_1s_ease-in-out_infinite]"></span>
+                                <span className="w-1.5 h-6 bg-primary/40 rounded-full animate-[pulse_1s_ease-in-out_0.2s_infinite]"></span>
+                                <span className="w-1.5 h-6 bg-primary/60 rounded-full animate-[pulse_1s_ease-in-out_0.4s_infinite]"></span>
+                                <span className="w-1.5 h-6 bg-primary rounded-full animate-[pulse_1s_ease-in-out_0.6s_infinite]"></span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Live Logs */}

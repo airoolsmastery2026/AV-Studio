@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Factory, Play, AlertCircle, CheckCircle, Loader2, FileText, Image as ImageIcon, Video, Clock, Cpu, ChevronDown, ChevronUp } from 'lucide-react';
-import { ApiKeyConfig, BatchJobItem, SourceMetadata, PostingJob, ContentWorkflow, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
+import { ApiKeyConfig, BatchJobItem, PostingJob, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 import NeonButton from './NeonButton';
-import { classifyInput, generateVideoPlan } from '../services/geminiService';
 import ModelSelector from './ModelSelector';
 
 interface BatchProcessorProps {
@@ -22,9 +21,13 @@ interface BatchProcessorProps {
   setResolution?: (res: VideoResolution) => void;
   aspectRatio?: AspectRatio;
   setAspectRatio?: (ratio: AspectRatio) => void;
-}
 
-const BATCH_STORAGE_KEY = 'av_studio_batch_jobs_v1';
+  // Injected Global State
+  jobs: BatchJobItem[];
+  setJobs: React.Dispatch<React.SetStateAction<BatchJobItem[]>>;
+  isProcessing: boolean;
+  setIsProcessing: (v: boolean) => void;
+}
 
 const BatchProcessor: React.FC<BatchProcessorProps> = ({ 
     apiKeys, onAddToQueue, t,
@@ -33,26 +36,11 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({
     voiceModel = 'Google Chirp', setVoiceModel = () => {},
     resolution = '1080p', setResolution = () => {},
     aspectRatio = '9:16', setAspectRatio = () => {},
+    jobs, setJobs, isProcessing, setIsProcessing
 }) => {
   const texts = t || {};
   const [inputText, setInputText] = useState('');
   const [showModelConfig, setShowModelConfig] = useState(false);
-  
-  // Load initial jobs
-  const [jobs, setJobs] = useState<BatchJobItem[]>(() => {
-      try {
-          const saved = localStorage.getItem(BATCH_STORAGE_KEY);
-          if (saved) return JSON.parse(saved);
-      } catch(e) {}
-      return [];
-  });
-
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // Persistence Effect
-  useEffect(() => {
-      localStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(jobs));
-  }, [jobs]);
 
   const handleImport = () => {
     const lines = inputText.split('\n').filter(line => line.trim() !== '');
@@ -70,87 +58,14 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({
     setInputText('');
   };
 
-  const processJob = async (job: BatchJobItem, apiKey: string) => {
-    // Helper to update job state
-    const updateJob = (updates: Partial<BatchJobItem>) => {
-      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, ...updates } : j));
-    };
-
-    try {
-      // Step 1: Analyze
-      updateJob({ status: 'analyzing', progress: 10, log: 'Analyzing content type...' });
-      await new Promise(r => setTimeout(r, 500)); // Rate limit buffer
-      
-      const analysis = await classifyInput(apiKey, job.input);
-      updateJob({ progress: 25, log: `Detected: ${analysis.strategy}` });
-
-      // Step 2: Generate Plan (Script + Visuals)
-      updateJob({ status: 'scripting', progress: 40, log: 'Generating script & visual cues...' });
-      
-      const metadata: SourceMetadata = {
-          url: job.input,
-          type: analysis.type,
-          detected_strategy: analysis.strategy as ContentWorkflow,
-          video_config: {
-              resolution: resolution as VideoResolution,
-              aspectRatio: aspectRatio as AspectRatio,
-              scriptModel: scriptModel as ScriptModel,
-              visualModel: visualModel as VisualModel,
-              voiceModel: voiceModel as VoiceModel,
-              outputLanguage: 'vi' // Default or passed prop
-          }
-      };
-
-      const plan = await generateVideoPlan(apiKey, metadata);
-      updateJob({ result: plan, progress: 60, log: 'Script generated successfully.' });
-
-      // Step 3: Simulate Image Generation
-      updateJob({ status: 'generating_assets', progress: 75, log: 'Generating AI Images (Veo/Imagen)...' });
-      await new Promise(r => setTimeout(r, 1500)); // Simulate API time
-
-      // Step 4: Simulate Video Rendering
-      updateJob({ status: 'rendering', progress: 90, log: 'Rendering final video...' });
-      await new Promise(r => setTimeout(r, 1500));
-
-      // Step 5: Complete & Add to Queue
-      updateJob({ status: 'completed', progress: 100, log: 'Video ready for publishing.' });
-      
-      if (plan.generated_content) {
-          const postingJob: PostingJob = {
-              id: crypto.randomUUID(),
-              content_title: plan.generated_content.title,
-              caption: plan.generated_content.description,
-              hashtags: plan.generated_content.hashtags,
-              platforms: ['tiktok', 'youtube'], // Default
-              scheduled_time: Date.now() + 3600000, // +1 Hour
-              status: 'scheduled'
-          };
-          onAddToQueue(postingJob);
-      }
-
-    } catch (error: any) {
-      console.error(error);
-      updateJob({ status: 'failed', progress: 100, log: `Error: ${error.message}`, error: error.message });
-    }
-  };
-
-  const runBatch = async () => {
+  const handleStartBatch = () => {
     const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
     if (!googleKey) {
         alert("Cần Google API Key (Active) để chạy Batch.");
         return;
     }
-
+    // Just toggle the switch, App.tsx handles the logic
     setIsProcessing(true);
-    
-    // Process sequentially to avoid rate limits
-    const queue = jobs.filter(j => j.status === 'queued' || j.status === 'failed'); // Retry failed ones too if user clicks start
-
-    for (const job of queue) {
-        await processJob(job, googleKey.key);
-    }
-
-    setIsProcessing(false);
   };
 
   const clearCompleted = () => {
@@ -222,7 +137,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({
                    
                    <div className="space-y-3">
                        <NeonButton 
-                           onClick={runBatch} 
+                           onClick={handleStartBatch} 
                            disabled={isProcessing || jobs.filter(j => j.status === 'queued' || j.status === 'failed').length === 0} 
                            variant="primary" 
                            className="w-full"

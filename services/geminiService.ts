@@ -13,10 +13,12 @@ import {
 // Helper to clean JSON string from Markdown code blocks
 const cleanAndParseJSON = (text: string): any => {
     try {
+        if (!text) return {};
         const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
         return JSON.parse(cleaned);
     } catch (e) {
         console.error("JSON Parse Error:", e);
+        // Return null or empty object to handle gracefully upstream
         return {};
     }
 };
@@ -75,7 +77,7 @@ export const huntAffiliateProducts = async (apiKey: string, niche: string, netwo
             }
         }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 }
 
 // --- AGENT PIPELINE FUNCTIONS ---
@@ -103,7 +105,7 @@ export const agentProcessSignal = async (apiKey: string, input: string): Promise
             }
         }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 };
 
 export const agentGenerateScript = async (apiKey: string, metadata: SourceMetadata): Promise<OrchestratorResponse> => {
@@ -120,7 +122,7 @@ export const agentDirectVisuals = async (apiKey: string, plan: OrchestratorRespo
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    const parsed = cleanAndParseJSON(response.text);
+    const parsed = cleanAndParseJSON(response.text || "[]");
     return Array.isArray(parsed) ? parsed : [];
 };
 
@@ -140,7 +142,7 @@ export const runHunterAnalysis = async (apiKey: string, target: string): Promise
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 };
 
 export const scanHighValueNetwork = async (apiKey: string, focus: string): Promise<NetworkScanResult> => {
@@ -151,7 +153,7 @@ export const scanHighValueNetwork = async (apiKey: string, focus: string): Promi
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 };
 
 // --- CHAT FUNCTIONS ---
@@ -206,7 +208,7 @@ export const synthesizeKnowledge = async (apiKey: string, text: string, current:
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "[]");
 };
 
 // --- QUEUE & SCHEDULE FUNCTIONS ---
@@ -220,7 +222,7 @@ export const predictGoldenHours = async (apiKey: string, region: string, niche: 
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "[]");
 };
 
 export const generateDailySchedule = async (apiKey: string, account: string, niche: string, region: string, config: any): Promise<ScheduleSlot[]> => {
@@ -232,7 +234,7 @@ export const generateDailySchedule = async (apiKey: string, account: string, nic
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "[]");
 };
 
 // --- CHANNEL HEALTH ---
@@ -246,7 +248,7 @@ export const generateChannelAudit = async (apiKey: string, channel: string, plat
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 };
 
 // --- BATCH & STUDIO FUNCTIONS ---
@@ -260,7 +262,7 @@ export const classifyInput = async (apiKey: string, input: string): Promise<{typ
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 };
 
 export const generateVideoPlan = async (apiKey: string, metadata: SourceMetadata): Promise<OrchestratorResponse> => {
@@ -278,7 +280,7 @@ export const generateVideoPlan = async (apiKey: string, metadata: SourceMetadata
             // typically you would define the full schema
         }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 };
 
 export const extractViralDNA = async (apiKey: string, urls: string[], context: string, lang: string): Promise<ViralDNAProfile> => {
@@ -290,7 +292,7 @@ export const extractViralDNA = async (apiKey: string, urls: string[], context: s
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 };
 
 export const generateProScript = async (apiKey: string, dna: ViralDNAProfile, settings: StudioSettings): Promise<OrchestratorResponse> => {
@@ -302,5 +304,5 @@ export const generateProScript = async (apiKey: string, dna: ViralDNAProfile, se
         contents: prompt,
         config: { responseMimeType: "application/json" }
     });
-    return cleanAndParseJSON(response.text);
+    return cleanAndParseJSON(response.text || "{}");
 };
