@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ShoppingBag, Star, Zap, Video, ExternalLink, Copy, Crosshair, RefreshCw, Layers, ArrowRight, ShieldCheck, Cpu, Lightbulb } from 'lucide-react';
+import { ShoppingBag, Star, Zap, Video, ExternalLink, Copy, Crosshair, RefreshCw, Layers, ArrowRight, ShieldCheck, Cpu, Lightbulb, Bot } from 'lucide-react';
 import { AIProduct, ApiKeyConfig, AffiliateHuntResult } from '../types';
 import NeonButton from './NeonButton';
 import { huntAffiliateProducts } from '../services/geminiService';
@@ -68,6 +68,11 @@ const AIMarketplace: React.FC<AIMarketplaceProps> = ({ onSelectProduct, apiKeys,
     } finally {
         setIsHunting(false);
     }
+  };
+
+  const setAiToolsPreset = () => {
+      setHuntNiche("Trending AI SaaS Tools & High Ticket Software");
+      // Optionally trigger immediately, but better to let user confirm
   };
 
   return (
@@ -172,7 +177,7 @@ const AIMarketplace: React.FC<AIMarketplaceProps> = ({ onSelectProduct, apiKeys,
                           </h3>
                           <p className="text-sm text-slate-400 mb-4">{texts.hunter_desc}</p>
 
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 mb-2">
                               <input 
                                   type="text" 
                                   value={huntNiche}
@@ -185,6 +190,17 @@ const AIMarketplace: React.FC<AIMarketplaceProps> = ({ onSelectProduct, apiKeys,
                                       <span className="flex items-center gap-2"><RefreshCw className="animate-spin" size={16} /> {texts.hunting}</span>
                                   ) : texts.activate_btn}
                               </NeonButton>
+                          </div>
+                          
+                          {/* Quick Presets */}
+                          <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-500 uppercase font-bold">Quick Preset:</span>
+                              <button 
+                                onClick={setAiToolsPreset}
+                                className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded-full border border-slate-700 text-xs text-blue-300 font-bold transition-colors"
+                              >
+                                  <Bot size={12} /> AI Tools (High Recurring)
+                              </button>
                           </div>
                       </div>
                       
@@ -207,8 +223,20 @@ const AIMarketplace: React.FC<AIMarketplaceProps> = ({ onSelectProduct, apiKeys,
                           {huntResult.products.map((prod, idx) => (
                               <div key={idx} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-center gap-4 hover:border-slate-600 transition-colors">
                                   <div className="flex-1 text-center md:text-left">
-                                      <h4 className="font-bold text-white text-lg">{prod.product_name}</h4>
+                                      <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
+                                          <h4 className="font-bold text-white text-lg">{prod.product_name}</h4>
+                                          {/* AI / Recurring Badge */}
+                                          {(prod.product_name.toLowerCase().includes('ai') || prod.commission_est.includes('Month') || prod.commission_est.includes('Recurring')) && (
+                                              <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 border border-blue-500/20 text-[10px] font-bold rounded uppercase">
+                                                  Recurring / AI
+                                              </span>
+                                          )}
+                                      </div>
                                       <p className="text-sm text-slate-400 mb-2">{prod.reason_to_promote}</p>
+                                      <div className="flex items-center gap-2 justify-center md:justify-start">
+                                          <span className="text-xs text-slate-500">{prod.network}</span>
+                                          <span className="text-xs font-bold text-green-400 bg-green-900/10 px-2 py-0.5 rounded">{prod.commission_est}</span>
+                                      </div>
                                   </div>
                                   <div className="shrink-0 flex gap-2 w-full md:w-auto">
                                       <NeonButton 

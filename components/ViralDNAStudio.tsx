@@ -9,7 +9,7 @@ import {
   Gauge, TrendingUp, Lock, Unlock, FileCheck,
   Sliders, Video, Banknote, User, FileVideo, UserSquare2,
   Copy, Link, Upload, Youtube, Facebook, Instagram, FileText, Paperclip, Sparkles, Languages,
-  MinusCircle, BrainCircuit, Globe, Fingerprint, Clapperboard, ChevronDown, ChevronUp, Cpu, Search
+  MinusCircle, BrainCircuit, Globe, Fingerprint, Clapperboard, ChevronDown, ChevronUp, Cpu, Search, XCircle
 } from 'lucide-react';
 import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig, AppLanguage, ContentLanguage, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 import NeonButton from './NeonButton';
@@ -39,6 +39,23 @@ interface ViralDNAStudioProps {
 
 type StudioTab = 'analyzer' | 'script' | 'studio' | 'quality';
 
+// Helper for strict URL validation
+const validateInputUrl = (url: string) => {
+    if (!url) return true; // Allow empty strings (handled by submission check)
+    try {
+        // Ensure protocol is present for URL constructor
+        const urlToCheck = url.startsWith('http') ? url : `https://${url}`;
+        const urlObj = new URL(urlToCheck);
+        const domain = urlObj.hostname.toLowerCase().replace('www.', '');
+        
+        // Strict domain check for YouTube and TikTok
+        const validDomains = ['youtube.com', 'youtu.be', 'tiktok.com'];
+        return validDomains.some(d => domain === d || domain.endsWith('.' + d));
+    } catch {
+        return false;
+    }
+};
+
 const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ 
     apiKeys, 
     appLanguage,
@@ -61,7 +78,8 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   
   const [channels, setChannels] = useState<CompetitorChannel[]>([
     { id: '1', url: '', name: 'Source 1', status: 'pending' },
-    { id: '2', url: '', name: 'Source 2', status: 'pending' }
+    { id: '2', url: '', name: 'Source 2', status: 'pending' },
+    { id: '3', url: '', name: 'Source 3', status: 'pending' }
   ]);
   
   const [uploadedFaces, setUploadedFaces] = useState<string[]>([]);
@@ -87,9 +105,9 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
     musicSync: true
   });
 
-  // Force SORA Visual Model Logic
-  const activeVisualModel = 'SORA';
-  // We ignore external visualModel changes for this component to enforce SORA
+  // STRICT ENFORCEMENT: Use 'SORA' for all visual generation in this Studio
+  // This overrides any external props or settings to ensure the SORA model is used.
+  const activeVisualModel: VisualModel = 'SORA';
 
   // Sync content language prop to internal settings
   useEffect(() => {
@@ -128,6 +146,11 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   const handleRemoveChannel = (id: string) => {
       if (channels.length <= 1) return;
       setChannels(prev => prev.filter(c => c.id !== id));
+  };
+
+  const handleClearAllChannels = () => {
+      setChannels([{ id: crypto.randomUUID(), url: '', name: 'Source 1', status: 'pending' }]);
+      setDnaProfile(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'face' | 'ref_image' | 'ref_video', id?: string) => {
@@ -171,24 +194,44 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         return;
     }
 
+    // Validate URLs before proceeding
+    const invalidUrls = validChannels.filter(c => !validateInputUrl(c.url));
+    if (invalidUrls.length > 0) {
+        alert(`Validation Error: Please enter valid YouTube or TikTok URLs for: ${invalidUrls.map(c => c.name).join(', ')}`);
+        return;
+    }
+
     setStatus('analyzing');
-    addLog(`>>> STARTING STRUCTURAL ANALYSIS`);
+    addLog(`>>> STARTING PARALLEL ANALYSIS (${validChannels.length} SOURCES)`);
     addLog(`LOCKED CONTENT LANGUAGE: ${contentLanguage.toUpperCase()}`);
     
     try {
-        // Simulation
+        // Parallel Analysis Simulation
+        // In a real app, this would trigger multiple API calls in parallel or a batched call.
         const analyzedChannels = [...channels];
+        
         for (let i = 0; i < analyzedChannels.length; i++) {
             if (analyzedChannels[i].url.trim()) {
                 setAnalyzingChannelId(analyzedChannels[i].id);
-                await new Promise(r => setTimeout(r, 1000));
+                // Simulate processing time per channel
+                await new Promise(r => setTimeout(r, 800)); 
+                
+                // Populate mock report data for EACH channel
                 analyzedChannels[i].status = 'done';
+                analyzedChannels[i].report = {
+                    avg_duration: ["15s", "30s", "45s", "60s"][Math.floor(Math.random() * 4)],
+                    post_frequency: ["Daily", "2/Day", "Weekly"][Math.floor(Math.random() * 3)],
+                    hook_style: ["Visual Shock", "Negative Hook", "Question", "Statement"][Math.floor(Math.random() * 4)],
+                    algorithm_fit: 80 + Math.floor(Math.random() * 20),
+                    risk_score: Math.floor(Math.random() * 10),
+                    suggested_prompt: `Create a video about ${analyzedChannels[i].name} with a high retention hook.`
+                };
             }
         }
         setAnalyzingChannelId(null);
         setChannels(analyzedChannels);
 
-        // API Call
+        // Aggregate API Call (Synthesis)
         const dna = await extractViralDNA(googleKey.key, validChannels.map(c => c.url), refContext, contentLanguage);
         setDnaProfile(dna);
         
@@ -196,8 +239,9 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
             setStudioSettings(prev => ({...prev, topic: `Viral Video about ${dna.keywords[0]}`}));
         }
 
-        addLog("Viral DNA Structure Extracted.");
-        setActiveStudioTab('script');
+        addLog("Viral DNA Synthesis Complete.");
+        // We stay on Analyzer tab briefly to show results before user clicks next, or just show success state.
+        // Removed auto-switch to 'script' to let user see the breakdown.
 
     } catch (e: any) {
         console.error(e);
@@ -225,7 +269,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
               risk_level: 'Safe'
           } as ViralDNAProfile;
 
-          // Force SORA Visual Model
+          // Force SORA Visual Model in Settings passed to Agent
           const enforcedSettings = {
               ...studioSettings,
               visualModel: activeVisualModel
@@ -245,7 +289,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   const handleAutoRender = async () => {
       if (!generatedPlan) return;
       setStatus('rendering');
-      addLog(`Rendering with ${activeVisualModel}...`);
+      addLog(`Rendering with ${activeVisualModel} Engine...`);
       await new Promise(r => setTimeout(r, 2500));
       setActiveStudioTab('quality');
       setStatus('done');
@@ -326,7 +370,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
             
             {/* TAB 1: ANALYZER */}
             {activeStudioTab === 'analyzer' && (
-                <div className="max-w-4xl mx-auto flex flex-col gap-6 animate-fade-in">
+                <div className="max-w-4xl mx-auto flex flex-col gap-6 animate-fade-in pb-10">
                     
                     <div className="bg-slate-950/50 rounded-xl p-6 border border-slate-800 shadow-xl">
                         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -357,37 +401,63 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                         </div>
 
                         {inputMode === 'link' ? (
-                            <div className="space-y-4">
-                                {filteredChannels.length > 0 ? (
-                                    filteredChannels.map((channel, idx) => (
-                                        <div key={channel.id} className="relative group animate-fade-in">
-                                            {/* No pulse on border, just solid colors/shadows */}
-                                            <div className={`bg-slate-900 border ${analyzingChannelId === channel.id ? 'border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-3 flex items-center gap-3 transition-colors`}>
-                                                <div className="text-slate-500 text-sm font-bold w-8 text-center bg-slate-800 rounded py-1">#{idx + 1}</div>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder={texts.input_placeholder}
-                                                    value={channel.url}
-                                                    onChange={(e) => updateChannelUrl(channel.id, e.target.value)}
-                                                    className="flex-1 bg-transparent border-none text-sm text-white p-1 focus:ring-0 placeholder:text-slate-600"
-                                                />
-                                                {channel.status === 'done' && <CheckCircle size={18} className="text-green-500" />}
-                                                
-                                                <button onClick={() => handleRemoveChannel(channel.id)} className="p-2 text-slate-600 hover:text-red-500 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                            <div className="flex flex-col gap-4">
+                                {/* SCROLLABLE INPUT AREA */}
+                                <div className="max-h-[350px] overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                                    {filteredChannels.length > 0 ? (
+                                        filteredChannels.map((channel, idx) => {
+                                            const isError = channel.url.trim().length > 0 && !validateInputUrl(channel.url);
+                                            return (
+                                            <div key={channel.id} className="relative group animate-fade-in">
+                                                {/* No pulse on border, just solid colors/shadows */}
+                                                <div className={`bg-slate-900 border ${
+                                                    analyzingChannelId === channel.id 
+                                                    ? 'border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]' 
+                                                    : isError 
+                                                        ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' 
+                                                        : channel.status === 'done' 
+                                                            ? 'border-green-500/50' 
+                                                            : 'border-slate-700'
+                                                    } rounded-xl p-3 flex items-center gap-3 transition-colors`}>
+                                                    <div className="text-slate-500 text-sm font-bold w-8 text-center bg-slate-800 rounded py-1">#{idx + 1}</div>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder={texts.input_placeholder}
+                                                        value={channel.url}
+                                                        onChange={(e) => updateChannelUrl(channel.id, e.target.value)}
+                                                        className="flex-1 bg-transparent border-none text-sm text-white p-1 focus:ring-0 placeholder:text-slate-600"
+                                                    />
+                                                    {channel.status === 'done' && !isError && <CheckCircle size={18} className="text-green-500" />}
+                                                    {isError && (
+                                                        <div className="flex items-center gap-1 text-red-500 bg-red-900/10 px-2 py-1 rounded text-xs font-bold border border-red-500/20">
+                                                            <AlertTriangle size={12}/> Invalid URL
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <button onClick={() => handleRemoveChannel(channel.id)} className="p-2 text-slate-600 hover:text-red-500 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                                                </div>
+                                                {isError && (
+                                                    <p className="text-[10px] text-red-400 mt-1 ml-2 pl-12 flex items-center gap-1">
+                                                        Supported domains: youtube.com, youtu.be, tiktok.com
+                                                    </p>
+                                                )}
                                             </div>
+                                        )})
+                                    ) : (
+                                        <div className="text-center py-8 text-slate-500 text-xs italic border border-dashed border-slate-800 rounded-xl">
+                                            No sources found matching "{searchQuery}"
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-slate-500 text-xs italic border border-dashed border-slate-800 rounded-xl">
-                                        No sources found matching "{searchQuery}"
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                                 
-                                {searchQuery === '' && (
-                                    <button onClick={handleAddChannel} className="w-full py-3 border border-dashed border-slate-700 rounded-xl text-slate-500 hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-2 text-sm font-bold">
+                                <div className="flex gap-2">
+                                    <button onClick={handleAddChannel} className="flex-1 py-3 border border-dashed border-slate-700 rounded-xl text-slate-500 hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-2 text-sm font-bold">
                                         <Plus size={16} /> {texts.btn_add_source}
                                     </button>
-                                )}
+                                    <button onClick={handleClearAllChannels} className="px-4 py-3 border border-slate-700 rounded-xl text-slate-500 hover:text-red-400 hover:border-red-500/50 transition-all">
+                                        <XCircle size={18} />
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div className="h-48 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-500 hover:border-indigo-500/50 hover:bg-slate-800/30 transition-all cursor-pointer relative group">
@@ -403,7 +473,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                         <div className="mt-8">
                             <NeonButton onClick={handleRunAnalysis} disabled={status === 'analyzing'} size="lg" className="w-full">
                                 {status === 'analyzing' ? (
-                                    <span className="flex items-center gap-2"><RefreshCw className="animate-spin"/> Analyzing Metadata...</span>
+                                    <span className="flex items-center gap-2"><RefreshCw className="animate-spin"/> Analyzing {channels.length} sources...</span>
                                 ) : (
                                     <span className="flex items-center gap-2">
                                         <Dna /> {texts.analyze_btn}
@@ -413,13 +483,60 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                         </div>
                     </div>
 
-                    <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3">
-                         <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400 mt-0.5"><Zap size={18}/></div>
-                         <div>
-                             <h4 className="text-sm font-bold text-blue-300">Pro Tip:</h4>
-                             <p className="text-xs text-slate-400 mt-1">For best results, use 3 competitor links. The system will extract the "Viral DNA" pattern common across all sources.</p>
-                         </div>
-                    </div>
+                    {/* INDIVIDUAL CHANNEL BREAKDOWN RESULTS */}
+                    {status === 'done' && channels.some(c => c.report) && (
+                        <div className="animate-fade-in space-y-4">
+                            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <Layers size={16} /> Individual Channel Insights
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {channels.map((channel, idx) => channel.report ? (
+                                    <div key={channel.id} className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 hover:border-slate-600 transition-colors">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <div className="font-bold text-white text-sm truncate max-w-[120px]">
+                                                {channel.name || `Source ${idx+1}`}
+                                            </div>
+                                            <div className={`text-[10px] px-2 py-0.5 rounded font-bold ${channel.report.algorithm_fit > 85 ? 'bg-green-900/20 text-green-400' : 'bg-yellow-900/20 text-yellow-400'}`}>
+                                                Fit: {channel.report.algorithm_fit}%
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-400 mb-3">
+                                            <div className="bg-slate-950 p-2 rounded">
+                                                <span className="block text-[9px] text-slate-500 uppercase">Duration</span>
+                                                <span className="text-white">{channel.report.avg_duration}</span>
+                                            </div>
+                                            <div className="bg-slate-950 p-2 rounded">
+                                                <span className="block text-[9px] text-slate-500 uppercase">Hook</span>
+                                                <span className="text-white truncate">{channel.report.hook_style}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="text-[10px] text-slate-500 italic border-t border-slate-800 pt-2 line-clamp-2">
+                                            "{channel.report.suggested_prompt}"
+                                        </div>
+                                    </div>
+                                ) : null)}
+                            </div>
+                            
+                            {/* Proceed Button */}
+                            <div className="flex justify-end pt-4">
+                                <NeonButton onClick={() => setActiveStudioTab('script')} size="md" className="w-full md:w-auto">
+                                    Proceed to Script Engine <ChevronDown className="-rotate-90 ml-2" size={16} />
+                                </NeonButton>
+                            </div>
+                        </div>
+                    )}
+
+                    {!dnaProfile && (
+                        <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3">
+                             <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400 mt-0.5"><Zap size={18}/></div>
+                             <div>
+                                 <h4 className="text-sm font-bold text-blue-300">Pro Tip:</h4>
+                                 <p className="text-xs text-slate-400 mt-1">Use 3+ competitor links for the best results. The system will extract the "Viral DNA" pattern common across all sources.</p>
+                             </div>
+                        </div>
+                    )}
 
                 </div>
             )}
@@ -530,7 +647,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
       {/* 3. FIXED FOOTER: MODEL CONFIGURATION */}
       <ModelSelector 
             scriptModel={scriptModel} setScriptModel={setScriptModel}
-            visualModel={activeVisualModel} setVisualModel={() => {}} 
+            visualModel={activeVisualModel} setVisualModel={() => { /* Locked to SORA */ }} 
             voiceModel={voiceModel} setVoiceModel={setVoiceModel}
             resolution={resolution} setResolution={setResolution}
             aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}

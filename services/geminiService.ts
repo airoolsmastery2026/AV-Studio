@@ -72,9 +72,17 @@ const safeApiCall = async <T>(apiCall: () => Promise<any>, fallbackValue: T): Pr
 export const huntAffiliateProducts = async (apiKey: string, niche: string, networks: string[]): Promise<AffiliateHuntResult> => { 
     return safeApiCall(async () => {
         const ai = new GoogleGenAI({ apiKey });
+        
+        // Specialized logic for AI Tools Niche
+        const isAINiche = niche.toLowerCase().includes('ai') || niche.toLowerCase().includes('intelligence') || niche.toLowerCase().includes('gpt');
+        const aiStrategyParams = isAINiche 
+            ? `PRIORITY: Focus on AI SaaS tools with RECURRING COMMISSIONS (MRR) or High-Ticket lifetime deals. Look for tools that have high viral potential on TikTok (e.g., face swap, voice cloning, automation).`
+            : ``;
+
         const prompt = `
             ACT AS AN ELITE AFFILIATE MARKETING STRATEGIST & TREND HUNTER.
             MISSION: Identify trending, high-commission affiliate products in the niche: "${niche}".
+            ${aiStrategyParams}
             FOCUS NETWORKS: ${networks.join(', ')}.
             OUTPUT: JSON with 'products' (name, network, commission, link, angle) and 'strategy_note'.
         `;
@@ -187,11 +195,37 @@ export const scanHighValueNetwork = async (apiKey: string, focus: string): Promi
 export const sendChatToAssistant = async (apiKey: string, history: any[], message: string, context: AppContext): Promise<{text: string, command?: AgentCommand}> => {
     return safeApiCall(async () => {
         const ai = new GoogleGenAI({ apiKey });
+        
+        // Construct Knowledge Base Context
+        let memoryBlock = "";
+        if (context.knowledgeBase) {
+            if (context.knowledgeBase.customInstructions) {
+                memoryBlock += `\n[MANDATORY INSTRUCTIONS]\n${context.knowledgeBase.customInstructions}\n`;
+            }
+            if (context.knowledgeBase.learnedPreferences && context.knowledgeBase.learnedPreferences.length > 0) {
+                memoryBlock += `\n[LEARNED PREFERENCES]\n${context.knowledgeBase.learnedPreferences.join('\n')}\n`;
+            }
+        }
+
         const chat = ai.chats.create({
             model: "gemini-2.5-flash",
             history: history,
             config: {
-                systemInstruction: `You are AV Commander. Context: ${context.status}. Return JSON command if needed.`
+                systemInstruction: `You are AV Commander, the AI brain of Affiliate Video Studio. 
+                
+                CURRENT CONTEXT: 
+                - Status: ${context.status}
+                - Active Keys: ${context.activeKeys}
+                - Current Tab: ${context.activeTab}
+                
+                ${memoryBlock}
+
+                CAPABILITIES:
+                You can execute commands by returning a JSON object in your response.
+                Example: {"text": "I will navigate to settings.", "command": {"action": "NAVIGATE", "payload": "settings"}}
+                
+                Respond in the user's language (Vietnamese/English). Be concise and strategic.
+                `
             }
         });
 

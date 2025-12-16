@@ -17,6 +17,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
   const [isHovered, setIsHovered] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
   // Session Management
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -31,25 +32,40 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
   const chatWindowRef = useRef<HTMLDivElement>(null);
 
   // Dragging State with Initial Responsive Position
-  const [position, setPosition] = useState(() => {
-    if (typeof window !== 'undefined') {
-        const isMobile = window.innerWidth < 768;
-        const width = isMobile ? window.innerWidth * 0.92 : 450;
-        const height = isMobile ? 500 : 600;
-        
-        let startX = isMobile ? (window.innerWidth - width) / 2 : window.innerWidth - 480;
-        let startY = window.innerHeight - height - 20; // 20px padding from bottom
-        
-        // Ensure not off-screen initially
-        startX = Math.max(0, Math.min(startX, window.innerWidth - width));
-        startY = Math.max(0, Math.min(startY, window.innerHeight - height));
-        
-        return { x: startX, y: startY };
-    }
-    return { x: 0, y: 0 };
-  });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+
+  // Handle Resize & Boundary Checks
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+      if (!mobile) {
+        // Desktop: Ensure it stays within bounds if resized
+        setPosition(prev => {
+          const maxWidth = window.innerWidth - 460; // 450px width + margin
+          const maxHeight = window.innerHeight - 620; // 600px height + margin
+          return {
+            x: Math.min(Math.max(0, prev.x), maxWidth),
+            y: Math.min(Math.max(0, prev.y), maxHeight)
+          };
+        });
+      }
+    };
+
+    // Initial positioning for Desktop
+    if (!isMobile && position.x === 0 && position.y === 0) {
+        setPosition({ 
+            x: window.innerWidth - 480, 
+            y: window.innerHeight - 650 
+        });
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobile]);
 
   // --- HELPER: LOAD FROM STORAGE ---
   const loadSessionsFromStorage = () => {
@@ -164,8 +180,9 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
       }));
   };
 
-  // --- DRAG LOGIC ---
+  // --- DRAG LOGIC (DESKTOP ONLY) ---
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return; // Disable drag on mobile
     if ((e.target as HTMLElement).closest('button')) return;
     if (!chatWindowRef.current) return;
     
@@ -180,7 +197,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !chatWindowRef.current) return;
+      if (!isDragging || !chatWindowRef.current || isMobile) return;
 
       const rect = chatWindowRef.current.getBoundingClientRect();
       const w = rect.width;
@@ -209,7 +226,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
+  }, [isDragging, isMobile]);
 
 
   // --- MESSAGING LOGIC ---
@@ -239,12 +256,13 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
     setIsLoading(true);
 
     try {
-        // Fix: Use 'messages' (previous state) for history, excluding the current user message being sent
+        // Use 'messages' (previous state) for history
         const apiHistory = messages.map(m => ({
             role: m.role,
             parts: [{ text: m.text }]
         }));
 
+        // Inject App Context into the service call
         const { text, command } = await sendChatToAssistant(apiKey, apiHistory, userMsg.text, appContext);
 
         const botMsg: ChatMessage = {
@@ -274,23 +292,24 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
     }
   };
 
+  // Determine styles based on Mobile vs Desktop
+  const containerStyle: React.CSSProperties = isMobile 
+    ? { position: 'fixed', bottom: 0, left: 0, right: 0, height: '85vh', width: '100%', borderRadius: '16px 16px 0 0' }
+    : { position: 'fixed', left: `${position.x}px`, top: `${position.y}px`, width: '450px', height: '600px', borderRadius: '16px' };
+
   return (
     <>
       {/* CHAT WINDOW (Floating Portal) */}
       {isOpen && (
         <div 
             ref={chatWindowRef}
-            style={{ 
-                left: `${position.x}px`, 
-                top: `${position.y}px`,
-                position: 'fixed' 
-            }}
-            className="z-[9999] w-[92vw] md:w-[450px] h-[500px] md:h-[600px] max-w-full max-h-screen bg-slate-900/95 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in transition-shadow duration-300"
+            style={containerStyle}
+            className="z-[9999] bg-slate-900/95 backdrop-blur-xl border border-primary/30 shadow-2xl flex flex-col overflow-hidden animate-fade-in transition-shadow duration-300"
         >
-            {/* Header (Draggable Handle) */}
+            {/* Header (Draggable Handle on Desktop) */}
             <div 
                 onMouseDown={handleMouseDown}
-                className={`h-14 bg-gradient-to-r from-slate-950 to-slate-900 border-b border-slate-700 flex items-center justify-between px-3 shrink-0 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} active:bg-slate-900`}
+                className={`h-14 bg-gradient-to-r from-slate-950 to-slate-900 border-b border-slate-700 flex items-center justify-between px-3 shrink-0 select-none ${!isMobile ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''} active:bg-slate-900`}
             >
                 <div className="flex items-center gap-3">
                      <button 
@@ -430,7 +449,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
             </div>
 
             {/* Input Footer */}
-            <div className="p-3 bg-slate-900 border-t border-slate-800 shrink-0">
+            <div className="p-3 bg-slate-900 border-t border-slate-800 shrink-0 pb-safe">
                 <div className="relative flex items-center">
                     <input 
                         type="text" 

@@ -17,6 +17,27 @@ interface ModelSelectorProps {
   t?: any;
 }
 
+const SelectInput = ({ label, value, options, onChange, icon: Icon, color, glowColor }: any) => (
+  <div className="flex flex-col gap-1.5 flex-1 group/input relative">
+    <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5 select-none tracking-wider">
+      {Icon && <Icon size={12} className={color} />} {label}
+    </label>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-lg py-2.5 pl-3 pr-2 text-xs text-white appearance-none focus:outline-none focus:border-${glowColor}-500 focus:ring-1 focus:ring-${glowColor}-500/50 transition-all cursor-pointer font-medium shadow-inner`}
+      >
+        {options.map((opt: any) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      {/* Decorative thin line at bottom to indicate active state */}
+      <div className={`absolute bottom-0 left-2 right-2 h-[1px] bg-${glowColor}-500/50 scale-x-0 group-hover/input:scale-x-100 transition-transform duration-500`}></div>
+    </div>
+  </div>
+);
+
 const ModelSelector: React.FC<ModelSelectorProps> = ({
   scriptModel, setScriptModel,
   visualModel, setVisualModel,
@@ -26,27 +47,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   t
 }) => {
   const texts = t || {};
-
-  const SelectInput = ({ label, value, options, onChange, icon: Icon, color, glowColor }: any) => (
-    <div className="flex flex-col gap-1.5 flex-1 group/input relative">
-      <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5 select-none tracking-wider">
-        {Icon && <Icon size={12} className={color} />} {label}
-      </label>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={`w-full bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-lg py-2.5 pl-3 pr-2 text-xs text-white appearance-none focus:outline-none focus:border-${glowColor}-500 focus:ring-1 focus:ring-${glowColor}-500/50 transition-all cursor-pointer font-medium shadow-inner`}
-        >
-          {options.map((opt: any) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-        {/* Decorative thin line at bottom to indicate active state */}
-        <div className={`absolute bottom-0 left-2 right-2 h-[1px] bg-${glowColor}-500/50 scale-x-0 group-hover/input:scale-x-100 transition-transform duration-500`}></div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="w-full bg-[#020617] border-t border-slate-800 shrink-0 z-50">
