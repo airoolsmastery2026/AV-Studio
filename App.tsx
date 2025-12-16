@@ -110,7 +110,7 @@ const EN_TRANSLATIONS = {
     title_viral: 'Title (Viral)',
     desc_seo: 'Description (SEO)',
     hashtags: 'Hashtags',
-    share: 'Share',
+    share: 'Chia Sẻ',
     download: 'Download JSON',
     specs_title: 'Output Specifications',
     script_title: 'Script Intelligence',
@@ -371,8 +371,13 @@ const App: React.FC = () => {
       console.log(`Deploying strategy for ${url} [${type}]`);
   };
 
+  const handleApiKeyIssue = (keyId: string, status: 'quota_exceeded' | 'error') => {
+      setApiKeys(prev => prev.map(k => k.id === keyId ? { ...k, status } : k));
+  };
+
   // --- CHAT CONTEXT & COMMANDS ---
-  const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active')?.key;
+  // Note: This 'googleKey' is just for the Chat UI to function, not used in the Brain Pipeline
+  const activeGoogleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active')?.key;
   
   const appContext: AppContext = {
       activeTab,
@@ -405,9 +410,18 @@ const App: React.FC = () => {
       const runPipeline = async () => {
           const activeJob = jobs.find(j => j.status === 'processing' && !processingQueueRef.current.has(j.id));
           
-          if (!activeJob || !googleKey) {
-              if (!activeJob) setSystemStatus('IDLE');
-              return;
+          // Use a fresh lookup for the key config to ensure we get the ID for error reporting
+          const activeKeyConfig = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
+          const googleKey = activeKeyConfig?.key;
+
+          if (!activeJob) {
+             setSystemStatus('IDLE');
+             return;
+          }
+
+          if (!googleKey) {
+             // Keep job processing but system waits for a key
+             return;
           }
 
           setSystemStatus('PROCESSING');
@@ -515,6 +529,26 @@ const App: React.FC = () => {
               }
           } catch (e: any) {
               console.error("Pipeline Error:", e);
+              const errString = e.toString().toLowerCase();
+
+              // --- KEY AUTO-ROTATION LOGIC ---
+              if (activeKeyConfig && (errString.includes('429') || errString.includes('quota') || errString.includes('403') || errString.includes('key invalid') || errString.includes('400'))) {
+                 const status = (errString.includes('429') || errString.includes('quota')) ? 'quota_exceeded' : 'error';
+                 
+                 // 1. Mark current key as bad
+                 handleApiKeyIssue(activeKeyConfig.id, status);
+                 
+                 // 2. Log event
+                 addPipelineLog(`⚠️ API Key Error (${activeKeyConfig.alias}): ${status}. Rotating to next available key...`);
+                 
+                 // 3. DO NOT FAIL JOB. Return early.
+                 // This leaves job in 'processing' state.
+                 // Since apiKeys state updated, component re-renders. 
+                 // Next interval tick will pick a NEW 'active' key and retry this job automatically.
+                 return;
+              }
+
+              // Genuine Job Failure
               updateJob({ 
                   status: 'failed', 
                   pipelineStage: 'FAILED',
@@ -527,7 +561,7 @@ const App: React.FC = () => {
 
       const interval = setInterval(runPipeline, 1500); // Check every 1.5s
       return () => clearInterval(interval);
-  }, [jobs, googleKey, scriptModel, visualModel, voiceModel, resolution]);
+  }, [jobs, apiKeys, scriptModel, visualModel, voiceModel, resolution]);
 
 
   // --- RENDER CONTENT ---
@@ -652,26 +686,34 @@ const App: React.FC = () => {
                         <span className="text-[10px] font-bold tracking-wider">{systemStatus === 'PROCESSING' ? 'BRAIN ACTIVE' : 'BRAIN IDLE'}</span>
                     </div>
 
-                    {/* GLOBAL TIME (3D NEON CLOCK) - Mobile Optimized */}
-                    <div className="flex items-center gap-2 px-3 py-1 bg-black/40 rounded-lg border border-slate-700/50 shadow-inner">
-                       <div className="text-lg md:text-2xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600" style={{ textShadow: '0px 0px 5px rgba(6,182,212,0.8), 2px 2px 0px rgba(0,0,0,1)' }}>
-                          {currentTime.toLocaleTimeString('en-US', { timeZone: timeZone, hour12: false })}
-                       </div>
-                    </div>
+                    {/* REDESIGNED ELEGANT CLOCK CAPSULE */}
+                    <div className="group relative flex items-center gap-3 px-4 py-2 bg-slate-900/40 hover:bg-slate-900/60 border border-white/5 hover:border-white/10 rounded-full backdrop-blur-md transition-all duration-500 shadow-[0_0_15px_rgba(0,0,0,0.2)]">
+                        {/* Glow Effect */}
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                        
+                        {/* Time Text */}
+                        <div className="relative z-10 font-mono text-base md:text-lg font-medium tracking-widest text-slate-200 group-hover:text-white transition-colors" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {currentTime.toLocaleTimeString('en-US', { timeZone: timeZone, hour12: false })}
+                        </div>
 
-                    {/* TIMEZONE SELECTOR - COMPACT */}
-                    <div className="flex items-center bg-[#0EA5A4] border border-cyan-400 rounded-lg p-1 relative hover:bg-cyan-600 transition-colors shadow-[0_0_10px_rgba(14,165,164,0.4)] w-8 h-8 justify-center">
-                        <span className="text-white flex items-center justify-center">
-                            <ChevronDown size={20} />
-                        </span>
-                        <select 
-                            value={timeZone}
-                            onChange={(e) => setTimeZone(e.target.value)}
-                            className="bg-transparent text-xs font-bold text-white focus:outline-none py-1 pr-2 cursor-pointer w-full h-full opacity-0 absolute inset-0 z-10 [&>option]:bg-slate-900 [&>option]:text-white"
-                            title="Select Timezone"
-                        >
-                            {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-                        </select>
+                        {/* Divider */}
+                        <div className="w-px h-3 bg-white/10 group-hover:bg-white/20 transition-colors"></div>
+
+                        {/* Tiny Dropdown Arrow */}
+                        <div className="relative z-10 flex items-center justify-center w-4 h-full cursor-pointer">
+                             <ChevronDown 
+                                size={12} 
+                                className="text-slate-600 opacity-50 group-hover:opacity-100 group-hover:text-cyan-400 transition-all duration-300 transform group-hover:scale-110" 
+                             />
+                             <select 
+                                value={timeZone}
+                                onChange={(e) => setTimeZone(e.target.value)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                title="Select Timezone"
+                            >
+                                {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="h-4 w-px bg-slate-800 mx-1 hidden sm:block"></div>
@@ -718,7 +760,7 @@ const App: React.FC = () => {
 
             {/* AI Assistant Floating Button/Window */}
             <AIChatAssistant 
-                apiKey={googleKey} 
+                apiKey={activeGoogleKey} 
                 appContext={appContext} 
                 onCommand={handleAgentCommand} 
             />

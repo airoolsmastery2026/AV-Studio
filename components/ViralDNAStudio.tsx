@@ -9,7 +9,7 @@ import {
   Gauge, TrendingUp, Lock, Unlock, FileCheck,
   Sliders, Video, Banknote, User, FileVideo, UserSquare2,
   Copy, Link, Upload, Youtube, Facebook, Instagram, FileText, Paperclip, Sparkles, Languages,
-  MinusCircle, BrainCircuit, Globe, Fingerprint, Clapperboard, ChevronDown, ChevronUp, Cpu
+  MinusCircle, BrainCircuit, Globe, Fingerprint, Clapperboard, ChevronDown, ChevronUp, Cpu, Search
 } from 'lucide-react';
 import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig, AppLanguage, ContentLanguage, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
 import NeonButton from './NeonButton';
@@ -57,6 +57,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   // --- STATE ---
   const [activeStudioTab, setActiveStudioTab] = useState<StudioTab>('analyzer');
   const [inputMode, setInputMode] = useState<'link' | 'upload'>('link');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [channels, setChannels] = useState<CompetitorChannel[]>([
     { id: '1', url: '', name: 'Source 1', status: 'pending' },
@@ -255,6 +256,12 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
       alert(`Exported to: ViralVideoStudio/${channels[0].name}/`);
   };
 
+  // Filter Channels based on Search Query
+  const filteredChannels = channels.filter(channel => 
+      channel.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      channel.url.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="animate-fade-in flex flex-col h-full relative bg-[#020617]">
       
@@ -321,38 +328,64 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                 <div className="max-w-4xl mx-auto flex flex-col gap-6 animate-fade-in">
                     
                     <div className="bg-slate-950/50 rounded-xl p-6 border border-slate-800 shadow-xl">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                 <Monitor size={20} className="text-blue-500" /> {texts.input_section}
                             </h3>
-                            <div className="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
-                                <button onClick={() => setInputMode('link')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${inputMode === 'link' ? 'bg-slate-800 text-white shadow' : 'text-slate-500'}`}><Link size={14} className="inline mr-2"/> Link</button>
-                                <button onClick={() => setInputMode('upload')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${inputMode === 'upload' ? 'bg-slate-800 text-white shadow' : 'text-slate-500'}`}><Upload size={14} className="inline mr-2"/> Upload</button>
+                            
+                            <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                                {/* Search Bar */}
+                                {inputMode === 'link' && (
+                                    <div className="relative group w-full md:w-64">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={14} />
+                                        <input 
+                                            type="text" 
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Search source by name..."
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg py-1.5 pl-9 pr-3 text-xs text-white focus:border-primary focus:outline-none transition-all placeholder:text-slate-600"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 shrink-0">
+                                    <button onClick={() => setInputMode('link')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${inputMode === 'link' ? 'bg-slate-800 text-white shadow' : 'text-slate-500'}`}><Link size={14} className="inline mr-2"/> Link</button>
+                                    <button onClick={() => setInputMode('upload')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${inputMode === 'upload' ? 'bg-slate-800 text-white shadow' : 'text-slate-500'}`}><Upload size={14} className="inline mr-2"/> Upload</button>
+                                </div>
                             </div>
                         </div>
 
                         {inputMode === 'link' ? (
                             <div className="space-y-4">
-                                {channels.map((channel, idx) => (
-                                    <div key={channel.id} className="relative group">
-                                        <div className={`bg-slate-900 border ${analyzingChannelId === channel.id ? 'border-yellow-500 animate-pulse' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-3 flex items-center gap-3 transition-colors`}>
-                                            <div className="text-slate-500 text-sm font-bold w-8 text-center bg-slate-800 rounded py-1">#{idx + 1}</div>
-                                            <input 
-                                                type="text" 
-                                                placeholder={texts.input_placeholder}
-                                                value={channel.url}
-                                                onChange={(e) => updateChannelUrl(channel.id, e.target.value)}
-                                                className="flex-1 bg-transparent border-none text-sm text-white p-1 focus:ring-0 placeholder:text-slate-600"
-                                            />
-                                            {channel.status === 'done' && <CheckCircle size={18} className="text-green-500" />}
-                                            
-                                            <button onClick={() => handleRemoveChannel(channel.id)} className="p-2 text-slate-600 hover:text-red-500 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                                {filteredChannels.length > 0 ? (
+                                    filteredChannels.map((channel, idx) => (
+                                        <div key={channel.id} className="relative group animate-fade-in">
+                                            <div className={`bg-slate-900 border ${analyzingChannelId === channel.id ? 'border-yellow-500 animate-pulse' : channel.status === 'done' ? 'border-green-500/50' : 'border-slate-700'} rounded-xl p-3 flex items-center gap-3 transition-colors`}>
+                                                <div className="text-slate-500 text-sm font-bold w-8 text-center bg-slate-800 rounded py-1">#{idx + 1}</div>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder={texts.input_placeholder}
+                                                    value={channel.url}
+                                                    onChange={(e) => updateChannelUrl(channel.id, e.target.value)}
+                                                    className="flex-1 bg-transparent border-none text-sm text-white p-1 focus:ring-0 placeholder:text-slate-600"
+                                                />
+                                                {channel.status === 'done' && <CheckCircle size={18} className="text-green-500" />}
+                                                
+                                                <button onClick={() => handleRemoveChannel(channel.id)} className="p-2 text-slate-600 hover:text-red-500 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                                            </div>
                                         </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-slate-500 text-xs italic border border-dashed border-slate-800 rounded-xl">
+                                        No sources found matching "{searchQuery}"
                                     </div>
-                                ))}
-                                <button onClick={handleAddChannel} className="w-full py-3 border border-dashed border-slate-700 rounded-xl text-slate-500 hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-2 text-sm font-bold">
-                                    <Plus size={16} /> {texts.btn_add_source}
-                                </button>
+                                )}
+                                
+                                {searchQuery === '' && (
+                                    <button onClick={handleAddChannel} className="w-full py-3 border border-dashed border-slate-700 rounded-xl text-slate-500 hover:text-white hover:border-slate-500 transition-all flex items-center justify-center gap-2 text-sm font-bold">
+                                        <Plus size={16} /> {texts.btn_add_source}
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <div className="h-48 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-500 hover:border-indigo-500/50 hover:bg-slate-800/30 transition-all cursor-pointer relative group">
