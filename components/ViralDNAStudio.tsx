@@ -105,10 +105,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
     musicSync: true
   });
 
-  // STRICT ENFORCEMENT: Use 'SORA' for all visual generation in this Studio
-  // This overrides any external props or settings to ensure the SORA model is used.
-  const activeVisualModel: VisualModel = 'SORA';
-
   // Sync content language prop to internal settings
   useEffect(() => {
       setStudioSettings(prev => ({ ...prev, contentLanguage: contentLanguage }));
@@ -207,7 +203,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
     
     try {
         // Parallel Analysis Simulation
-        // In a real app, this would trigger multiple API calls in parallel or a batched call.
         const analyzedChannels = [...channels];
         
         for (let i = 0; i < analyzedChannels.length; i++) {
@@ -240,8 +235,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         }
 
         addLog("Viral DNA Synthesis Complete.");
-        // We stay on Analyzer tab briefly to show results before user clicks next, or just show success state.
-        // Removed auto-switch to 'script' to let user see the breakdown.
 
     } catch (e: any) {
         console.error(e);
@@ -258,7 +251,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
       setStatus('generating');
       addLog(`Generating Script in: ${contentLanguage.toUpperCase()}...`);
-      addLog(`Visual Model Forced: ${activeVisualModel}`);
+      addLog(`Visual Model: ${visualModel}`);
       
       try {
           const effectiveDNA = dnaProfile || {
@@ -269,10 +262,9 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
               risk_level: 'Safe'
           } as ViralDNAProfile;
 
-          // Force SORA Visual Model in Settings passed to Agent
           const enforcedSettings = {
               ...studioSettings,
-              visualModel: activeVisualModel
+              visualModel: visualModel
           };
 
           const plan = await generateProScript(googleKey.key, effectiveDNA, enforcedSettings as any);
@@ -289,7 +281,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   const handleAutoRender = async () => {
       if (!generatedPlan) return;
       setStatus('rendering');
-      addLog(`Rendering with ${activeVisualModel} Engine...`);
+      addLog(`Rendering with ${visualModel} Engine...`);
       await new Promise(r => setTimeout(r, 2500));
       setActiveStudioTab('quality');
       setStatus('done');
@@ -321,7 +313,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                         {texts.title} <span className="text-[10px] bg-white text-black px-2 py-0.5 rounded font-black tracking-widest">PRO</span>
                     </h1>
                     <p className="text-slate-400 text-xs font-mono flex items-center gap-2">
-                        {/* Static Green Dot - No Pulse */}
                         <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]"></span>
                         {texts.subtitle}
                     </p>
@@ -647,7 +638,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
       {/* 3. FIXED FOOTER: MODEL CONFIGURATION */}
       <ModelSelector 
             scriptModel={scriptModel} setScriptModel={setScriptModel}
-            visualModel={activeVisualModel} setVisualModel={() => { /* Locked to SORA */ }} 
+            visualModel={visualModel} setVisualModel={setVisualModel}
             voiceModel={voiceModel} setVoiceModel={setVoiceModel}
             resolution={resolution} setResolution={setResolution}
             aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
