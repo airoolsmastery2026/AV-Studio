@@ -1,270 +1,269 @@
 
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { 
-    AffiliateHuntResult, SourceMetadata, OrchestratorResponse, 
-    ViralDNAProfile, StudioSettings, HunterInsight, NetworkScanResult,
-    GoldenHourRecommendation, ScheduleSlot, ChannelHealthReport,
-    AppContext, AgentCommand, KnowledgeBase, MissionIntel
+  OrchestratorResponse, SEOAudit, MissionIntel, 
+  ViralDNAProfile, StudioSettings, KnowledgeBase, 
+  AppContext, GoldenHourRecommendation, ScheduleSlot,
+  CompetitorDeepAudit, ChannelHealthReport, GovernorAction,
+  AffiliateHuntResult
 } from "../types";
 
+// Helper to initialize Gemini Client
 const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const cleanAndParseJSON = (text: string): any => {
-    try {
-        if (!text) return {};
-        let cleaned = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
-        const firstBrace = cleaned.indexOf('{');
-        const firstBracket = cleaned.indexOf('[');
-        let startIndex = -1;
-        let endIndex = -1;
-        if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-            startIndex = firstBrace;
-            endIndex = cleaned.lastIndexOf('}') + 1;
-        } else if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
-            startIndex = firstBracket;
-            endIndex = cleaned.lastIndexOf(']') + 1;
-        }
-        if (startIndex !== -1 && endIndex > startIndex) {
-            cleaned = cleaned.substring(startIndex, endIndex);
-        }
-        return JSON.parse(cleaned);
-    } catch (e) {
-        console.error("JSON Parse Error:", e);
-        return { text: text, sentiment: 'neutral', suggestions: [] };
-    }
+// Helper to clean and parse JSON from LLM responses
+const cleanAndParseJSON = (text: string) => {
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    return jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(text);
+  } catch (e) {
+    console.error("Failed to parse JSON:", text);
+    return {};
+  }
 };
 
 /**
- * RECON AGENT: Agent chinh sát sử dụng thuật toán Google Search
+ * Mổ xẻ DNA Viral từ các URL đối thủ
  */
-export const runAgenticRecon = async (niche: string): Promise<{ 
-    discovered_signals: MissionIntel[], 
-    market_gaps: string[], 
-    trending_keywords: string[], 
-    recommended_action: string,
-    raw_sources: any[]
-}> => {
+export const extractViralDNA = async (apiKey: string, urls: string[], mode: string, lang: string): Promise<ViralDNAProfile> => {
+  const ai = getAi();
+  const prompt = `Phân tích cấu trúc viral của các URL này: ${urls.join(', ')}. 
+    Chế độ: ${mode}, Ngôn ngữ: ${lang}. 
+    Trả về JSON ViralDNAProfile gồm structure (hook_type, pacing, avg_scene_duration), emotional_curve (array), keywords (array), algorithm_fit_score (number), risk_level.`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: { 
+      responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }] 
+    }
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
+
+/**
+ * NEURAL OVERHAUL: Tự động tái cấu trúc kịch bản nếu SEO Audit không đạt yêu cầu
+ */
+export const runNeuralOverhaul = async (currentPlan: OrchestratorResponse, audit: SEOAudit): Promise<OrchestratorResponse> => {
     const ai = getAi();
     const prompt = `
-    ĐÓNG VAI: Chuyên gia phân tích thị trường (Agent Chinh Sát).
-    NHIỆM VỤ: Sử dụng Google Search để thu thập dữ liệu về ngách ${niche}.
-    CÁC BƯỚC THỰC HIỆN:
-    1. Tìm kiếm các sản phẩm đang trending và có mức hoa hồng tốt.
-    2. Phân tích điểm yếu của các nội dung hiện tại (competitor gap).
-    3. Trích xuất các từ khóa (keywords) có volume tìm kiếm đang tăng.
-    4. Dự đoán "Winning Angle" cho video tiếp theo.
+    VAI TRÒ: Chuyên gia tối ưu hóa nội dung cao cấp.
+    TÌNH TRẠNG: Kịch bản hiện tại chỉ đạt ${audit.seo_score}/100 điểm SEO.
+    VẤN ĐỀ: ${audit.checklist.filter(c => !c.completed).map(c => c.task).join(', ')}.
+    NHIỆM VỤ: Hãy viết lại TOÀN BỘ kịch bản và tiêu đề để đạt trên 90 điểm SEO.
+    YÊU CẦU: 
+    1. Giữ vững DNA viral gốc nhưng thay đổi từ khóa sang: ${audit.suggested_tags.join(', ')}.
+    2. Tăng cường lực hút (Hook) ở 3 giây đầu tiên.
     
-    TRẢ VỀ JSON:
-    {
-      "discovered_signals": [
-        {
-          "product_name": "Tên sản phẩm",
-          "platform": "Shopee/Amazon/TikTok Shop",
-          "store_name": "Tên cửa hàng nguồn",
-          "price_range": "Giá dự kiến",
-          "commission_rate": "Hoa hồng %",
-          "target_audience": "Đối tượng (VD: GenZ, Nội trợ...)",
-          "winning_rationale": "Lý do robot chọn sản phẩm này",
-          "market_threat_level": "LOW|MEDIUM|HIGH",
-          "competitor_urls": ["url_1", "url_2"]
-        }
-      ],
-      "market_gaps": ["khoảng trống 1", "khoảng trống 2"],
-      "trending_keywords": ["keyword 1", "keyword 2"],
-      "recommended_action": "Hành động cụ thể"
-    }
+    DỮ LIỆU GỐC: ${JSON.stringify(currentPlan.production_plan)}
+    TRẢ VỀ JSON: OrchestratorResponse hoàn chỉnh đã tối ưu.
     `;
 
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: prompt,
-        config: {
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json"
-        }
-    });
-
-    const data = cleanAndParseJSON(response.text || "{}");
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    return { ...data, raw_sources: sources };
-};
-
-/**
- * COMMANDER CHAT: Trung tâm điều phối ngôn ngữ Việt
- */
-export const sendChatToAssistant = async (apiKey: string, history: any[], text: string, appContext: AppContext): Promise<{ 
-    text: string, 
-    detected_lang: string, 
-    command?: AgentCommand, 
-    suggestions: string[], 
-    sentiment: 'happy' | 'urgent' | 'thinking' | 'neutral' 
-}> => {
-    const ai = getAi();
-    
-    const systemInstruction = `
-    Bạn là AI Commander - Chỉ huy trưởng của hệ thống AV Studio.
-    PHONG CÁCH: Chuyên gia sáng tạo, quyết đoán, sử dụng tiếng Việt thuần thục và chuyên nghiệp.
-    BỐI CẢNH: Người dùng đang ở tab "${appContext.activeTab}".
-    JSON OUTPUT:
-    {
-      "text": "Câu trả lời tiếng Việt (tối đa 2 câu)",
-      "detected_lang": "vi",
-      "sentiment": "happy|urgent|thinking|neutral",
-      "suggestions": ["Hành động gợi ý 1", "Hành động gợi ý 2"],
-      "command": { "action": "NAVIGATE|SET_INPUT|EXECUTE_RUN", "payload": "giá_trị" }
-    }
-    `;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [
-            { role: 'user', parts: [{ text: systemInstruction }] },
-            ...history.slice(-10).map(h => ({
-                role: h.role === 'model' ? 'model' : 'user',
-                parts: [{ text: h.text || h.parts[0].text }]
-            })),
-            { role: 'user', parts: [{ text: text }] }
-        ],
-        config: {
-            responseMimeType: "application/json",
-            temperature: 0.7,
-        }
+        config: { responseMimeType: "application/json" }
     });
 
     return cleanAndParseJSON(response.text || "{}");
 };
 
 /**
- * TTS: Giọng đọc cảm xúc tiếng Việt
+ * Reconnaissance agent to find trending products and signals
  */
-export const generateGeminiTTS = async (text: string, lang: string = 'vi', sentiment: string = 'neutral') => {
-    const ai = getAi();
-    let voiceName = 'Kore';
-    const prefixes = {
-        happy: "Nói hào hứng: ",
-        urgent: "Nói khẩn cấp: ",
-        thinking: "Nói điềm tĩnh: ",
-        neutral: "Nói chuyên nghiệp: "
-    };
+export const runAgenticRecon = async (niche: string): Promise<{ discovered_signals: MissionIntel[], trending_keywords: string[] }> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Thực hiện trinh sát thị trường ngách: ${niche}. Tìm các sản phẩm affiliate đang hot. Trả về JSON gồm list discovered_signals (MissionIntel) và trending_keywords.`,
+    config: { 
+      responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }]
+    }
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: (prefixes[sentiment as keyof typeof prefixes] || prefixes.neutral) + text }] }],
-        config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName } }
-            },
+/**
+ * Hunts for affiliate products across specified networks
+ * Fix: Added missing huntAffiliateProducts export
+ */
+export const huntAffiliateProducts = async (apiKey: string, niche: string, networks: string[]): Promise<AffiliateHuntResult> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Tìm kiếm sản phẩm affiliate trong ngách ${niche} trên các mạng lưới: ${networks.join(', ')}. Trả về JSON AffiliateHuntResult gồm products (AIProduct[]) và strategy_note.`,
+    config: { 
+      responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }]
+    }
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
+
+/**
+ * Generates a professional script based on DNA profile and studio settings
+ */
+export const generateProScript = async (
+  apiKey: string, 
+  dna: ViralDNAProfile, 
+  settings: StudioSettings, 
+  kb: KnowledgeBase
+): Promise<OrchestratorResponse> => {
+  const ai = getAi();
+  const prompt = `Tạo kịch bản video viral cho chủ đề: ${settings.topic}. 
+    DNA: ${JSON.stringify(dna)}. 
+    Settings: ${JSON.stringify(settings)}. 
+    Knowledge Base: ${JSON.stringify(kb.learnedPreferences)}.
+    Trả về JSON OrchestratorResponse.`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: prompt,
+    config: { responseMimeType: "application/json" }
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
+
+/**
+ * Generates TTS audio using Gemini 2.5 Flash
+ */
+export const generateGeminiTTS = async (text: string, lang: string = 'vi', sentiment: string = 'neutral'): Promise<string> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-preview-tts",
+    contents: [{ parts: [{ text: `Say ${sentiment} in ${lang}: ${text}` }] }],
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: {
+        voiceConfig: {
+          prebuiltVoiceConfig: { voiceName: 'Kore' },
         },
-    });
-
-    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      },
+    },
+  });
+  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
 };
 
-export const huntAffiliateProducts = async (apiKey: string, niche: string, networks: string[]): Promise<AffiliateHuntResult & { searchSources?: any[] }> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Tìm 3 sản phẩm trending nhất ngách ${niche} trên ${networks.join(',')}. Trả về tiếng Việt, định dạng JSON.`,
-        config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "{}");
-};
-
-export const generateProScript = async (apiKey: string, dna: ViralDNAProfile, settings: StudioSettings, knowledgeBase?: KnowledgeBase): Promise<OrchestratorResponse> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Viết kịch bản video viral tiếng Việt cho: ${settings.topic}. Trả về JSON OrchestratorResponse.`,
-        config: { responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "{}");
-};
-
-export const generateVeoVideo = async (prompt: string, aspectRatio: "16:9" | "9:16" = "9:16") => {
-    if (!(await window.aistudio.hasSelectedApiKey())) await window.aistudio.openSelectKey();
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    let operation = await ai.models.generateVideos({
-        model: 'veo-3.1-fast-generate-preview',
-        prompt: `Tạo video cinematic: ${prompt}`,
-        config: { numberOfVideos: 1, resolution: '720p', aspectRatio: aspectRatio }
-    });
-    while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 10000));
-        operation = await ai.operations.getVideosOperation({ operation: operation });
-    }
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-    const videoBlob = await response.blob();
-    return URL.createObjectURL(videoBlob);
-};
-
-export const runHunterAnalysis = async (apiKey: string, target: string): Promise<HunterInsight> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Phân tích tình báo chiến lược tiếng Việt cho: ${target}. JSON HunterInsight.`,
-        config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "{}");
-};
-
-export const scanHighValueNetwork = async (apiKey: string, focus: string): Promise<NetworkScanResult> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Quét mạng lưới tìm cơ hội ngách tiếng Việt: ${focus}. JSON NetworkScanResult.`,
-        config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "{}");
-};
-
-export const synthesizeKnowledge = async (apiKey: string, text: string, existingPrefs: string[]): Promise<string[]> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Trích xuất quy tắc phong cách video tiếng Việt từ: "${text}". Mảng JSON.`,
-        config: { responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "[]");
-};
-
+/**
+ * Predicts golden hours for posting based on global search trends
+ */
 export const predictGoldenHours = async (apiKey: string, region: string, niche: string, platforms: string[]): Promise<GoldenHourRecommendation[]> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Dự đoán giờ vàng đăng bài tại ${region} cho ngách ${niche}. Mảng JSON tiếng Việt.`,
-        config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "[]");
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Dự đoán khung giờ vàng đăng bài cho ngách ${niche} tại ${region} trên các nền tảng ${platforms.join(', ')}. Trả về JSON array GoldenHourRecommendation.`,
+    config: { 
+      responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }]
+    }
+  });
+  const data = cleanAndParseJSON(response.text || "[]");
+  return Array.isArray(data) ? data : [];
 };
 
+/**
+ * Performs an SEO audit of title and description
+ */
+export const runSeoAudit = async (title: string, description: string, topic: string): Promise<SEOAudit> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Audit SEO cho tiêu đề: "${title}", mô tả: "${description}" thuộc chủ đề ${topic}. Trả về JSON SEOAudit.`,
+    config: { 
+      responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }]
+    }
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
+
+/**
+ * Generates a health audit for a channel
+ */
+export const generateChannelAudit = async (apiKey: string, channel: string, platform: string): Promise<ChannelHealthReport> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Audit sức khỏe kênh ${channel} trên ${platform}. Trả về JSON ChannelHealthReport.`,
+    config: { 
+      responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }]
+    }
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
+
+/**
+ * Executes autonomous governor actions
+ */
+export const runGovernorExecution = async (channel: string, diagnosis: string): Promise<GovernorAction> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: `Thực hiện hành động tự trị cho kênh ${channel} dựa trên chẩn đoán: ${diagnosis}. Trả về JSON GovernorAction.`,
+    config: { responseMimeType: "application/json" }
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
+
+/**
+ * Performs a deep dive analysis of a competitor channel
+ */
+export const runCompetitorDeepDive = async (target: string): Promise<CompetitorDeepAudit> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: `Phân tích sâu đối thủ: ${target}. Trả về JSON CompetitorDeepAudit.`,
+    config: { 
+      responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }]
+    }
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
+
+/**
+ * Chat assistant logic with tool context
+ */
+export const sendChatToAssistant = async (apiKey: string, history: any[], message: string, context: AppContext): Promise<{ text: string, command?: any, detected_lang?: string, suggestions?: string[], sentiment?: string }> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: message,
+    config: {
+      systemInstruction: `Bạn là AI Commander của AV Studio. Bối cảnh hiện tại: ${JSON.stringify(context)}. Hãy trả về JSON gồm text (phản hồi), command (nếu có), detected_lang, suggestions, sentiment.`,
+      responseMimeType: "application/json",
+    },
+  });
+  return cleanAndParseJSON(response.text || "{}");
+};
+
+/**
+ * Synthesizes knowledge from text input
+ */
+export const synthesizeKnowledge = async (apiKey: string, text: string, existing: string[]): Promise<string[]> => {
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Trích xuất các quy tắc/preferences từ văn bản này: "${text}". Các quy tắc hiện có: ${existing.join(', ')}. Trả về JSON array string các quy tắc mới.`,
+    config: { responseMimeType: "application/json" }
+  });
+  const data = cleanAndParseJSON(response.text || "[]");
+  return Array.isArray(data) ? data : [];
+};
+
+/**
+ * Generates a daily schedule for posts
+ */
 export const generateDailySchedule = async (apiKey: string, account: string, niche: string, region: string, config: any): Promise<ScheduleSlot[]> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Tạo lịch đăng bài tiếng Việt cho kênh ${account}. Mảng JSON.`,
-        config: { responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "[]");
-};
-
-export const generateChannelAudit = async (apiKey: string, channelName: string, platform: string): Promise<ChannelHealthReport> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `Kiểm tra sức khỏe kênh ${channelName} trên ${platform}. Tiếng Việt, JSON.`,
-        config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "{}");
-};
-
-export const extractViralDNA = async (apiKey: string, urls: string[], context: string, lang: string): Promise<ViralDNAProfile> => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Phân tích DNA viral tiếng Việt từ các link: ${urls.join(',')}. JSON.`,
-        config: { responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text || "{}");
+  const ai = getAi();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Lập lịch đăng bài cho tài khoản ${account} (${niche}) tại ${region}. Config: ${JSON.stringify(config)}. Trả về JSON array ScheduleSlot.`,
+    config: { responseMimeType: "application/json" }
+  });
+  const data = cleanAndParseJSON(response.text || "[]");
+  return Array.isArray(data) ? data : [];
 };

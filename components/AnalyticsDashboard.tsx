@@ -2,418 +2,333 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   ScanEye, Crosshair, Radar, Target, 
-  Send, Lock, Unlock, TrendingUp, 
-  Zap, BarChart2, Radio, Trophy, Activity, Loader2, StopCircle, Globe, Search, Link as LinkIcon, BrainCircuit, ShieldAlert, Layers, MapPin, ExternalLink
+  Activity, Loader2, StopCircle, Globe, Search, BrainCircuit, ShieldAlert, Layers, MapPin, ExternalLink, Scissors, Dna, Rocket, Zap, Eye, BarChart3, TrendingUp, DollarSign, Terminal, ShieldCheck, AlertTriangle, Sparkles, Hash, Gauge, CheckSquare
 } from 'lucide-react';
-import { ApiKeyConfig, HunterInsight, NetworkScanResult } from '../types';
+import { ApiKeyConfig, HunterInsight, NetworkScanResult, CompetitorDeepAudit, SEOAudit } from '../types';
 import NeonButton from './NeonButton';
-import { runHunterAnalysis, scanHighValueNetwork } from '../services/geminiService';
+// Fix: Removed non-existent imports runHunterAnalysis and scanHighValueNetwork
+import { runCompetitorDeepDive, runSeoAudit } from '../services/geminiService';
 
 interface AnalyticsDashboardProps {
   apiKeys: ApiKeyConfig[];
   onDeployStrategy: (url: string, type: 'clone' | 'review') => void;
   onSendReportToChat?: (report: string) => void;
-  onSyncToBrain?: (insight: HunterInsight) => void;
   t?: any;
+  predefinedTarget?: string;
 }
 
-const AUTO_TARGETS = [
-    "Trending AI Tools 2024", "Skincare Routine Viral", "Crypto Gems under $1", 
-    "Kitchen Gadgets Amazon", "Make Money Online Fast", "Tech Reviewer @MKBHD", 
-    "Funny Cat Videos", "Weight Loss Tips", "Gaming Setup Cheap", "Travel Hacks Japan"
-];
-
-const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ apiKeys, onDeployStrategy, onSendReportToChat, onSyncToBrain, t }) => {
+const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ apiKeys, onDeployStrategy, onSendReportToChat, t, predefinedTarget }) => {
   const texts = t || {};
-  const [activeView, setActiveView] = useState<'standard' | 'deep_scan'>('standard');
-  const [isAutoRecon, setIsAutoRecon] = useState(false);
-  const [missionInput, setMissionInput] = useState('');
+  const [activeView, setActiveView] = useState<'neural_audit' | 'market_recon' | 'vidiq_intel'>('neural_audit');
   
-  const [status, setStatus] = useState<'idle' | 'hunting' | 'analyzing' | 'complete'>('idle');
-  const [insight, setInsight] = useState<HunterInsight | null>(null);
-  const [winner, setWinner] = useState<HunterInsight | null>(null);
-  const [scanCount, setScanCount] = useState(0);
-
-  const [deepScanStatus, setDeepScanStatus] = useState<'idle' | 'scanning' | 'complete'>('idle');
-  const [deepScanFocus, setDeepScanFocus] = useState('AI Software & SaaS Trends');
-  const [networkResult, setNetworkResult] = useState<NetworkScanResult | null>(null);
+  // State for Neural Audit
+  const [auditTarget, setAuditTarget] = useState(predefinedTarget || '');
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditResult, setAuditResult] = useState<CompetitorDeepAudit | null>(null);
+  
+  // State for VidIQ Intel
+  const [seoTarget, setSeoTarget] = useState('');
+  const [isSeoAuditing, setIsSeoAuditing] = useState(false);
+  const [seoResult, setSeoResult] = useState<SEOAudit | null>(null);
 
   const [logs, setLogs] = useState<{time: string, msg: string, color: string}[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
-
-  const addLog = (msg: string, color: 'text-slate-400' | 'text-green-400' | 'text-yellow-400' | 'text-red-400' = 'text-slate-400') => {
-      setLogs(prev => [...prev.slice(-15), {
-          time: new Date().toLocaleTimeString('en-US', {hour12: false}), 
-          msg, 
-          color 
-      }]);
-  };
-
-  const executeScan = async (target: string) => {
-    const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
-    if (!googleKey) {
-        addLog("CRITICAL: No Google API Key found.", "text-red-400");
-        setIsAutoRecon(false);
-        return;
+    if (predefinedTarget) {
+      setAuditTarget(predefinedTarget);
+      handleNeuralAudit(predefinedTarget);
     }
+  }, [predefinedTarget]);
 
-    setStatus('hunting');
-    addLog(`Initiating scan on target: "${target}"...`, "text-yellow-400");
-
-    try {
-        await new Promise(r => setTimeout(r, 1000));
-        addLog("Interception competitor signals...", "text-green-400");
-        setStatus('analyzing');
-        
-        await new Promise(r => setTimeout(r, 1000));
-        addLog("Compiling Strategic Intelligence...", "text-green-400");
-        
-        const result = await runHunterAnalysis(googleKey.key, target);
-        
-        setInsight(result);
-        setScanCount(prev => prev + 1);
-        setStatus('complete');
-        addLog(`Scan Complete. Match Score: ${result.match_score}/100`, "text-green-400");
-
-        if (!winner || result.match_score > winner.match_score) {
-            setWinner(result);
-        }
-
-    } catch (e: any) {
-        addLog(`Error: ${e.message}`, "text-red-400");
-        setStatus('idle');
-    }
+  const addLog = (msg: string, color: string = 'text-slate-400') => {
+      setLogs(prev => [...prev.slice(-15), { time: new Date().toLocaleTimeString('en-US', {hour12: false}), msg, color }]);
   };
 
-  const handleStartManualMission = async () => {
-    if (!missionInput.trim()) return;
-    setIsAutoRecon(false);
-    await executeScan(missionInput);
-  };
-
-  const handleDeepScan = async () => {
-      const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
-      if (!googleKey) {
-          alert("Key Error.");
-          return;
-      }
-
-      setDeepScanStatus('scanning');
-      setNetworkResult(null);
+  const handleNeuralAudit = async (targetOverride?: string) => {
+      const target = targetOverride || auditTarget;
+      if (!target.trim()) return;
+      setIsAuditing(true);
+      setAuditResult(null);
+      addLog(`INITIATING NEURAL AUTOPSY ON: ${target}`, 'text-primary');
       
       try {
-          const result = await scanHighValueNetwork(googleKey.key, deepScanFocus);
-          setNetworkResult(result);
-          setDeepScanStatus('complete');
+          const result = await runCompetitorDeepDive(target);
+          setAuditResult(result);
+          addLog(`AUTOPSY COMPLETE. CHANNEL: ${result.channel_name}`, 'text-green-400');
       } catch (e) {
-          console.error(e);
-          setDeepScanStatus('idle');
+          addLog(`CRITICAL ERROR IN SHADOW ANALYST: ${e}`, 'text-red-500');
+      } finally {
+          setIsAuditing(false);
       }
   };
 
-  useEffect(() => {
-      let timeout: ReturnType<typeof setTimeout>;
-
-      const runLoop = async () => {
-          if (!isAutoRecon) return;
-          const target = AUTO_TARGETS[Math.floor(Math.random() * AUTO_TARGETS.length)];
-          await executeScan(target);
-          timeout = setTimeout(runLoop, 8000);
-      };
-
-      if (isAutoRecon) {
-          addLog("AUTO-RECON ENABLED. HUNTING 24/7...", "text-red-400");
-          runLoop();
-      }
-
-      return () => clearTimeout(timeout);
-  }, [isAutoRecon]); 
-
-  const toggleAutoRecon = () => {
-      setIsAutoRecon(!isAutoRecon);
-      if (isAutoRecon) {
-          setStatus('idle');
-          addLog("Auto-Recon Disengaged.", "text-yellow-400");
-      }
+  const handleSeoAudit = async () => {
+    if (!seoTarget.trim()) return;
+    setIsSeoAuditing(true);
+    setSeoResult(null);
+    addLog(`RUNNING VIDIQ SEO AUDIT ON: ${seoTarget}`, 'text-purple-400');
+    
+    try {
+        const result = await runSeoAudit(seoTarget, "", "General AI");
+        setSeoResult(result);
+        addLog(`SEO AUDIT COMPLETE. SCORE: ${result.seo_score}/100`, 'text-green-400');
+    } catch (e) {
+        addLog(`SEO AUDIT FAILED: ${e}`, 'text-red-500');
+    } finally {
+        setIsSeoAuditing(false);
+    }
   };
 
   return (
     <div className="animate-fade-in space-y-6 pb-12 h-full flex flex-col">
       <div className="border-b border-slate-800 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 shrink-0">
          <div>
-            <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-3">
-                <Radar className={`text-red-500 ${isAutoRecon ? 'animate-spin-slow' : ''}`} size={28} />
-                {texts.analytics || "Strategic Intelligence Hub"}
+            <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-3">
+                <Radar className="text-red-500 animate-pulse" size={28} />
+                Strategic Intelligence & VidIQ AI
             </h2>
-            <p className="text-slate-400 text-xs md:text-sm">
-                Advanced Autonomous Reconnaissance Engine v3.1
-            </p>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">Advanced Agentic Reconnaissance Center</p>
          </div>
-         <div className="flex items-center gap-2">
-             <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
-                 <button 
-                    onClick={() => setActiveView('standard')}
-                    className={`px-4 py-2 rounded-md text-xs font-bold transition-all ${activeView === 'standard' ? 'bg-slate-900 text-white shadow-neon' : 'text-slate-400 hover:text-white'}`}
-                 >
-                    Standard Recon
-                 </button>
-                 <button 
-                    onClick={() => setActiveView('deep_scan')}
-                    className={`px-4 py-2 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'deep_scan' ? 'bg-purple-900/50 text-purple-300 shadow border border-purple-500/30' : 'text-slate-400 hover:text-white'}`}
-                 >
-                    <Globe size={14} /> Deep Network Audit
-                 </button>
-             </div>
-
-             <button 
-                onClick={toggleAutoRecon}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all border ${
-                    isAutoRecon 
-                    ? 'bg-red-500/10 border-red-500 text-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]' 
-                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-                }`}
-                disabled={activeView === 'deep_scan'}
-             >
-                 {isAutoRecon ? <StopCircle size={18} /> : <Activity size={18} />}
-                 <span>{isAutoRecon ? "TERMINATE" : "AUTO-PILOT RECON"}</span>
-             </button>
+         <div className="flex bg-slate-900 rounded-2xl p-1.5 border border-slate-800 shadow-inner overflow-x-auto no-scrollbar">
+             <button onClick={() => setActiveView('neural_audit')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeView === 'neural_audit' ? 'bg-primary text-white shadow-neon' : 'text-slate-500 hover:text-slate-300'}`}>1. Neural Autopsy</button>
+             <button onClick={() => setActiveView('vidiq_intel')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeView === 'vidiq_intel' ? 'bg-purple-600 text-white shadow-neon' : 'text-slate-500 hover:text-slate-300'}`}>2. VidIQ Intelligence</button>
          </div>
       </div>
 
-      {activeView === 'standard' && (
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
-          {/* TERMINAL & INPUT */}
-          <div className="lg:col-span-4 flex flex-col gap-4 min-h-0">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden shrink-0 shadow-2xl">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                  <label className="text-[10px] font-black text-red-500 uppercase mb-3 flex items-center gap-2 tracking-widest">
-                     <Target size={12} /> Target Signal Input
-                  </label>
-                  <div className="flex gap-2">
-                    <input 
-                        type="text" 
-                        value={missionInput}
-                        onChange={(e) => setMissionInput(e.target.value)}
-                        placeholder="Paste URL or Topic Keyword..."
-                        disabled={isAutoRecon}
-                        className="flex-1 bg-black border border-slate-700 rounded-xl px-4 py-3 text-sm text-green-400 font-mono focus:border-red-500 focus:outline-none disabled:opacity-30"
-                        onKeyDown={(e) => e.key === 'Enter' && handleStartManualMission()}
-                    />
-                    <button 
-                        onClick={handleStartManualMission}
-                        disabled={isAutoRecon || !missionInput}
-                        className="bg-red-600 text-white p-3 rounded-xl hover:bg-red-500 disabled:opacity-30 transition-all shadow-lg active:scale-95"
-                    >
-                        <ScanEye size={20} />
-                    </button>
-                  </div>
-              </div>
-
-              <div className="flex-1 bg-black border border-slate-800 rounded-2xl p-0 flex flex-col font-mono text-xs overflow-hidden relative shadow-[inset_0_0_40px_rgba(0,0,0,1)]">
-                   <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex justify-between items-center shrink-0">
-                       <span className="flex items-center gap-2 text-slate-400 font-black tracking-tighter italic">
-                            <Radio size={14} className={isAutoRecon ? "text-green-500 animate-pulse" : ""} /> 
-                            SYSTEM_OS_LOG_STREAM
-                       </span>
-                       <div className="flex gap-1.5">
-                           <div className="w-2.5 h-2.5 rounded-full bg-red-500/20"></div>
-                           <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20"></div>
-                           <div className="w-2.5 h-2.5 rounded-full bg-green-500/20"></div>
-                       </div>
-                   </div>
-                   <div className="flex-1 overflow-y-auto p-4 space-y-2 scroll-smooth bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-95">
-                       {logs.length === 0 && <span className="text-slate-800 italic uppercase tracking-widest text-[10px]">Standby... awaiting signal...</span>}
-                       {logs.map((log, i) => (
-                           <div key={i} className="flex gap-3 animate-fade-in group border-l border-slate-800 pl-3">
-                               <span className="text-slate-600 shrink-0 font-bold">[{log.time}]</span>
-                               <span className={`${log.color} break-all font-medium leading-relaxed`}>{`>> ${log.msg}`}</span>
-                           </div>
-                       ))}
-                       <div ref={logsEndRef} />
-                   </div>
-              </div>
-          </div>
-
-          {/* INSIGHT VIEW */}
-          <div className="lg:col-span-8 flex flex-col gap-4">
-              {status === 'hunting' || status === 'analyzing' ? (
-                  <div className="flex-1 bg-slate-900/50 border-2 border-dashed border-slate-800 rounded-3xl flex flex-col items-center justify-center p-12 text-center relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-t from-red-500/5 to-transparent"></div>
-                      <div className="w-32 h-32 border-4 border-red-500/30 border-t-red-500 rounded-full animate-spin mb-8"></div>
-                      <ScanEye size={64} className="text-red-500 mb-6 absolute animate-pulse" />
-                      <h4 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Intercepting Signal...</h4>
-                      <p className="text-slate-500 font-mono text-sm">Decrypting competitor strategy metadata...</p>
-                  </div>
-              ) : insight ? (
-                  <div className="flex-1 bg-slate-900 border border-slate-800 rounded-3xl p-8 overflow-y-auto relative group shadow-2xl">
-                      <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <Radar size={200} className="text-white" />
-                      </div>
-                      
-                      <div className="flex justify-between items-start mb-8 border-b border-slate-800 pb-8">
-                          <div>
-                              <div className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-2">TARGET_ID: {insight.type}</div>
-                              <h2 className="text-4xl font-black text-white leading-none tracking-tighter mb-2">{insight.target_name}</h2>
-                              <div className="text-slate-500 font-mono text-xs italic">Market Status: {insight.market_status}</div>
-                          </div>
-                          <div className="text-center bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-xl min-w-[120px]">
-                              <div className="text-[10px] text-slate-500 font-black uppercase mb-1">MATCH_SCORE</div>
-                              <div className={`text-4xl font-mono font-black ${insight.match_score > 75 ? 'text-green-500' : 'text-yellow-500'}`}>
-                                  {insight.match_score}
-                              </div>
-                          </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                          <div className="space-y-6">
-                              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <Activity size={16} className="text-red-500" /> Hidden Intelligence
-                              </h3>
-                              <div className="space-y-4">
-                                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Consumer Psychology</div>
-                                      <p className="text-sm text-slate-300 leading-relaxed italic">"{insight.hidden_analysis.consumer_psychology}"</p>
-                                  </div>
-                                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">Competitor Weakness</div>
-                                      <p className="text-sm text-red-400/80 leading-relaxed font-bold">"{insight.hidden_analysis.competitor_weakness}"</p>
-                                  </div>
-                              </div>
-                          </div>
-
-                          <div className="space-y-6">
-                              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <TrendingUp size={16} className="text-green-500" /> Key Metrics Output
-                              </h3>
-                              <div className="grid grid-cols-2 gap-4">
-                                  {insight.key_metrics.map((m, i) => (
-                                      <div key={i} className="bg-slate-950 border border-slate-800 rounded-xl p-4">
-                                          <div className="text-[10px] text-slate-500 font-bold uppercase mb-1">{m.label}</div>
-                                          <div className="text-xl font-black text-white">{m.value}</div>
-                                          <div className={`text-[10px] font-bold mt-1 ${m.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                                              {m.trend === 'up' ? '▲ POSITIVE' : '▼ NEGATIVE'}
-                                          </div>
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
-                      </div>
-
-                      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-8">
-                          <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
-                             <Zap size={16} /> Strategic Deployment Suggestion
-                          </h3>
-                          <p className="text-white font-bold leading-relaxed">"{insight.strategic_suggestion}"</p>
-                      </div>
-
-                      <div className="flex gap-4">
-                          <NeonButton onClick={() => onDeployStrategy(insight.target_name, 'clone')} className="flex-1 h-14">
-                              DEPLOY AUTO-PILOT MISSION
-                          </NeonButton>
-                          <button 
-                            onClick={() => onSendReportToChat?.(`RECON_REPORT: ${insight.target_name}\nSuggestion: ${insight.strategic_suggestion}`)}
-                            className="bg-slate-800 hover:bg-slate-700 text-white px-8 rounded-xl font-bold text-sm transition-all"
-                          >
-                            TRANSMIT TO COMMANDER
-                          </button>
-                      </div>
-                  </div>
-              ) : (
-                  <div className="flex-1 bg-slate-900/30 border-2 border-dashed border-slate-800 rounded-3xl flex flex-col items-center justify-center p-12 text-center">
-                      <Layers size={48} className="text-slate-800 mb-4" />
-                      <h4 className="text-xl font-bold text-slate-600 uppercase tracking-tighter">Awaiting Signal Acquisition</h4>
-                      <p className="text-slate-700 text-sm max-w-xs mt-2">Enter a target keyword or URL to begin autonomous reconnaissance.</p>
-                  </div>
-              )}
-          </div>
-      </div>
-      )}
-
-      {activeView === 'deep_scan' && (
-          <div className="flex-1 animate-fade-in flex flex-col gap-6 overflow-hidden">
-              <div className="bg-slate-900 border border-purple-500/30 rounded-3xl p-8 flex flex-col md:flex-row gap-8 items-center shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-600"></div>
-                  <div className="flex-1 w-full">
-                      <h3 className="text-2xl font-black text-white mb-2 flex items-center gap-3">
-                          <Globe className="text-purple-500 animate-pulse" size={32} /> DEEP NETWORK SIGNAL AUDIT
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+          
+          {/* LEFT: COMMAND TERMINAL */}
+          <div className="lg:col-span-4 flex flex-col gap-6 overflow-hidden">
+              <div className="bg-slate-900 border border-slate-800 rounded-[32px] p-6 shadow-2xl space-y-6">
+                  <div>
+                      <h3 className="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <Terminal size={16} className="text-primary" /> Intelligence Module
                       </h3>
-                      <p className="text-slate-400 text-sm mb-6 max-w-2xl font-medium">
-                          Scans the global network for hidden arbitrage opportunities, trending product gaps, and high-CPM niche clusters using Google Search grounding.
-                      </p>
-                      <div className="flex gap-3">
-                          <input 
-                              type="text" 
-                              value={deepScanFocus}
-                              onChange={(e) => setDeepScanFocus(e.target.value)}
-                              placeholder="Focus Area (e.g. Health Tech VN, Global SaaS...)"
-                              className="flex-1 bg-black border border-slate-700 rounded-2xl px-6 py-4 text-white focus:border-purple-500 focus:outline-none shadow-inner font-bold"
-                          />
-                          <NeonButton 
-                              onClick={handleDeepScan} 
-                              disabled={deepScanStatus === 'scanning'}
-                              className="min-w-[200px]"
-                          >
-                              {deepScanStatus === 'scanning' ? (
-                                  <span className="flex items-center gap-3"><Loader2 className="animate-spin" /> RUNNING AUDIT...</span>
-                              ) : (
-                                  <span className="flex items-center gap-3"><Search size={20} /> BEGIN SCAN</span>
-                              )}
-                          </NeonButton>
+                      <div className="space-y-4">
+                          {activeView === 'neural_audit' ? (
+                              <>
+                                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Competitor URL / Handle</label>
+                                    <input 
+                                        value={auditTarget}
+                                        onChange={(e) => setAuditTarget(e.target.value)}
+                                        placeholder="e.g. youtube.com/@channel"
+                                        className="w-full bg-transparent border-none text-primary font-mono font-bold focus:outline-none placeholder:text-slate-800"
+                                    />
+                                </div>
+                                <NeonButton onClick={() => handleNeuralAudit()} disabled={isAuditing} className="w-full h-14">
+                                    {isAuditing ? <Loader2 className="animate-spin" /> : <Scissors size={18} />} 
+                                    {isAuditing ? 'DISSECTING DNA...' : 'START NEURAL AUTOPSY'}
+                                </NeonButton>
+                              </>
+                          ) : activeView === 'vidiq_intel' ? (
+                              <>
+                                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Video Title to Optimize</label>
+                                    <input 
+                                        value={seoTarget}
+                                        onChange={(e) => setSeoTarget(e.target.value)}
+                                        placeholder="Nhập tiêu đề video dự kiến..."
+                                        className="w-full bg-transparent border-none text-purple-400 font-mono font-bold focus:outline-none placeholder:text-slate-800"
+                                    />
+                                </div>
+                                <NeonButton onClick={() => handleSeoAudit()} disabled={isSeoAuditing} className="w-full h-14" variant="primary">
+                                    {isSeoAuditing ? <Loader2 className="animate-spin" /> : <Sparkles size={18} />} 
+                                    {isSeoAuditing ? 'AUDITING SEO...' : 'RUN VIDIQ AUDIT'}
+                                </NeonButton>
+                              </>
+                          ) : null}
                       </div>
                   </div>
-                  <div className="hidden lg:flex w-48 h-48 rounded-full border-4 border-purple-500/20 items-center justify-center relative">
-                      <div className="absolute inset-0 border-4 border-t-purple-500 rounded-full animate-spin"></div>
-                      <div className="text-center">
-                          <div className="text-3xl font-black text-white">2.5k</div>
-                          <div className="text-[10px] text-slate-500 font-bold uppercase">Signals/sec</div>
+
+                  <div className="bg-black border border-slate-800 rounded-2xl p-4 h-64 flex flex-col font-mono text-[10px]">
+                      <div className="flex justify-between items-center mb-3 text-slate-500 font-bold border-b border-slate-800 pb-2">
+                          <span>SYSTEM_LOG_STREAM</span>
+                          <span className="animate-pulse">● LIVE</span>
+                      </div>
+                      <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
+                          {logs.map((log, i) => (
+                              <div key={i} className={`flex gap-2 ${log.color}`}>
+                                  <span className="opacity-40">[{log.time}]</span>
+                                  <span className="font-medium">{log.msg}</span>
+                              </div>
+                          ))}
+                          <div ref={logsEndRef} />
                       </div>
                   </div>
               </div>
 
-              {deepScanStatus === 'complete' && networkResult && (
-                  <div className="flex-1 animate-fade-in bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
-                      <div className="bg-slate-950 px-8 py-5 border-b border-slate-800 flex justify-between items-center shrink-0">
-                          <div className="flex items-center gap-3">
-                              <ShieldAlert className="text-purple-500" size={20} />
-                              <h4 className="text-sm font-black text-white uppercase tracking-widest">Audit Findings for: {networkResult.focus_area}</h4>
+              <div className="bg-primary/5 border border-primary/20 rounded-[32px] p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                      <ShieldCheck size={20} className="text-primary" />
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Protocol Shield</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 italic leading-relaxed">
+                      "VidIQ Intel module uses Grounding Search to compare keyword trends across the current global algorithm."
+                  </p>
+              </div>
+          </div>
+
+          {/* RIGHT: ANALYSIS DECK */}
+          <div className="lg:col-span-8 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+              {activeView === 'neural_audit' && auditResult && (
+                  <div className="animate-fade-in space-y-8">
+                      {/* Competitor Header */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden group">
+                          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity"><Dna size={120} /></div>
+                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                              <div>
+                                  <div className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">TARGET_ENTITY: {auditResult.channel_name}</div>
+                                  <h2 className="text-4xl font-black text-white tracking-tighter uppercase">{auditResult.channel_name}</h2>
+                                  <p className="text-slate-400 text-sm italic font-medium mt-2">"{auditResult.overall_strategy}"</p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-center min-w-[120px]">
+                                      <div className="text-[9px] text-slate-500 font-black uppercase">Success Prob.</div>
+                                      <div className="text-3xl font-black text-green-500">{auditResult.success_probability}%</div>
+                                  </div>
+                                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-center min-w-[120px]">
+                                      <div className="text-[9px] text-slate-500 font-black uppercase">Authority</div>
+                                      <div className="text-3xl font-black text-primary">{auditResult.niche_authority_score}</div>
+                                  </div>
+                              </div>
                           </div>
-                          <div className="text-[10px] font-mono text-slate-500">SCAN_ID: {networkResult.scan_id}</div>
                       </div>
-                      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                          <div className="grid grid-cols-1 gap-4">
-                              {networkResult.targets.map((t, idx) => (
-                                  <div key={idx} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6 group hover:border-purple-500/50 transition-all shadow-lg">
-                                      <div className="w-12 h-12 rounded-xl bg-purple-900/20 border border-purple-500/30 flex items-center justify-center text-xl font-black text-purple-400 shrink-0">
-                                          #{t.rank}
-                                      </div>
-                                      <div className="flex-1 text-center md:text-left">
-                                          <h4 className="text-lg font-black text-white mb-1 uppercase tracking-tight">{t.name}</h4>
-                                          <p className="text-sm text-slate-400 font-medium mb-2">{t.reason}</p>
-                                          <div className="flex items-center gap-2 justify-center md:justify-start">
-                                              <MapPin size={12} className="text-slate-600" />
-                                              <span className="text-[11px] font-mono text-slate-500 truncate max-w-md">{t.url}</span>
+
+                      {/* Video Autopsy */}
+                      <div className="space-y-6">
+                          {auditResult.top_video_dissection.map((vid, idx) => (
+                              <div key={idx} className="bg-slate-900/50 border border-slate-800 rounded-[32px] overflow-hidden">
+                                  <div className="bg-slate-800 px-6 py-3 border-b border-slate-700 flex justify-between items-center">
+                                      <span className="text-[10px] font-black text-white uppercase">Frame #{idx+1}</span>
+                                      <span className="text-[9px] font-mono text-slate-400">{vid.timestamp}</span>
+                                  </div>
+                                  <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                      <div className="space-y-4">
+                                          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                              <div className="text-[9px] text-primary font-black mb-1 uppercase">Hook Analysis</div>
+                                              <p className="text-xs text-slate-300 leading-relaxed">"{vid.hook_analysis}"</p>
+                                          </div>
+                                          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                              <div className="text-[9px] text-accent font-black mb-1 uppercase">Visual Cues</div>
+                                              <p className="text-xs text-slate-300 italic">"{vid.visual_style}"</p>
                                           </div>
                                       </div>
-                                      <div className="shrink-0 flex gap-3 w-full md:w-auto">
-                                          <button 
-                                            onClick={() => onDeployStrategy(t.url, 'review')}
-                                            className="flex-1 md:flex-none px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2"
-                                          >
-                                              DEPLOY UNIT <ExternalLink size={14} />
-                                          </button>
+                                      <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10">
+                                          <h4 className="text-[10px] text-white font-black uppercase mb-4">AI Clone Strategy</h4>
+                                          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 font-mono text-[10px] text-primary mb-4">
+                                              {vid.clone_blueprint.prompt_equivalent}
+                                          </div>
+                                          <NeonButton onClick={() => onDeployStrategy(vid.clone_blueprint.prompt_equivalent, 'clone')} className="w-full py-2">DEPLOY CLONE</NeonButton>
                                       </div>
                                   </div>
-                              ))}
-                          </div>
+                              </div>
+                          ))}
                       </div>
                   </div>
               )}
+
+              {activeView === 'vidiq_intel' && (
+                  <div className="animate-fade-in space-y-6">
+                      {!seoResult && !isSeoAuditing && (
+                          <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-20">
+                              <Gauge size={100} className="mb-6 text-purple-500" />
+                              <h4 className="text-2xl font-black uppercase tracking-tighter">SEO Intelligence Ready</h4>
+                              <p className="max-w-xs text-xs font-bold uppercase mt-2">Enter a title to evaluate SEO Score and Keyword Competition.</p>
+                          </div>
+                      )}
+
+                      {isSeoAuditing && (
+                          <div className="h-full flex flex-col items-center justify-center py-20">
+                             <div className="w-24 h-24 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
+                             <h4 className="text-xl font-black text-white uppercase tracking-tighter mt-8">Scouring Search Data...</h4>
+                          </div>
+                      )}
+
+                      {seoResult && (
+                          <div className="space-y-6 animate-fade-in">
+                              {/* SEO Dashboard */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                  <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] flex flex-col items-center justify-center text-center shadow-2xl relative overflow-hidden">
+                                      <div className="absolute inset-0 bg-purple-600/5 blur-3xl rounded-full"></div>
+                                      <div className="text-6xl font-black text-purple-500 relative z-10">{seoResult.seo_score}</div>
+                                      <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2 relative z-10">VidIQ SEO Score</div>
+                                  </div>
+
+                                  <div className="md:col-span-2 bg-slate-900 border border-slate-800 p-8 rounded-[40px] shadow-2xl space-y-6">
+                                      <div className="flex justify-between items-center">
+                                          <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2"><TrendingUp size={16} className="text-primary"/> Keyword Intel</h3>
+                                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
+                                              seoResult.keyword_difficulty === 'LOW' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
+                                              seoResult.keyword_difficulty === 'MEDIUM' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'
+                                          }`}>Difficulty: {seoResult.keyword_difficulty}</span>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 gap-4">
+                                          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                              <div className="text-[9px] text-slate-500 font-black uppercase mb-1">Search Volume</div>
+                                              <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2">
+                                                  <div className="bg-blue-500 h-full rounded-full" style={{ width: `${seoResult.search_volume_score}%` }}></div>
+                                              </div>
+                                          </div>
+                                          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                              <div className="text-[9px] text-slate-500 font-black uppercase mb-1">Viral Momentum</div>
+                                              <div className="w-full bg-slate-800 h-1.5 rounded-full mt-2">
+                                                  <div className="bg-accent h-full rounded-full" style={{ width: `${seoResult.trending_momentum}%` }}></div>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+
+                              {/* SEO Optimization Steps */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] shadow-xl">
+                                      <h3 className="text-xs font-black text-white uppercase tracking-widest mb-6 flex items-center gap-3"><CheckSquare size={18} className="text-green-500"/> SEO Checklist</h3>
+                                      <div className="space-y-4">
+                                          {seoResult.checklist.map((item, i) => (
+                                              <div key={i} className="flex items-center gap-4 group">
+                                                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${item.completed ? 'bg-green-500 border-green-500 text-white' : 'border-slate-700 text-transparent'}`}>
+                                                      <CheckSquare size={12} />
+                                                  </div>
+                                                  <div className="flex-1">
+                                                      <p className="text-xs text-slate-300 font-medium">{item.task}</p>
+                                                      <p className="text-[9px] text-slate-500 uppercase font-black">Impact: {item.impact}</p>
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </div>
+
+                                  <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] shadow-xl space-y-6">
+                                      <div>
+                                          <h3 className="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"><Hash size={16} className="text-primary"/> Suggested Tags</h3>
+                                          <div className="flex flex-wrap gap-2">
+                                              {seoResult.suggested_tags.map((tag, i) => (
+                                                  <span key={i} className="px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-bold text-slate-400">#{tag}</span>
+                                              ))}
+                                          </div>
+                                      </div>
+
+                                      <div className="pt-4 border-t border-slate-800">
+                                          <h3 className="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"><Sparkles size={16} className="text-yellow-500"/> Optimized Title Suggestion</h3>
+                                          <div className="space-y-3">
+                                              {seoResult.title_optimization_suggestions.map((title, i) => (
+                                                  <div key={i} className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold leading-relaxed">
+                                                      "{title}"
+                                                  </div>
+                                              ))}
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      )}
+                  </div>
+              )}
           </div>
-      )}
+      </div>
     </div>
   );
 };

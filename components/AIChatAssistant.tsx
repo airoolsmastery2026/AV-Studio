@@ -122,15 +122,12 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
       stopAllAudio();
       return;
     }
-    if (!apiKey) {
-        alert("Cần API Key để sử dụng đàm thoại giọng nói.");
-        return;
-    }
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsLiveMode(true);
-      const ai = new GoogleGenAI({ apiKey: apiKey });
+      // Fix: Always use process.env.API_KEY for GoogleGenAI initialization
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       
       const sessionPromise = ai.live.connect({
@@ -149,6 +146,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
               const int16 = new Int16Array(inputData.length);
               for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
               const base64Data = encode(new Uint8Array(int16.buffer));
+              // Note: Ensure data is streamed only after the session promise resolves.
               sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64Data, mimeType: 'audio/pcm;rate=16000' } }));
             };
             source.connect(scriptProcessor);
@@ -182,7 +180,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
 
   const handleSendMessage = async (textOverride?: string) => {
     const textToSend = textOverride || inputText;
-    if (!textToSend.trim() || !apiKey) return;
+    // Fix: Rely exclusively on process.env.API_KEY
+    if (!textToSend.trim() || !process.env.API_KEY) return;
     
     const current = sessions.find(s => s.id === currentSessionId);
     if (!current) return;
@@ -196,7 +195,8 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
     try {
         const history = current.messages.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
         setTimeout(() => setThinkStage(2), 600);
-        const res = await sendChatToAssistant(apiKey, history, textToSend, appContext);
+        // Fix: Use process.env.API_KEY for consistency
+        const res = await sendChatToAssistant(process.env.API_KEY!, history, textToSend, appContext);
         
         const botMsg: ChatMessage = { 
             id: (Date.now()+1).toString(), 

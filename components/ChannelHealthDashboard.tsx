@@ -3,11 +3,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   HeartPulse, Activity, AlertTriangle, CheckCircle, 
   ShieldCheck, AlertOctagon, RefreshCw, Video, Eye, MousePointer2, 
-  ChevronRight, Send, Terminal, Lock, Unlock, Search, BarChart2, Zap
+  ChevronRight, Send, Terminal, Lock, Unlock, Search, BarChart2, Zap, Stethoscope, Crosshair, Radar, Clock, ShieldAlert, MessageSquare, ExternalLink, Siren, Target, Crown, Sparkles, Wand2, History
 } from 'lucide-react';
-import { ApiKeyConfig, ChannelHealthReport } from '../types';
+import { ApiKeyConfig, ChannelHealthReport, GovernorAction } from '../types';
 import NeonButton from './NeonButton';
-import { generateChannelAudit } from '../services/geminiService';
+import { generateChannelAudit, runGovernorExecution } from '../services/geminiService';
 
 interface ChannelHealthDashboardProps {
   apiKeys: ApiKeyConfig[];
@@ -18,83 +18,75 @@ interface ChannelHealthDashboardProps {
 const ChannelHealthDashboard: React.FC<ChannelHealthDashboardProps> = ({ apiKeys, onSendReportToChat, t }) => {
   const texts = t || {};
   
-  // State for Scanning Process
+  // States
+  const [isSentinelActive, setIsSentinelActive] = useState(false);
+  const [isGovernorActive, setIsGovernorActive] = useState(false); // Chế độ Tự trị tối cao
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanLogs, setScanLogs] = useState<string[]>([]);
-  const logsEndRef = useRef<HTMLDivElement>(null);
-
   const [report, setReport] = useState<ChannelHealthReport[]>([]);
+  const [governorLog, setGovernorLog] = useState<GovernorAction[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  
+  const logsEndRef = useRef<HTMLDivElement>(null);
+  const sentinelIntervalRef = useRef<number | null>(null);
 
   const socialKeys = apiKeys.filter(k => k.category === 'social' && k.status === 'active');
 
-  // Auto-scroll logs
   useEffect(() => {
       logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [scanLogs]);
 
-  const addScanLog = (msg: string) => {
-      setScanLogs(prev => [...prev, `> ${msg}`]);
+  // Sentinel & Governor Loop
+  useEffect(() => {
+    if (isSentinelActive) {
+      handleRunFullScan(true);
+      sentinelIntervalRef.current = window.setInterval(() => handleRunFullScan(true), 300000); // 5 mins
+    } else if (sentinelIntervalRef.current) {
+      clearInterval(sentinelIntervalRef.current);
+    }
+    return () => { if (sentinelIntervalRef.current) clearInterval(sentinelIntervalRef.current); };
+  }, [isSentinelActive]);
+
+  const addScanLog = (msg: string, color: string = 'text-slate-400') => {
+      const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+      setScanLogs(prev => [...prev.slice(-30), `[${time}] ${msg}`]);
   };
 
-  const handleRunFullScan = async () => {
+  const handleRunFullScan = async (isAuto = false) => {
     const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
-    if (!googleKey) {
-        alert(texts.alert_key || "Google API Key required for AI analysis.");
-        return;
-    }
+    if (!googleKey) return;
 
     setIsScanning(true);
     setScanProgress(0);
-    setScanLogs([]);
-    setReport([]);
+    addScanLog(`SENTINEL ${isAuto ? 'AUTO' : 'MANUAL'} AUDIT INITIATED...`, 'text-primary');
 
-    addScanLog("INITIALIZING RISK PROTOCOL v2.0...");
-    await new Promise(r => setTimeout(r, 800));
-
-    const channelsToScan = socialKeys.length > 0 
-        ? socialKeys 
-        : [{ id: 'demo', alias: 'Demo Channel (TikTok)', provider: 'tiktok' }];
-
+    const channelsToScan = socialKeys.length > 0 ? socialKeys : [{ id: 'demo', alias: 'Demo Channel', provider: 'tiktok' }];
     const results: ChannelHealthReport[] = [];
     const progressStep = 100 / channelsToScan.length;
 
     try {
         for (let i = 0; i < channelsToScan.length; i++) {
             const channel = channelsToScan[i];
-            addScanLog(`CONNECTING TO: ${channel.provider.toUpperCase()} [${channel.alias}]...`);
-            
-            // Simulation stages
-            await new Promise(r => setTimeout(r, 600));
-            addScanLog(`  - Fetching last 30 videos metadata...`);
-            await new Promise(r => setTimeout(r, 500));
-            addScanLog(`  - Analyzing engagement velocity...`);
-            await new Promise(r => setTimeout(r, 500));
-            addScanLog(`  - Checking copyright databases...`);
-            
-            // AI Call
-            addScanLog(`  - SENDING DATA TO GEMINI AI FOR DIAGNOSIS...`);
+            addScanLog(`ANALYZING: ${channel.alias.toUpperCase()}...`);
             const audit = await generateChannelAudit(googleKey.key, channel.alias, channel.provider);
             results.push(audit);
             
-            addScanLog(`COMPLETED SCAN FOR ${channel.alias}. Status: ${audit.status}`);
+            // GOVERNOR AUTONOMOUS LOGIC
+            if (isGovernorActive && (audit.status === 'CRITICAL' || audit.status === 'AT_RISK')) {
+                addScanLog(`GOVERNOR INTERVENTION REQUIRED: EXECUTION STARTING...`, 'text-amber-500');
+                const exec = await runGovernorExecution(channel.alias, audit.ai_diagnosis);
+                setGovernorLog(prev => [exec, ...prev].slice(0, 20));
+                addScanLog(`GOVERNOR APPLIED: ${exec.action_type} - Impact: ${exec.impact_score}%`, 'text-green-400');
+            }
+
+            addScanLog(`AUDIT COMPLETE: ${audit.status} (Score: ${audit.health_score})`, audit.status === 'CRITICAL' ? 'text-red-500' : 'text-green-500');
             setScanProgress((prev) => Math.min(prev + progressStep, 100));
         }
-
-        addScanLog("COMPILING FINAL RISK REPORT...");
-        await new Promise(r => setTimeout(r, 800));
-        
         setReport(results);
-        if (results.length > 0) setSelectedChannelId(results[0].channel_name); // Auto select first
-        
-        // Auto Report
-        const summary = results.map(r => `channel: ${r.channel_name} | Score: ${r.health_score} | Status: ${r.status}`).join('\n');
-        onSendReportToChat(`🚨 **SYSTEM REPORT: CHANNEL HEALTH AUDIT COMPLETED**\n\nI have scanned ${results.length} channels.\n\n${summary}\n\nPlease advise on next steps for "At Risk" channels.`);
-
+        if (!selectedChannelId && results.length > 0) setSelectedChannelId(results[0].channel_name);
     } catch (e) {
-        console.error(e);
-        addScanLog("CRITICAL ERROR DURING SCAN.");
+        addScanLog("CRITICAL_FAULT: AI Engine Interrupted.", 'text-red-600');
     } finally {
         setIsScanning(false);
         setScanProgress(100);
@@ -104,227 +96,213 @@ const ChannelHealthDashboard: React.FC<ChannelHealthDashboardProps> = ({ apiKeys
   const selectedReport = report.find(r => r.channel_name === selectedChannelId) || report[0];
 
   return (
-    <div className="animate-fade-in space-y-6 pb-12 flex flex-col h-[calc(100vh-140px)]">
+    <div className="animate-fade-in space-y-6 pb-20 flex flex-col h-full overflow-hidden">
       
-      {/* HEADER & CONTROLS */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-800 pb-4 shrink-0">
-        <div>
-           <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-             <div className="relative">
-                 {/* Removed animate-pulse */}
-                 <HeartPulse className="text-red-500" size={28} />
-             </div>
-             {texts.title || "Channel Health & Risk Center"}
-           </h2>
-           <p className="text-slate-400 text-sm max-w-2xl font-mono">
-             Protocol: Shadowban Detection • Copyright Scan • Engagement Drops
-           </p>
-        </div>
-        <div>
-            <NeonButton onClick={handleRunFullScan} disabled={isScanning} size="lg" className="min-w-[200px]" variant="danger">
-                {isScanning ? (
-                    <span className="flex items-center gap-2"><RefreshCw className="animate-spin" /> {texts.btn_scanning || "Scanning Network..."}</span>
-                ) : (
-                    <span className="flex items-center gap-2"><Activity /> {texts.btn_scan || "RUN SYSTEM AUDIT"}</span>
-                )}
-            </NeonButton>
-        </div>
+      {/* OVERLORD STATUS BAR */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col xl:flex-row justify-between items-center gap-8 relative overflow-hidden">
+          <div className={`absolute top-0 left-0 w-full h-1 ${isGovernorActive ? 'bg-amber-500 animate-pulse' : isSentinelActive ? 'bg-primary' : 'bg-slate-800'}`}></div>
+          <div className="absolute right-0 top-0 p-8 opacity-5"><Crown size={120} /></div>
+          
+          <div className="flex items-center gap-6 relative z-10">
+              <div className={`p-5 rounded-2xl bg-slate-950 border transition-all duration-500 ${isGovernorActive ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.5)] scale-110' : isSentinelActive ? 'border-primary shadow-neon' : 'border-slate-800'}`}>
+                  {isGovernorActive ? <Crown size={40} className="text-amber-500 animate-bounce" /> : <Radar size={40} className={isSentinelActive ? "text-primary animate-spin-slow" : "text-slate-700"} />}
+              </div>
+              <div>
+                  <h2 className="text-3xl font-black text-white tracking-tighter uppercase flex items-center gap-3">
+                      {isGovernorActive ? 'AURA OVERLORD ACTIVE' : 'AI SENTINEL GUARD'}
+                      {isGovernorActive && <Sparkles size={20} className="text-amber-400" />}
+                  </h2>
+                  <div className="flex items-center gap-3 mt-1">
+                      <span className={`w-2 h-2 rounded-full ${isGovernorActive ? 'bg-amber-500 animate-pulse' : isSentinelActive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                      <span className="text-slate-500 text-[10px] font-mono uppercase tracking-widest italic">
+                          {isGovernorActive ? 'Full Autonomous Governance: Sửa lỗi & Tối ưu tự động không cần lệnh' : isSentinelActive ? 'Continuous Monitoring Active' : 'System Guard Offline'}
+                      </span>
+                  </div>
+              </div>
+          </div>
+
+          <div className="flex gap-4 relative z-10">
+              <button 
+                onClick={() => setIsGovernorActive(!isGovernorActive)} 
+                className={`flex flex-col items-center justify-center px-6 py-3 rounded-2xl border-2 transition-all ${isGovernorActive ? 'bg-amber-500/10 border-amber-500 text-amber-500' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-amber-500/50'}`}
+              >
+                  <Crown size={20} />
+                  <span className="text-[9px] font-black uppercase mt-1">Overlord Mode</span>
+              </button>
+              <NeonButton onClick={() => setIsSentinelActive(!isSentinelActive)} variant={isSentinelActive ? 'danger' : 'primary'} size="lg" className="min-w-[200px] h-14">
+                  {isSentinelActive ? <Lock size={18} /> : <Zap size={18} />}
+                  {isSentinelActive ? 'HALT GUARD' : 'ACTIVATE RADAR'}
+              </NeonButton>
+          </div>
       </div>
 
-      {/* VIEW: SCANNING TERMINAL */}
-      {isScanning && (
-          <div className="flex-1 flex flex-col gap-4 justify-center items-center">
-              <div className="w-full max-w-2xl bg-black border border-slate-800 rounded-xl overflow-hidden shadow-2xl relative">
-                  <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-2">
-                      <Terminal size={14} className="text-slate-400" />
-                      <span className="text-xs font-mono text-slate-300">SYSTEM_AUDIT_TERMINAL.exe</span>
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 overflow-hidden">
+          
+          {/* LEFT: MISSION & GOVERNOR LOGS */}
+          <div className="lg:col-span-4 flex flex-col gap-6 overflow-hidden">
+              <div className="bg-black border border-slate-800 rounded-[32px] overflow-hidden flex flex-col h-1/2 shadow-2xl relative">
+                  <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex justify-between items-center z-10">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Activity size={14} className="text-red-500" /> Sentinel Pulse
+                      </span>
                   </div>
-                  <div className="p-4 h-64 overflow-y-auto font-mono text-xs space-y-1 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-90">
-                      {scanLogs.map((log, i) => (
-                          <div key={i} className={`break-words ${log.includes('CRITICAL') ? 'text-red-500' : log.includes('COMPLETED') ? 'text-green-400' : log.includes('CONNECTING') ? 'text-yellow-400' : 'text-slate-400'}`}>
-                              {log}
-                          </div>
-                      ))}
+                  <div className="flex-1 p-6 font-mono text-[10px] overflow-y-auto space-y-2 custom-scrollbar">
+                      {scanLogs.map((log, i) => <div key={i} className="animate-fade-in text-slate-400">{log}</div>)}
                       <div ref={logsEndRef} />
                   </div>
-                  {/* Progress Bar */}
-                  <div className="h-1 bg-slate-800 w-full">
-                      <div className="h-full bg-green-500 transition-all duration-300 ease-out" style={{ width: `${scanProgress}%` }}></div>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-[32px] overflow-hidden flex flex-col h-1/2 shadow-2xl relative">
+                  <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex justify-between items-center z-10">
+                      <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                          <History size={14} /> Governor Activity (Lịch sử tự trị)
+                      </span>
                   </div>
-              </div>
-              <p className="text-slate-500 text-xs">AI is analyzing metadata patterns...</p>
-          </div>
-      )}
-
-      {/* VIEW: EMPTY STATE */}
-      {!isScanning && report.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/30 p-8 text-center">
-              <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
-                  <ShieldCheck size={40} className="text-slate-500" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">System Secure. Ready to Scan.</h3>
-              <p className="text-slate-400 max-w-md text-sm mb-6">
-                  Press the button above to run a deep diagnostic scan across all connected channels. We will look for hidden risks like Shadowbans and algorithmic penalties.
-              </p>
-              <div className="flex gap-4 text-xs text-slate-500 font-mono">
-                  <span className="flex items-center gap-1"><CheckCircle size={12}/> API Connected</span>
-                  <span className="flex items-center gap-1"><CheckCircle size={12}/> AI Engine Ready</span>
-              </div>
-          </div>
-      )}
-
-      {/* VIEW: REPORT DASHBOARD */}
-      {!isScanning && report.length > 0 && selectedReport && (
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 overflow-hidden">
-              
-              {/* LEFT: CHANNEL SELECTOR */}
-              <div className="lg:col-span-3 flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Target Channels ({report.length})</h3>
-                  {report.map(r => (
-                      <button 
-                          key={r.channel_name}
-                          onClick={() => setSelectedChannelId(r.channel_name)}
-                          className={`text-left p-3 rounded-xl border transition-all relative overflow-hidden group ${
-                              selectedChannelId === r.channel_name 
-                              ? 'bg-slate-800 border-slate-600 shadow-lg' 
-                              : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
-                          }`}
-                      >
-                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                              r.status === 'HEALTHY' ? 'bg-green-500' : r.status === 'AT_RISK' ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}></div>
-                          
-                          <div className="pl-3">
-                              <div className="flex justify-between items-center mb-1">
-                                  <span className="font-bold text-sm text-white truncate w-24">{r.channel_name}</span>
-                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                      r.status === 'HEALTHY' ? 'text-green-400 bg-green-900/20' : 
-                                      r.status === 'AT_RISK' ? 'text-yellow-400 bg-yellow-900/20' : 'text-red-400 bg-red-900/20'
-                                  }`}>{r.health_score}</span>
-                              </div>
-                              <div className="text-[10px] text-slate-500 flex items-center gap-1">
-                                  {r.platform.toUpperCase()} • {r.status}
-                              </div>
+                  <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
+                      {governorLog.length === 0 ? (
+                          <div className="h-full flex flex-col items-center justify-center opacity-10 grayscale text-center">
+                              <Crown size={40} className="mb-2" />
+                              <span className="uppercase font-black text-[9px]">Awaiting Intervention</span>
                           </div>
-                      </button>
-                  ))}
-              </div>
-
-              {/* CENTER: MAIN REPORT */}
-              <div className="lg:col-span-6 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
-                  
-                  {/* Score Card */}
-                  <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-6 rounded-2xl flex items-center justify-between relative overflow-hidden">
-                      <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl opacity-20 rounded-full ${
-                          selectedReport.status === 'HEALTHY' ? 'bg-green-500' : selectedReport.status === 'AT_RISK' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}></div>
-                      
-                      <div>
-                          <h2 className="text-2xl font-bold text-white mb-1">{selectedReport.channel_name}</h2>
-                          <div className="flex items-center gap-2 text-sm">
-                              <span className={`font-bold ${
-                                  selectedReport.status === 'HEALTHY' ? 'text-green-400' : selectedReport.status === 'AT_RISK' ? 'text-yellow-400' : 'text-red-400'
-                              }`}>{selectedReport.status}</span>
-                              <span className="text-slate-600">•</span>
-                              <span className="text-slate-400">Last scanned: Just now</span>
-                          </div>
-                      </div>
-
-                      <div className="text-right z-10">
-                          <div className="text-5xl font-black text-white tracking-tighter">{selectedReport.health_score}</div>
-                          <div className="text-[10px] text-slate-500 uppercase tracking-widest">Health Score</div>
-                      </div>
-                  </div>
-
-                  {/* Metrics Grid */}
-                  <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                          <div className="text-slate-500 text-[10px] uppercase font-bold mb-1 flex items-center gap-1"><Eye size={12}/> Growth</div>
-                          <div className="text-lg font-mono text-white font-bold">{selectedReport.metrics.views_growth}</div>
-                      </div>
-                      <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                          <div className="text-slate-500 text-[10px] uppercase font-bold mb-1 flex items-center gap-1"><Video size={12}/> Watch Time</div>
-                          <div className="text-lg font-mono text-white font-bold">{selectedReport.metrics.avg_watch_time}</div>
-                      </div>
-                      <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                          <div className="text-slate-500 text-[10px] uppercase font-bold mb-1 flex items-center gap-1"><MousePointer2 size={12}/> CTR</div>
-                          <div className="text-lg font-mono text-white font-bold">{selectedReport.metrics.ctr}</div>
-                      </div>
-                  </div>
-
-                  {/* Risks List */}
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                      <h4 className="text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2">
-                          <AlertOctagon size={16} className="text-red-500"/> Risk Detections
-                      </h4>
-                      <div className="space-y-3">
-                          {selectedReport.risks.length === 0 || (selectedReport.risks.length === 1 && selectedReport.risks[0].type === 'NONE') ? (
-                              <div className="p-4 bg-green-900/10 border border-green-500/20 rounded-lg flex items-center gap-3">
-                                  <CheckCircle size={20} className="text-green-500" />
-                                  <span className="text-sm text-green-400 font-medium">Clean Record. No issues detected.</span>
-                              </div>
-                          ) : (
-                              selectedReport.risks.map((risk, idx) => (
-                                  <div key={idx} className="p-3 bg-red-900/10 border border-red-500/20 rounded-lg flex items-start gap-3">
-                                      <div className="mt-0.5"><AlertTriangle size={16} className="text-red-500"/></div>
-                                      <div>
-                                          <div className="flex items-center gap-2">
-                                              <span className="text-sm font-bold text-white">{risk.type}</span>
-                                              <span className="text-[9px] bg-red-950 text-red-400 px-1.5 rounded border border-red-900">{risk.severity}</span>
-                                          </div>
-                                          <p className="text-xs text-slate-400 mt-1 leading-relaxed">{risk.description}</p>
+                      ) : (
+                          governorLog.map((act) => (
+                              <div key={act.id} className="bg-slate-950 border border-slate-800 p-4 rounded-2xl relative group hover:border-amber-500/30 transition-all">
+                                  <div className="flex justify-between items-start mb-2">
+                                      <span className="text-[9px] font-black bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 uppercase">{act.action_type}</span>
+                                      <span className="text-[8px] font-mono text-slate-600">{new Date(act.timestamp).toLocaleTimeString()}</span>
+                                  </div>
+                                  <p className="text-[10px] text-white font-bold mb-1">{act.description}</p>
+                                  <div className="grid grid-cols-2 gap-2 mt-2">
+                                      <div className="p-2 bg-slate-900 rounded border border-slate-800 text-[9px]">
+                                          <div className="text-slate-600 uppercase font-black mb-1">Before:</div>
+                                          <div className="text-slate-400 italic line-clamp-2">{act.before}</div>
+                                      </div>
+                                      <div className="p-2 bg-amber-900/10 rounded border border-amber-500/10 text-[9px]">
+                                          <div className="text-amber-600 uppercase font-black mb-1">After:</div>
+                                          <div className="text-white font-medium line-clamp-2">{act.after}</div>
                                       </div>
                                   </div>
-                              ))
-                          )}
-                      </div>
+                              </div>
+                          ))
+                      )}
                   </div>
+              </div>
+          </div>
 
-                  {/* AI Diagnosis */}
-                  <div className="bg-blue-900/10 border border-blue-500/20 p-5 rounded-xl">
-                      <h4 className="text-sm font-bold text-blue-400 uppercase mb-3 flex items-center gap-2">
-                          <Activity size={16} /> AI Chief Medical Officer
-                      </h4>
-                      <p className="text-sm text-slate-300 mb-4 italic leading-relaxed">"{selectedReport.ai_diagnosis}"</p>
-                      
-                      <div className="space-y-2">
-                          {selectedReport.action_plan.map((action, i) => (
-                              <div key={i} className="flex items-start gap-2 text-xs text-white">
-                                  <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 text-blue-400 font-bold">{i + 1}</div>
-                                  <span className="mt-0.5">{action}</span>
+          {/* CENTER: DIAGNOSTIC BAY */}
+          <div className="lg:col-span-5 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+              {report.length === 0 && !isScanning ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-20">
+                      <Stethoscope size={100} className="mb-6" />
+                      <h4 className="text-2xl font-black uppercase tracking-tighter">Diagnostic Bay Empty</h4>
+                  </div>
+              ) : selectedReport ? (
+                  <div className="animate-fade-in space-y-6 pb-12">
+                      {/* Diagnostic Header */}
+                      <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden flex justify-between items-center">
+                          <div className={`absolute top-0 right-0 w-64 h-64 blur-3xl opacity-10 rounded-full ${selectedReport.status === 'HEALTHY' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <div className="relative z-10">
+                              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{selectedReport.platform} Diagnostic</div>
+                              <h2 className="text-4xl font-black text-white tracking-tighter uppercase">{selectedReport.channel_name}</h2>
+                              <div className="mt-3 flex items-center gap-3">
+                                  <span className={`px-3 py-1 rounded-lg text-[10px] font-black border uppercase ${selectedReport.status === 'HEALTHY' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>{selectedReport.status}</span>
+                                  <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">Recovery: {selectedReport.recovery_estimate}</span>
+                              </div>
+                          </div>
+                          <div className="text-right relative z-10">
+                              <div className={`text-7xl font-black tracking-tighter ${selectedReport.health_score > 80 ? 'text-green-500' : 'text-red-500'}`}>{selectedReport.health_score}</div>
+                              <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Health Index</div>
+                          </div>
+                      </div>
+
+                      {/* Pathology Cards */}
+                      <div className="space-y-4">
+                          {selectedReport.risks.map((risk, idx) => (
+                              <div key={idx} className="bg-slate-950 p-6 rounded-3xl border border-slate-800 flex items-start gap-5 group hover:border-red-500/30 transition-all">
+                                  <div className={`p-4 rounded-2xl ${risk.severity === 'HIGH' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'}`}><AlertTriangle size={24} /></div>
+                                  <div className="flex-1">
+                                      <div className="flex items-center gap-3 mb-1">
+                                          <h4 className="text-sm font-black text-white uppercase tracking-tight">{risk.type}</h4>
+                                          <span className="text-[9px] bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-slate-500 font-mono italic">ICD-AI: {risk.medical_term}</span>
+                                      </div>
+                                      <p className="text-xs text-slate-400 leading-relaxed font-medium italic">"{risk.description}"</p>
+                                      {isGovernorActive && risk.severity === 'HIGH' && (
+                                          <div className="mt-3 flex items-center gap-2 text-amber-500 text-[10px] font-black uppercase animate-pulse">
+                                              <Crown size={12}/> Overlord Auto-Fixing this risk...
+                                          </div>
+                                      )}
+                                  </div>
                               </div>
                           ))}
                       </div>
-                  </div>
 
-              </div>
-
-              {/* RIGHT: ACTIONS & HISTORY */}
-              <div className="lg:col-span-3 flex flex-col gap-4">
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                      <h4 className="text-xs font-bold text-white uppercase mb-3">Quick Actions</h4>
-                      <div className="space-y-2">
-                          <button className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-700 transition-colors flex items-center justify-center gap-2">
-                              <Unlock size={14} /> Appeal Shadowban
-                          </button>
-                          <button className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-700 transition-colors flex items-center justify-center gap-2">
-                              <RefreshCw size={14} /> Clear Cache
-                          </button>
+                      {/* Treatment Center */}
+                      <div className="bg-primary/5 border border-primary/20 rounded-[40px] p-8">
+                          <h3 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-3 mb-6"><Zap size={18} /> Treatment & Optimization Plan</h3>
+                          <div className="space-y-4">
+                              {selectedReport.action_plan.map((action, i) => (
+                                  <div key={i} className="flex gap-4">
+                                      <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 font-black text-xs ${action.priority === 'urgent' ? 'border-red-500 text-red-500 bg-red-500/10' : 'border-primary text-primary'}`}>{i + 1}</div>
+                                      <div>
+                                          <h5 className="text-xs font-black text-white uppercase mb-1">{action.task}</h5>
+                                          <p className="text-[11px] text-slate-400 italic leading-relaxed">{action.instruction}</p>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
                       </div>
                   </div>
-
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex-1">
-                      <h4 className="text-xs font-bold text-white uppercase mb-3">Protection Level</h4>
-                      <div className="flex flex-col items-center justify-center h-40">
-                          <ShieldCheck size={64} className={`${selectedReport.health_score > 70 ? 'text-green-500' : 'text-yellow-500'} mb-4`} />
-                          <div className="text-2xl font-bold text-white">{selectedReport.health_score > 70 ? 'ACTIVE' : 'WARNING'}</div>
-                          <div className="text-[10px] text-slate-500 text-center mt-1">Real-time monitoring is {selectedReport.health_score > 70 ? 'enabled' : 'restricted'}</div>
-                      </div>
-                  </div>
-              </div>
-
+              ) : null}
           </div>
-      )}
+
+          {/* RIGHT: OVERLORD COMMANDS */}
+          <div className="lg:col-span-3 space-y-6">
+              <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-8 shadow-xl">
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2"><Crown size={16} className="text-amber-500"/> Executive Suite</h3>
+                  <div className="space-y-4">
+                      <button 
+                        onClick={() => handleRunFullScan()}
+                        className="w-full bg-slate-950 border border-slate-800 p-5 rounded-2xl hover:border-primary transition-all group flex flex-col gap-3"
+                      >
+                          <div className="p-3 bg-primary/10 rounded-xl text-primary w-fit group-hover:scale-110 transition-transform"><Wand2 size={24} /></div>
+                          <div className="text-left">
+                             <div className="text-xs font-black text-white uppercase">Manual Optimization</div>
+                             <div className="text-[9px] text-slate-500 uppercase font-black mt-1">Cưỡng chế tối ưu ngay bây giờ</div>
+                          </div>
+                      </button>
+
+                      <button 
+                        onClick={() => onSendReportToChat?.(`Yêu cầu Overlord viết lại bộ Metadata cho kênh: ${selectedReport?.channel_name}`)}
+                        className="w-full bg-slate-950 border border-slate-800 p-5 rounded-2xl hover:border-amber-500 transition-all group flex flex-col gap-3"
+                      >
+                          <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500 w-fit"><Crown size={24} /></div>
+                          <div className="text-left">
+                             <div className="text-xs font-black text-white uppercase">Neural Overhaul</div>
+                             <div className="text-[9px] text-slate-500 uppercase font-black mt-1">Viết lại toàn bộ giới thiệu & tên video</div>
+                          </div>
+                      </button>
+                  </div>
+              </div>
+
+              <div className="bg-slate-950 border border-slate-800 rounded-[40px] p-8">
+                  <div className="flex items-center gap-3 mb-4">
+                      <ShieldCheck size={20} className="text-green-500" />
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Authority Status</span>
+                  </div>
+                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3">
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase">
+                          <span className="text-slate-500">Bot Logic:</span>
+                          <span className="text-green-500">Autonomous</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase">
+                          <span className="text-slate-500">API Priority:</span>
+                          <span className="text-primary">Executive</span>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+      </div>
     </div>
   );
 };
