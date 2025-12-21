@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Dna, Plus, Trash2, Zap, Target, Layers, CheckCircle, 
   AlertTriangle, RefreshCw, FileText, Sparkles, Youtube, 
   Link, Music, Video, Mic, Download, Play, Box, X
 } from 'lucide-react';
-import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig, AppLanguage, ContentLanguage, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio } from '../types';
+import { CompetitorChannel, ViralDNAProfile, StudioSettings, OrchestratorResponse, ApiKeyConfig, AppLanguage, ContentLanguage, ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio, KnowledgeBase } from '../types';
 import NeonButton from './NeonButton';
 import { extractViralDNA, generateProScript, generateGeminiTTS, generateVeoVideo } from '../services/geminiService';
 import PlanResult from './PlanResult';
@@ -16,6 +15,7 @@ interface ViralDNAStudioProps {
   appLanguage: AppLanguage;
   contentLanguage: ContentLanguage;
   setContentLanguage: (lang: ContentLanguage) => void;
+  knowledgeBase: KnowledgeBase;
   t?: any;
   scriptModel?: ScriptModel;
   setScriptModel?: (model: ScriptModel) => void;
@@ -33,6 +33,7 @@ type StudioTab = 'analyzer' | 'script' | 'studio';
 const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ 
     apiKeys, contentLanguage, scriptModel, visualModel, voiceModel, resolution, aspectRatio, t,
     setScriptModel, setVisualModel, setVoiceModel, setResolution, setAspectRatio,
+    knowledgeBase,
     predefinedTopic = ''
 }) => {
   const [activeStudioTab, setActiveStudioTab] = useState<StudioTab>(predefinedTopic ? 'script' : 'analyzer');
@@ -77,16 +78,24 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
       return;
     }
     
-    const validUrls = channels.map(c => c.url).filter(u => u.trim() !== '');
-    if (validUrls.length === 0) {
-      alert("Please enter at least one source URL.");
+    const urlRegex = /^(https?:\/\/)?(www\.|vm\.|vt\.)?(youtube\.com|youtu\.be|tiktok\.com)\/.+$/;
+    const urlEntries = channels.map(c => c.url.trim()).filter(u => u !== '');
+    
+    if (urlEntries.length === 0) {
+      alert("Vui lòng nhập ít nhất một URL nguồn (TikTok hoặc YouTube).");
+      return;
+    }
+
+    const invalidEntries = urlEntries.filter(u => !urlRegex.test(u));
+    if (invalidEntries.length > 0) {
+      alert(`Một số URL không hợp lệ. Vui lòng kiểm tra lại:\n${invalidEntries.join('\n')}\n\nHỗ trợ các định dạng từ TikTok và YouTube.`);
       return;
     }
 
     setStatus('analyzing');
-    addLog(`Starting Deep DNA Extraction for ${validUrls.length} source(s)...`);
+    addLog(`Starting Deep DNA Extraction for ${urlEntries.length} source(s)...`);
     try {
-        const dna = await extractViralDNA(key, validUrls, "Comprehensive Analysis", contentLanguage);
+        const dna = await extractViralDNA(key, urlEntries, "Comprehensive Analysis", contentLanguage);
         setDnaProfile(dna);
         setStudioSettings(s => ({ ...s, topic: dna.keywords[0] || '' }));
         setStatus('done');
@@ -104,11 +113,10 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         alert("Missing API Key.");
         return;
     }
-    // Note: dnaProfile is optional if user enters topic manually from Campaign Wizard
+
     setStatus('generating');
-    addLog("Composing Professional Script with Gemini AI...");
+    addLog("Composing Professional Script with Gemini AI & Knowledge Base...");
     try {
-        // Fallback DNA if missing (Manual mode)
         const mockDna: ViralDNAProfile = dnaProfile || {
             structure: { hook_type: 'Benefit', pacing: 'Fast', avg_scene_duration: 3 },
             emotional_curve: ['Curiosity'],
@@ -116,7 +124,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
             algorithm_fit_score: 80,
             risk_level: 'Safe'
         };
-        const plan = await generateProScript(key, mockDna, studioSettings);
+        const plan = await generateProScript(key, mockDna, studioSettings, knowledgeBase);
         setGeneratedPlan(plan);
         setStatus('done');
         setActiveStudioTab('studio');
@@ -229,7 +237,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                           <div className="flex gap-3">
                             <Sparkles className="text-primary shrink-0" size={18} />
                             <p className="text-xs text-slate-400 leading-relaxed">
-                              <strong>Pro Tip:</strong> Pasting multiple successful competitor channels allows the AI to identify <em>patterns of success</em> across your niche, ensuring your content has the "Viral DNA" required to trend.
+                              <strong>Pro Tip:</strong> Pasting multiple successful competitor channels allows the AI to identify <em>patterns of success</em> across your niche, đảm bảo kịch bản kế thừa "Sở thích đã học" của bạn.
                             </p>
                           </div>
                         </div>

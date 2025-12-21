@@ -172,9 +172,13 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
                                     onChange={(e) => setSelectedNiche(e.target.value)} 
                                     className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-xs text-white outline-none focus:border-primary transition-all font-bold"
                                 >
-                                    <option value="AI_TOOLS">🤖 AI SAAS TOOLS (Premium)</option>
+                                    <option value="AUTO">🤖 TỰ ĐỘNG (Phân tích Trend Tổng hợp)</option>
+                                    <option value="AI_SAAS">🛠️ AI SaaS Tools</option>
+                                    <option value="ML_PLATFORMS">🧠 Machine Learning Platforms</option>
+                                    <option value="AI_HACKS">⚡ AI Productivity Hacks</option>
+                                    <option value="PASSIVE_INCOME">💰 Phương pháp Kiếm tiền Thụ động</option>
+                                    <option value="SMART_HOME">🏠 Thiết bị Nhà thông minh</option>
                                     <option value="MULTI_NICHE">🚀 ĐA NGÁCH (Hybrid Profit)</option>
-                                    <option value="GADGETS">🏠 SMART HOME GADGETS</option>
                                 </select>
                             </div>
                             

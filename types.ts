@@ -25,7 +25,7 @@ export interface MarketScoring {
 }
 
 export type ContentWorkflow = 'AUTO' | 'VIRAL_CLONE' | 'REVIEW_TUTORIAL' | 'NEWS_SUMMARY' | 'STORYTELLING' | 'EDUCATIONAL' | 'REACTION';
-export type ContentNiche = 'AUTO' | 'TECH' | 'BEAUTY' | 'FINANCE' | 'HEALTH' | 'ENTERTAINMENT' | 'NEWS' | 'CRYPTO';
+export type ContentNiche = 'AUTO' | 'TECH' | 'BEAUTY' | 'FINANCE' | 'HEALTH' | 'ENTERTAINMENT' | 'NEWS' | 'CRYPTO' | 'AI_SAAS' | 'ML_PLATFORMS' | 'AI_HACKS' | 'PASSIVE_INCOME' | 'SMART_HOME' | 'MULTI_NICHE';
 
 export type VideoResolution = '720p' | '1080p' | '4K';
 export type AspectRatio = '9:16' | '16:9' | '1:1';
@@ -36,10 +36,8 @@ export type VoiceModel = 'ElevenLabs' | 'OpenAI TTS' | 'Google Chirp' | 'Vbee TT
 export type AppLanguage = 'vi' | 'en' | 'jp' | 'es' | 'cn' | 'de' | 'fr' | 'kr'; 
 export type ContentLanguage = 'vi' | 'en' | 'es' | 'jp' | 'cn' | 'de' | 'fr' | 'kr';
 
-// Fix: Added missing TargetRegion type for QueueDashboard
 export type TargetRegion = 'VN' | 'US' | 'GLOBAL' | string;
 
-// Fix: Added missing CompetitorChannel interface for ViralDNAStudio
 export interface CompetitorChannel {
   id: string;
   url: string;
@@ -137,7 +135,6 @@ export interface ApiKeyConfig {
   id: string;
   alias: string;
   key: string;
-  // Fix: Added 'zalo_personal' to resolve comparison errors in socialService.ts
   provider: 'google' | 'openai' | 'veo' | 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'zalo' | 'zalo_personal' | 'shopee' | 'amazon' | 'clickbank';
   category: 'model' | 'social' | 'affiliate' | 'storage';
   status: 'active' | 'quota_exceeded' | 'error';
@@ -292,6 +289,9 @@ export interface ChatMessage {
     text: string;
     timestamp: number;
     command?: AgentCommand;
+    detected_lang?: string;
+    suggestions?: string[];
+    sentiment?: 'neutral' | 'happy' | 'urgent' | 'thinking';
 }
 
 export interface ChatSession {

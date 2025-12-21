@@ -5,7 +5,7 @@ import {
   KnowledgeBase, AutoPilotStats, AutoPilotLog, 
   PostingJob, BatchJobItem, CompletedVideo,
   ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio,
-  ContentLanguage, PipelineStage, AppLanguage
+  ContentLanguage, PipelineStage, AppLanguage, AgentCommand
 } from './types';
 
 // Components
@@ -63,7 +63,7 @@ const App: React.FC = () => {
   const [autoPilotActive, setAutoPilotActive] = useState(false);
   const [autoPilotStats, setAutoPilotStats] = useState<AutoPilotStats>({ cyclesRun: 0, videosCreated: 0, postedCount: 0, uptime: 0 });
   const [autoPilotLogs, setAutoPilotLogs] = useState<AutoPilotLog[]>([]);
-  const [autoPilotNiche, setAutoPilotNiche] = useState('MULTI_NICHE');
+  const [autoPilotNiche, setAutoPilotNiche] = useState('AUTO');
 
   const [jobs, setJobs] = useState<PostingJob[]>([]);
   const [completedVideos, setCompletedVideos] = useState<CompletedVideo[]>([]);
@@ -98,7 +98,7 @@ const App: React.FC = () => {
               keywords: [target.product_name],
               algorithm_fit_score: 90,
               risk_level: 'Safe'
-          }, { topic: target.product_name, contentLanguage } as any);
+          }, { topic: target.product_name, contentLanguage } as any, knowledgeBase);
 
           // C. ASSET GENERATION (Voice & Video)
           setStatus(AppStatus.RENDERING);
@@ -145,9 +145,33 @@ const App: React.FC = () => {
     return () => { if (loopRef.current) clearInterval(loopRef.current); };
   }, [autoPilotActive, autoPilotNiche]);
 
-  const handleCommand = useCallback((command: any) => {
-    if (command.action === 'NAVIGATE') setActiveTab(command.payload);
-  }, []);
+  // --- COMMAND HANDLING SYSTEM ---
+  const handleCommand = useCallback((command: AgentCommand) => {
+    switch (command.action) {
+      case 'NAVIGATE':
+        setActiveTab(command.payload);
+        break;
+      case 'SET_INPUT':
+        setCampaignTopic(command.payload);
+        break;
+      case 'UPDATE_MEMORY':
+        setKnowledgeBase(prev => {
+            const updated = {
+                ...prev,
+                learnedPreferences: [...new Set([...prev.learnedPreferences, command.payload])],
+                lastUpdated: Date.now()
+            };
+            localStorage.setItem(KNOWLEDGE_BASE_KEY, JSON.stringify(updated));
+            return updated;
+        });
+        break;
+      case 'EXECUTE_RUN':
+        if (activeTab === 'auto_pilot') setAutoPilotActive(true);
+        break;
+      default:
+        console.warn("Unknown command action:", command.action);
+    }
+  }, [activeTab]);
 
   const startCampaignToStudio = (topic: string) => {
     setCampaignTopic(topic);
@@ -210,7 +234,7 @@ const App: React.FC = () => {
                     resolution={resolution} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
                 />
             )}
-            {activeTab === 'studio' && <ViralDNAStudio predefinedTopic={campaignTopic} apiKeys={apiKeys} appLanguage={appLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} resolution={resolution} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} t={t} />}
+            {activeTab === 'studio' && <ViralDNAStudio predefinedTopic={campaignTopic} apiKeys={apiKeys} appLanguage={appLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} knowledgeBase={knowledgeBase} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} resolution={resolution} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} t={t} />}
             {activeTab === 'analytics' && <AnalyticsDashboard apiKeys={apiKeys} onDeployStrategy={() => setActiveTab('studio')} t={t} />}
             {activeTab === 'marketplace' && <AIMarketplace apiKeys={apiKeys} onSelectProduct={() => setActiveTab('studio')} t={t} />}
             {activeTab === 'risk_center' && <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={() => {}} t={t} />}
@@ -221,7 +245,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      <AIChatAssistant apiKey={apiKeys.find(k => k.provider === 'google' && k.status === 'active')?.key} appContext={{ activeTab, status, urlInput: '', activeKeys: apiKeys.length, lastError: null, detectedStrategy: null, knowledgeBase, autoPilotContext: autoPilotNiche }} onCommand={handleCommand} />
+      <AIChatAssistant apiKey={apiKeys.find(k => k.provider === 'google' && k.status === 'active')?.key} appContext={{ activeTab, status, urlInput: campaignTopic, activeKeys: apiKeys.length, lastError: null, detectedStrategy: null, knowledgeBase, autoPilotContext: autoPilotNiche }} onCommand={handleCommand} />
       <ConsentModal isOpen={isConsentOpen} onClose={() => setIsConsentOpen(false)} onConfirm={() => { setIsConsentOpen(false); setAutoPilotActive(true); }} />
     </div>
   );
