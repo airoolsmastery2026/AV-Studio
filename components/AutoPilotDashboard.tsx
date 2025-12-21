@@ -70,7 +70,7 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
                         <h2 className="text-3xl font-black text-white tracking-tighter">AGENTIC AUTO-PILOT <span className="text-[10px] bg-red-600 px-2 py-1 rounded ml-2">ULTIMATE</span></h2>
                         <div className="flex items-center gap-3 mt-1">
                             <ShieldCheck size={14} className="text-green-500" /> 
-                            <span className="text-slate-500 text-xs font-mono uppercase tracking-widest">Autonomous Loop: Search -> Script -> Voice -> Video</span>
+                            <span className="text-slate-500 text-xs font-mono uppercase tracking-widest">Autonomous Loop: Search &rarr; Script &rarr; Voice &rarr; Video</span>
                         </div>
                     </div>
                 </div>

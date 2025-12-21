@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   BookOpen, Dna, Infinity as InfinityIcon, Zap, Shield, 
@@ -154,7 +155,7 @@ const Documentation: React.FC = () => {
                       <ul className="text-xs text-slate-500 space-y-2 mb-4">
                           <li>1. Truy cập <a href="https://aistudio.google.com" className="text-primary underline">Google AI Studio</a>.</li>
                           <li>2. Tạo API Key mới (Free hoặc Paid).</li>
-                          <li>3. Vào <strong>Settings -> Vault -> Model</strong> và dán khóa vào.</li>
+                          <li>3. Vào <strong>Settings &rarr; Vault &rarr; Model</strong> và dán khóa vào.</li>
                       </ul>
                       <div className="bg-yellow-900/10 border border-yellow-600/30 p-4 rounded-xl flex gap-3 italic text-xs text-yellow-500">
                           <AlertTriangle size={16} className="shrink-0" />
@@ -262,7 +263,6 @@ const Documentation: React.FC = () => {
                       <p className="text-xs text-slate-400 leading-relaxed mb-4">Nhập một từ khóa ngách. Hệ thống sẽ quét toàn bộ Internet để tìm ra các "Winning Channel" (Kênh đang thắng lớn) trong ngách đó. Phân tích điểm yếu của đối thủ để bạn có "Winning Angle" (Góc chiến thắng) riêng.</p>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl">
-                      {/* Fixed: Added Globe to imports to resolve line 266 error */}
                       <h4 className="text-white font-bold mb-4 flex items-center gap-2"><Globe size={18} className="text-purple-500"/> DEEP NETWORK AUDIT</h4>
                       <p className="text-xs text-slate-400 leading-relaxed mb-4">Sử dụng Google Search Grounding để dò tìm các "lỗ hổng thị trường". Tìm kiếm những sản phẩm có CPM cao nhưng độ cạnh tranh nội dung video hiện tại đang thấp.</p>
                   </div>
