@@ -7,7 +7,8 @@ import {
   Store, Music, MessageCircle, AlertCircle, Loader2, Sparkles, Key as KeyIcon,
   ChevronRight, DollarSign, Target, Rocket, Award, ExternalLink, HelpCircle, Info, Lock, ShieldCheck,
   Cpu, Power, RotateCcw, Share2, Coins, TrendingUp, Play, 
-  Instagram, Twitter, Chrome, Landmark, Wallet, Layers, HelpCircle as HelpIcon, BookOpen
+  Instagram, Twitter, Chrome, Landmark, Wallet, Layers, HelpCircle as HelpIcon, BookOpen, Bitcoin,
+  MapPin, Flag, Navigation
 } from 'lucide-react';
 import NeonButton from './NeonButton';
 import { ApiKeyConfig, KnowledgeBase, AppLanguage, ContentLanguage } from '../types';
@@ -49,18 +50,25 @@ const PLATFORM_CONFIGS: Record<string, {
         guide: "Vào OpenAI Dashboard > API Keys.",
         link: "https://platform.openai.com/api-keys"
     },
-    // Affiliate
+    // Affiliate VN
     shopee: {
-        label: "Shopee Affiliate",
+        label: "Shopee Vietnam",
         fields: [
             { key: "key", label: "App Secret", placeholder: "Nhập Secret...", type: "password" },
             { key: "app_id", label: "App ID", placeholder: "Nhập App ID...", type: "text" }
         ],
-        guide: "Đăng ký tại Shopee Open Platform để lấy App ID và Secret.",
+        guide: "Yêu cầu đăng ký Shopee Open Platform để lấy API.",
         link: "https://open.shopee.vn/"
     },
+    accesstrade: {
+        label: "AccessTrade VN",
+        fields: [{ key: "key", label: "Access Key", placeholder: "Nhập Access Key...", type: "text" }],
+        guide: "Lấy Key tại Profile > API Key trên dashboard AccessTrade.",
+        link: "https://pub.accesstrade.vn/"
+    },
+    // Affiliate Global
     amazon: {
-        label: "Amazon Associates",
+        label: "Amazon Associates (US/Global)",
         fields: [
             { key: "key", label: "Access Key", placeholder: "AKIA...", type: "text" },
             { key: "tracking_id", label: "Tracking ID", placeholder: "store-20", type: "text" }
@@ -68,30 +76,49 @@ const PLATFORM_CONFIGS: Record<string, {
         guide: "Lấy Tracking ID từ trang Associates Central.",
         link: "https://affiliate-program.amazon.com/"
     },
-    accesstrade: {
-        label: "AccessTrade VN",
-        fields: [{ key: "key", label: "Access Key", placeholder: "Nhập Access Key...", type: "text" }],
-        guide: "Vào AccessTrade Dashboard > Profile > API Key.",
-        link: "https://pub.accesstrade.vn/profile/api_key"
+    clickbank: {
+        label: "ClickBank (Global SaaS)",
+        fields: [
+            { key: "key", label: "Dev API Key", placeholder: "Mã API...", type: "text" },
+            { key: "affiliate_id", label: "NickName", placeholder: "Tên đăng nhập Clickbank", type: "text" }
+        ],
+        guide: "Cần API Key để AI có thể trích xuất danh sách sản phẩm tiềm năng.",
+        link: "https://www.clickbank.com/"
     },
-    // Social
-    zalo_personal: {
-        label: "Zalo Personal",
-        fields: [{ key: "key", label: "Session Cookie (z_pw_token)", placeholder: "Nhập token lấy từ F12...", type: "password" }],
-        guide: "Dùng F12 (Inspect) trên trình duyệt, tìm Cookie 'z_pw_token' của Zalo Web.",
-        link: "https://chat.zalo.me"
+    ebay: {
+        label: "eBay Partner Network",
+        fields: [{ key: "key", label: "Campaign ID", placeholder: "Nhập Campaign ID...", type: "text" }],
+        guide: "Sử dụng cho các thị trường Mỹ, Anh, Đức.",
+        link: "https://partnernetwork.ebay.com/"
     },
-    tiktok: {
-        label: "TikTok Automation",
-        fields: [{ key: "key", label: "Access Token", placeholder: "act.v1...", type: "password" }],
-        guide: "Sử dụng mã ủy quyền từ TikTok For Developers hoặc Session ID.",
-        link: "https://developers.tiktok.com/"
+    // Affiliate Asia
+    rakuten_jp: {
+        label: "Rakuten (Nhật Bản)",
+        fields: [
+            { key: "key", label: "Affiliate ID", placeholder: "Nhập ID...", type: "text" },
+            { key: "app_id", label: "Application ID", placeholder: "Mã App...", type: "text" }
+        ],
+        guide: "Sàn thương mại điện tử lớn nhất Nhật Bản.",
+        link: "https://affiliate.rakuten.co.jp/"
     },
-    youtube: {
-        label: "YouTube Studio",
-        fields: [{ key: "key", label: "OAuth Client Secret", placeholder: "Dán mã JSON hoặc Secret...", type: "password" }],
-        guide: "Tạo dự án trên Google Cloud Console, bật YouTube Data API v3.",
-        link: "https://console.cloud.google.com/"
+    coupang_kr: {
+        label: "Coupang Partners (Hàn Quốc)",
+        fields: [
+            { key: "key", label: "Access Key", placeholder: "Nhập Access Key...", type: "text" },
+            { key: "secret", label: "Secret Key", placeholder: "Nhập Secret...", type: "password" }
+        ],
+        guide: "Sàn TMĐT số 1 Hàn Quốc, tốc độ ship siêu nhanh.",
+        link: "https://partners.coupang.com/"
+    },
+    // Crypto
+    binance: {
+        label: "Binance",
+        fields: [
+            { key: "key", label: "API Key", placeholder: "Nhập API Key...", type: "password" },
+            { key: "secret", label: "API Secret", placeholder: "Nhập Secret...", type: "password" }
+        ],
+        guide: "Bật quyền 'Enable Spot' để AI theo dõi danh mục.",
+        link: "https://www.binance.com/en/my/settings/api-management"
     }
 };
 
@@ -99,7 +126,9 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   apiKeys, setApiKeys, knowledgeBase, setKnowledgeBase, t,
   appLang, setAppLang, contentLanguage, setContentLanguage
 }) => {
-  const [activeTab, setActiveTab] = useState<'ai' | 'affiliate' | 'social' | 'brain'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'affiliate' | 'social' | 'crypto' | 'brain'>('ai');
+  const [affiliateSubTab, setAffiliateSubTab] = useState<'vn' | 'global' | 'asia'>('vn');
+  
   const [trainingText, setTrainingText] = useState('');
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [showAddForm, setShowAddForm] = useState<string | null>(null);
@@ -111,10 +140,9 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
       alert("Vui lòng nhập tên gợi nhớ và mã API chính.");
       return;
     }
-
     const encryptedKey = secureVault.encrypt(newKeyData.key);
     const extraFields = { ...newKeyData };
-    delete extraFields.key; // Xóa key chính khỏi extra
+    delete extraFields.key;
 
     const keyConfig: ApiKeyConfig = {
       id: crypto.randomUUID(),
@@ -131,7 +159,6 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
     setApiKeys(updatedKeys);
     localStorage.setItem('av_studio_secure_vault_v1', JSON.stringify(updatedKeys));
     
-    // Reset form
     setShowAddForm(null);
     setNewKeyData({});
     setAlias('');
@@ -164,7 +191,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
             
             <div className="space-y-4">
                 <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">Tên Gợi Nhớ (Ví dụ: Nick chính, Key 1...)</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block">Tên Gợi Nhớ (Ví dụ: Tài khoản Japan 1...)</label>
                     <input 
                         value={alias} 
                         onChange={(e) => setAlias(e.target.value)}
@@ -202,7 +229,6 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 
   return (
     <div className="animate-fade-in space-y-6 pb-20">
-      {/* HEADER CHIẾN LƯỢC */}
       <div className="bg-slate-950 p-8 rounded-[40px] border border-slate-800 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-6">
           <div className="p-5 bg-primary/10 rounded-3xl border border-primary/20 shadow-neon">
@@ -213,16 +239,16 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
             <p className="text-slate-500 text-xs font-black uppercase tracking-widest mt-1">Điều phối hạ tầng tài khoản đa điểm</p>
           </div>
         </div>
-        <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
-          <button onClick={() => setActiveTab('ai')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'ai' ? 'bg-purple-600 text-white shadow-neon' : 'text-slate-500'}`}>1. AI Engines</button>
-          <button onClick={() => setActiveTab('affiliate')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'affiliate' ? 'bg-green-600 text-white shadow-neon' : 'text-slate-500'}`}>2. Affiliates</button>
-          <button onClick={() => setActiveTab('social')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'social' ? 'bg-blue-600 text-white shadow-neon' : 'text-slate-500'}`}>3. Socials</button>
-          <button onClick={() => setActiveTab('brain')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'brain' ? 'bg-primary text-white shadow-neon' : 'text-slate-500'}`}>Brains</button>
+        <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-inner flex-wrap justify-center">
+          <button onClick={() => setActiveTab('ai')} className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'ai' ? 'bg-purple-600 text-white shadow-neon' : 'text-slate-500'}`}>1. AI Engines</button>
+          <button onClick={() => setActiveTab('affiliate')} className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'affiliate' ? 'bg-green-600 text-white shadow-neon' : 'text-slate-500'}`}>2. Affiliates</button>
+          <button onClick={() => setActiveTab('crypto')} className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'crypto' ? 'bg-orange-600 text-white shadow-neon' : 'text-slate-500'}`}>3. Crypto</button>
+          <button onClick={() => setActiveTab('social')} className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'social' ? 'bg-blue-600 text-white shadow-neon' : 'text-slate-500'}`}>4. Socials</button>
+          <button onClick={() => setActiveTab('brain')} className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'brain' ? 'bg-primary text-white shadow-neon' : 'text-slate-500'}`}>Brains</button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* CỘT CHÍNH */}
         <div className="lg:col-span-8 space-y-6">
           
           {activeTab === 'ai' && (
@@ -234,9 +260,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                      <button onClick={() => setShowAddForm('openai')} className="px-4 py-2 bg-slate-800 rounded-lg text-[10px] font-black hover:bg-purple-600 transition-all">+ GPT-4</button>
                   </div>
                </div>
-               
                {showAddForm === 'google' || showAddForm === 'openai' ? renderAddForm(showAddForm, 'model') : null}
-
                <div className="grid grid-cols-1 gap-4">
                   {apiKeys.filter(k => k.category === 'model').map(k => (
                     <div key={k.id} className="bg-slate-950 border border-slate-800 p-5 rounded-2xl flex justify-between items-center group">
@@ -256,24 +280,64 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 
           {activeTab === 'affiliate' && (
             <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 animate-fade-in space-y-8">
-               <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+               <div className="flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-4 gap-4">
                   <h3 className="text-xl font-black text-white uppercase flex items-center gap-3"><ShoppingBag className="text-green-500"/> Affiliate Networks</h3>
-                  <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                     {['shopee', 'amazon', 'accesstrade', 'clickbank', 'adflex', 'ecomobi'].map(p => (
-                        <button key={p} onClick={() => setShowAddForm(p)} className="px-4 py-2 bg-slate-800 rounded-lg text-[10px] font-black hover:bg-green-600 transition-all uppercase shrink-0">
-                           + {p}
-                        </button>
-                     ))}
+                  <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 shadow-inner overflow-x-auto no-scrollbar">
+                     <button onClick={() => setAffiliateSubTab('vn')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all whitespace-nowrap ${affiliateSubTab === 'vn' ? 'bg-green-600 text-white' : 'text-slate-500'}`}>1. Việt Nam</button>
+                     <button onClick={() => setAffiliateSubTab('global')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all whitespace-nowrap ${affiliateSubTab === 'global' ? 'bg-green-600 text-white' : 'text-slate-500'}`}>2. Âu Mỹ (Global)</button>
+                     <button onClick={() => setAffiliateSubTab('asia')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all whitespace-nowrap ${affiliateSubTab === 'asia' ? 'bg-green-600 text-white' : 'text-slate-500'}`}>3. Nhật - Hàn (Asia)</button>
                   </div>
                </div>
 
-               {showAddForm && PLATFORM_CONFIGS[showAddForm] && renderAddForm(showAddForm, 'affiliate')}
+               <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+                  {affiliateSubTab === 'vn' && ['shopee', 'lazada', 'tiki', 'accesstrade', 'adflex', 'ecomobi'].map(p => (
+                      <button key={p} onClick={() => setShowAddForm(p)} className="px-4 py-2 bg-slate-800 rounded-lg text-[10px] font-black hover:bg-green-600 transition-all uppercase shrink-0">+ {p}</button>
+                  ))}
+                  {affiliateSubTab === 'global' && ['amazon', 'ebay', 'walmart', 'clickbank', 'cj', 'shareasale', 'target'].map(p => (
+                      <button key={p} onClick={() => setShowAddForm(p)} className="px-4 py-2 bg-slate-800 rounded-lg text-[10px] font-black hover:bg-blue-600 transition-all uppercase shrink-0">+ {p}</button>
+                  ))}
+                  {affiliateSubTab === 'asia' && ['rakuten_jp', 'amazon_jp', 'coupang_kr', 'gmarket_kr', 'qoo10_jp'].map(p => (
+                      <button key={p} onClick={() => setShowAddForm(p)} className="px-4 py-2 bg-slate-800 rounded-lg text-[10px] font-black hover:bg-red-600 transition-all uppercase shrink-0">+ {p}</button>
+                  ))}
+               </div>
+
+               {showAddForm && renderAddForm(showAddForm, 'affiliate')}
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {apiKeys.filter(k => k.category === 'affiliate').map(k => (
+                    <div key={k.id} className="bg-slate-950 border border-slate-800 p-5 rounded-2xl flex justify-between items-center group hover:border-green-500/50 transition-all">
+                       <div className="flex items-center gap-4">
+                          <div className="p-3 bg-slate-900 rounded-xl text-green-400">
+                             {['rakuten_jp', 'amazon_jp', 'coupang_kr', 'gmarket_kr'].includes(k.provider) ? <Flag size={20}/> : <Store size={20}/>}
+                          </div>
+                          <div>
+                             <div className="text-sm font-black text-white uppercase">{k.alias}</div>
+                             <div className="text-[10px] text-slate-500 font-mono uppercase">{k.provider.replace('_', ' ')}</div>
+                          </div>
+                       </div>
+                       <button onClick={() => deleteKey(k.id)} className="p-2 text-slate-700 hover:text-red-500"><Trash2 size={18}/></button>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'crypto' && (
+            <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 animate-fade-in space-y-8">
+               <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                  <h3 className="text-xl font-black text-white uppercase flex items-center gap-3"><Bitcoin className="text-orange-500"/> Crypto Exchanges</h3>
+                  <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                     {['binance', 'okx', 'bybit', 'kucoin', 'gateio', 'mexc', 'bitget'].map(p => (
+                        <button key={p} onClick={() => setShowAddForm(p)} className="px-4 py-2 bg-slate-800 rounded-lg text-[10px] font-black hover:bg-orange-600 transition-all uppercase shrink-0">+ {p}</button>
+                     ))}
+                  </div>
+               </div>
+               {showAddForm && PLATFORM_CONFIGS[showAddForm] && renderAddForm(showAddForm, 'affiliate')}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {apiKeys.filter(k => k.category === 'affiliate' && ['binance', 'okx', 'bybit', 'kucoin', 'gateio', 'mexc', 'bitget'].includes(k.provider)).map(k => (
                     <div key={k.id} className="bg-slate-950 border border-slate-800 p-5 rounded-2xl flex justify-between items-center group">
                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-slate-900 rounded-xl text-green-400"><Store size={20}/></div>
+                          <div className="p-3 bg-slate-900 rounded-xl text-orange-400"><Coins size={20}/></div>
                           <div>
                              <div className="text-sm font-black text-white uppercase">{k.alias}</div>
                              <div className="text-[10px] text-slate-500 font-mono uppercase">{k.provider}</div>
@@ -292,15 +356,11 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                   <h3 className="text-xl font-black text-white uppercase flex items-center gap-3"><Share2 className="text-blue-500"/> Social Channels</h3>
                   <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                      {['tiktok', 'youtube', 'zalo_personal', 'facebook', 'instagram', 'twitter'].map(p => (
-                        <button key={p} onClick={() => setShowAddForm(p)} className="px-4 py-2 bg-slate-800 rounded-lg text-[10px] font-black hover:bg-blue-600 transition-all uppercase shrink-0">
-                           + {p}
-                        </button>
+                        <button key={p} onClick={() => setShowAddForm(p)} className="px-4 py-2 bg-slate-800 rounded-lg text-[10px] font-black hover:bg-blue-600 transition-all uppercase shrink-0">+ {p}</button>
                      ))}
                   </div>
                </div>
-
                {showAddForm && renderAddForm(showAddForm, 'social')}
-
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {apiKeys.filter(k => k.category === 'social').map(k => (
                     <div key={k.id} className="bg-slate-950 border border-slate-800 p-5 rounded-2xl flex justify-between items-center group">
@@ -347,33 +407,38 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
           )}
         </div>
 
-        {/* CỘT PHỤ - HƯỚNG DẪN */}
         <div className="lg:col-span-4 space-y-6">
            <div className="bg-slate-900/80 border border-slate-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden">
                <div className="absolute top-0 right-0 p-8 opacity-5"><BookOpen size={120} /></div>
                <h3 className="text-sm font-black text-white uppercase tracking-widest mb-6 flex items-center gap-3">
-                  <HelpCircle size={18} className="text-primary" /> Hướng dẫn kết nối
+                  <HelpCircle size={18} className="text-primary" /> Hướng dẫn thị trường
                </h3>
                
                <div className="space-y-6">
                   <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800">
-                     <h4 className="text-xs font-black text-primary uppercase mb-2">1. Quy trình kết nối</h4>
+                     <h4 className="text-xs font-black text-red-500 uppercase mb-2 flex items-center gap-2">
+                        <Navigation size={14}/> Sàn Nhật & Hàn
+                     </h4>
                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Mỗi nền tảng có cách bảo mật riêng. Hãy chắc chắn bạn đã đăng ký tài khoản <strong>Developer</strong> hoặc <strong>Affiliate</strong> tương ứng trước khi kết nối.
+                        Thị trường Nhật (Rakuten) và Hàn (Coupang) có tỷ lệ chuyển đổi cao cho đồ điện tử và mỹ phẩm. Hãy chắc chắn bạn đã đổi <strong>Content Language</strong> sang ngôn ngữ tương ứng trong tab Studio.
                      </p>
                   </div>
                   
                   <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800">
-                     <h4 className="text-xs font-black text-green-500 uppercase mb-2">2. Bảo mật Vault</h4>
+                     <h4 className="text-xs font-black text-blue-500 uppercase mb-2 flex items-center gap-2">
+                        <Flag size={14}/> Amazon Associates
+                     </h4>
                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Mã của bạn được mã hóa <strong>AV-Secure</strong> tại LocalStorage. Chúng tôi không bao giờ truyền tải mã thô qua Internet.
+                        Luôn nhập <strong>Tracking ID</strong> chính xác để AI tự động chèn link affiliate vào mô tả video Reels/TikTok.
                      </p>
                   </div>
 
                   <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800">
-                     <h4 className="text-xs font-black text-red-500 uppercase mb-2">3. Zalo Personal Tips</h4>
+                     <h4 className="text-xs font-black text-green-500 uppercase mb-2 flex items-center gap-2">
+                        <MapPin size={14}/> Affiliate Việt Nam
+                     </h4>
                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Đối với Zalo cá nhân, bạn cần lấy mã <code>z_pw_token</code> bằng cách nhấn F12 trên Zalo Web, vào tab Application -> Cookies.
+                        Sử dụng AccessTrade nếu bạn muốn chạy đa chiến dịch từ tài chính đến du lịch. Shopee/Lazada phù hợp cho review sản phẩm gia dụng.
                      </p>
                   </div>
                </div>
@@ -381,7 +446,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
            
            <div className="bg-primary/5 border border-primary/20 rounded-[40px] p-8 flex items-start gap-4">
               <Info className="text-primary shrink-0" size={24} />
-              <p className="text-[11px] text-slate-400 italic leading-relaxed">"Nếu bạn gặp lỗi Connection Failed, hãy kiểm tra xem Token đã hết hạn chưa hoặc địa chỉ IP của bạn có bị chặn không."</p>
+              <p className="text-[11px] text-slate-400 italic leading-relaxed">"Gợi ý: Hãy kết nối ít nhất 1 sàn cho mỗi khu vực để Robot có thể tự động so sánh hoa hồng và chọn sản phẩm tối ưu nhất."</p>
            </div>
         </div>
       </div>

@@ -170,13 +170,13 @@ export interface ApiKeyConfig {
   id: string;
   alias: string;
   key: string;
-  extra_fields?: Record<string, string>; // Để lưu AppID, Secret, v.v...
-  // Added 'zalo' to the provider union to match the comparison in socialService.ts
+  extra_fields?: Record<string, string>;
   provider: 
     | 'google' | 'openai' | 'veo' 
     | 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'twitter' | 'threads' | 'zalo_personal' | 'zalo'
-    | 'shopee' | 'amazon' | 'lazada' | 'tiki' | 'accesstrade' | 'clickbank' | 'adflex' | 'ecomobi' | 'masoffer' | 'ebay' | 'aliexpress' | 'walmart' | 'rakuten' | 'cj'
-    | 'binance' | 'bybit' | 'okx' | 'gateio' | 'mexc';
+    | 'shopee' | 'amazon' | 'lazada' | 'tiki' | 'accesstrade' | 'clickbank' | 'adflex' | 'ecomobi' | 'masoffer' | 'ebay' | 'aliexpress' | 'walmart' | 'rakuten_global' | 'cj' | 'shareasale' | 'target'
+    | 'rakuten_jp' | 'amazon_jp' | 'coupang_kr' | 'gmarket_kr' | 'qoo10_jp'
+    | 'binance' | 'bybit' | 'okx' | 'gateio' | 'mexc' | 'bitget' | 'remitano' | 'kucoin' | 'htx' | 'coinbase' | 'kraken' | 'bingx' | 'phemex' | 'bitfinex';
   category: 'model' | 'social' | 'affiliate' | 'storage';
   status: 'active' | 'quota_exceeded' | 'error';
   lastUsed?: string;
