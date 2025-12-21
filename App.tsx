@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ShieldCheck, AlertCircle, Wifi } from 'lucide-react';
+import { ShieldCheck, AlertCircle, Wifi, CloudSync, Ghost } from 'lucide-react';
 import { 
   AppStatus, TabView, AppContext, ApiKeyConfig, 
   KnowledgeBase, AutoPilotStats, AutoPilotLog, 
@@ -26,6 +26,7 @@ import ChannelHealthDashboard from './components/ChannelHealthDashboard';
 // Services & Translations
 import { runAgenticRecon, generateProScript, generateGeminiTTS, predictGoldenHours, runSeoAudit } from './services/geminiService';
 import { translations } from './constants/translations';
+import { saveMissionState, getMissionState } from './services/storageService';
 
 const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
 const KNOWLEDGE_BASE_KEY = 'av_studio_brain_v1';
@@ -61,6 +62,13 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : { customInstructions: '', learnedPreferences: [], autoImprovementEnabled: true, lastUpdated: Date.now() };
   });
 
+  // State AutoPilot đồng bộ hóa
+  const [autoPilotActive, setAutoPilotActive] = useState(false);
+  const [autoPilotStats, setAutoPilotStats] = useState<AutoPilotStats>({ cyclesRun: 0, videosCreated: 0, postedCount: 0, uptime: 0 });
+  const [autoPilotLogs, setAutoPilotLogs] = useState<AutoPilotLog[]>([]);
+  const [autoPilotNiche, setAutoPilotNiche] = useState('AUTO'); 
+  const [currentMission, setCurrentMission] = useState<MissionIntel | null>(null);
+
   const [scriptModel, setScriptModel] = useState<ScriptModel>('Gemini 3 Pro');
   const [visualModel, setVisualModel] = useState<VisualModel>('VEO');
   const [voiceModel, setVoiceModel] = useState<VoiceModel>('Google Chirp');
@@ -69,14 +77,32 @@ const App: React.FC = () => {
   const [contentLanguage, setContentLanguage] = useState<ContentLanguage>('vi');
   const [campaignTopic, setCampaignTopic] = useState('');
 
-  const [autoPilotActive, setAutoPilotActive] = useState(false);
-  const [autoPilotStats, setAutoPilotStats] = useState<AutoPilotStats>({ cyclesRun: 0, videosCreated: 0, postedCount: 0, uptime: 0 });
-  const [autoPilotLogs, setAutoPilotLogs] = useState<AutoPilotLog[]>([]);
-  const [autoPilotNiche, setAutoPilotNiche] = useState('AUTO'); 
-  const [currentMission, setCurrentMission] = useState<MissionIntel | null>(null);
-
   const [jobs, setJobs] = useState<PostingJob[]>([]);
   const loopRef = useRef<number | null>(null);
+
+  // PHỤC HỒI NHIỆM VỤ (MISSION RECOVERY)
+  useEffect(() => {
+    const savedMission = getMissionState();
+    if (savedMission && savedMission.autoPilotActive) {
+        setAutoPilotActive(true);
+        setAutoPilotStats(savedMission.stats);
+        setAutoPilotLogs(savedMission.logs);
+        setAutoPilotNiche(savedMission.niche);
+        setCurrentMission(savedMission.currentMission);
+        addAutoPilotLog("RECOVERY", "Đã phục hồi phiên làm việc từ nền tảng ngầm.", "success");
+    }
+  }, []);
+
+  // LƯU TRẠNG THÁI MỖI KHI CẬP NHẬT
+  useEffect(() => {
+    saveMissionState({
+        autoPilotActive,
+        stats: autoPilotStats,
+        logs: autoPilotLogs,
+        niche: autoPilotNiche,
+        currentMission
+    });
+  }, [autoPilotActive, autoPilotStats, autoPilotLogs, autoPilotNiche, currentMission]);
 
   const addAutoPilotLog = (action: string, detail: string, status: 'success' | 'error' | 'warning' | 'info' = 'info') => {
     const log: AutoPilotLog = {
@@ -190,9 +216,14 @@ const App: React.FC = () => {
                     <span className={`text-[10px] font-black px-2 py-1 rounded border transition-all ${autoPilotActive ? 'text-primary border-primary/20 bg-primary/5 animate-pulse' : 'text-slate-500 border-slate-800'}`}>
                         {autoPilotActive ? `${status}` : 'STANDBY'}
                     </span>
+                    {autoPilotActive && (
+                        <div className="flex items-center gap-1 ml-2 text-green-500">
+                            <CloudSync size={14} className="animate-spin-slow" />
+                            <span className="text-[8px] font-black uppercase">Vercel 24/7 Linked</span>
+                        </div>
+                    )}
                 </div>
                 
-                {/* API HEALTH MONITOR */}
                 <div className="hidden md:flex items-center gap-4 pl-6 border-l border-slate-800">
                     <div className="flex items-center gap-2">
                         <Wifi size={14} className={hasActiveGemini ? 'text-green-500' : 'text-red-500'} />
