@@ -55,7 +55,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
             {/* Header Label - Static & Clean */}
             <div className="flex items-center gap-2 mb-4 opacity-80">
                 <Cpu size={16} className="text-primary" />
-                <h3 className="text-xs font-bold text-white uppercase tracking-[0.2em]">AI Model Configuration</h3>
+                <h3 className="text-xs font-bold text-white uppercase tracking-[0.2em]">CẤU HÌNH TRÍ TUỆ AI (PRO STACK)</h3>
                 <div className="h-px bg-slate-800 flex-1 ml-4"></div>
             </div>
 
@@ -64,55 +64,51 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                 {/* LEFT: AI CORE MODELS */}
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <SelectInput 
-                        label={texts.script_title || "Script Intelligence"}
+                        label={texts.script_title || "Trí Tuệ Kịch Bản"}
                         value={scriptModel}
                         onChange={setScriptModel}
                         icon={BrainCircuit}
                         color="text-purple-400"
                         glowColor="purple"
                         options={[
-                            { value: 'Gemini 2.5 Flash', label: 'Gemini 2.5 Flash (Fast)' },
-                            { value: 'Gemini 3 Pro', label: 'Gemini 3 Pro (Reasoning)' },
-                            { value: 'GPT-4o', label: 'GPT-4o (Creative)' },
-                            { value: 'Grok Beta', label: 'Grok Beta (Uncensored)' },
+                            { value: 'Gemini 2.5 Flash', label: 'Gemini 2.5 Flash (Siêu tốc)' },
+                            { value: 'Gemini 3 Pro', label: 'Gemini 3 Pro (Tối ưu nhất)' },
+                            { value: 'GPT-4o', label: 'GPT-4o (Đa dụng)' },
                         ]}
                     />
                     <SelectInput 
-                        label={texts.visual_title || "Visual Engine"}
+                        label={texts.visual_title || "Động Cơ Hình Ảnh"}
                         value={visualModel}
                         onChange={setVisualModel}
                         icon={Palette}
                         color="text-blue-400"
                         glowColor="blue"
                         options={[
-                            { value: 'VEO', label: 'Google Veo (Video Generation)' },
-                            { value: 'SORA', label: 'Sora (OpenAI Video)' },
-                            { value: 'IMAGEN', label: 'Imagen 3 (High Fidelity)' },
+                            { value: 'VEO', label: 'Google Veo (Video 24/7)' },
+                            { value: 'SORA', label: 'SORA (OpenAI Premium)' },
+                            { value: 'IMAGEN', label: 'Imagen 3 (Phim Cinematic)' },
                             { value: 'KLING', label: 'Kling AI (Motion Control)' },
-                            { value: 'MIDJOURNEY', label: 'Midjourney (Artistic)' },
                         ]}
                     />
                     <SelectInput 
-                        label={texts.voice_title || "Voice Synthesis"}
+                        label={texts.voice_title || "Tổng Hợp Giọng Nói"}
                         value={voiceModel}
                         onChange={setVoiceModel}
                         icon={Mic}
                         color="text-green-400"
                         glowColor="green"
                         options={[
-                            { value: 'Google Chirp', label: 'Google Chirp (Native Multi-ling)' },
-                            { value: 'Vbee TTS', label: 'Vbee VN (Local Dialects)' },
+                            { value: 'Google Chirp', label: 'Google Chirp (Giọng thật 99%)' },
+                            { value: 'Vbee TTS', label: 'Vbee Việt Nam (Chuẩn vùng miền)' },
                             { value: 'ElevenLabs', label: 'ElevenLabs (Emotive)' },
-                            { value: 'OpenAI TTS', label: 'OpenAI TTS (Clean)' },
                         ]}
                     />
                 </div>
 
-                {/* RIGHT: OUTPUT SPECS (Separated Box) */}
+                {/* RIGHT: OUTPUT SPECS */}
                 <div className="flex flex-col md:flex-row gap-4 xl:border-l border-slate-800 xl:pl-8 shrink-0 relative">
-                    {/* Label Badge */}
                     <div className="absolute -top-3 left-8 xl:left-12 px-2 bg-[#020617] text-[9px] font-bold text-slate-500 uppercase tracking-wider hidden xl:block">
-                        Output Specs
+                        Thông số xuất bản
                     </div>
 
                     <div className="bg-slate-900/30 border border-slate-800/50 rounded-xl p-3 flex gap-4 w-full md:w-auto items-center">
@@ -120,16 +116,16 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                             <MonitorPlay size={18} />
                         </div>
                         <SelectInput 
-                            label="Resolution"
+                            label="Độ phân giải"
                             value={resolution}
                             onChange={setResolution}
                             icon={Sparkles}
                             color="text-yellow-500"
                             glowColor="yellow"
                             options={[
-                                { value: '720p', label: '720p (HD Speed)' },
-                                { value: '1080p', label: '1080p (FHD Standard)' },
-                                { value: '4K', label: '4K (UHD Cinema)' },
+                                { value: '1080p', label: '1080p (Chuẩn nét)' },
+                                { value: '4K', label: '4K (Siêu nét)' },
+                                { value: '720p', label: '720p (Tiết kiệm)' },
                             ]}
                         />
                     </div>
@@ -139,16 +135,16 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
                             <Video size={18} />
                         </div>
                         <SelectInput 
-                            label="Aspect Ratio"
+                            label="Tỷ lệ khung hình"
                             value={aspectRatio}
                             onChange={setAspectRatio}
-                            icon={null} // Icon is in the box
+                            icon={null}
                             color="text-pink-500"
                             glowColor="pink"
                             options={[
                                 { value: '9:16', label: '9:16 (TikTok/Reels)' },
                                 { value: '16:9', label: '16:9 (YouTube)' },
-                                { value: '1:1', label: '1:1 (Square/Feed)' },
+                                { value: '1:1', label: '1:1 (Facebook)' },
                             ]}
                         />
                     </div>
