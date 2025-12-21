@@ -25,7 +25,24 @@ export interface MarketScoring {
 }
 
 export type ContentWorkflow = 'AUTO' | 'VIRAL_CLONE' | 'REVIEW_TUTORIAL' | 'NEWS_SUMMARY' | 'STORYTELLING' | 'EDUCATIONAL' | 'REACTION';
-export type ContentNiche = 'AUTO' | 'TECH' | 'BEAUTY' | 'FINANCE' | 'HEALTH' | 'ENTERTAINMENT' | 'NEWS' | 'CRYPTO' | 'AI_SAAS' | 'ML_PLATFORMS' | 'AI_HACKS' | 'PASSIVE_INCOME' | 'SMART_HOME' | 'MULTI_NICHE';
+export type ContentNiche = 
+  | 'AUTO' 
+  | 'TECH' 
+  | 'BEAUTY' 
+  | 'FINANCE' 
+  | 'HEALTH' 
+  | 'ENTERTAINMENT' 
+  | 'NEWS' 
+  | 'CRYPTO' 
+  | 'AI_SAAS' 
+  | 'ML_PLATFORMS' 
+  | 'AI_HACKS' 
+  | 'AI_AGENTS'
+  | 'AI_TRADING'
+  | 'AI_ART'
+  | 'PASSIVE_INCOME' 
+  | 'SMART_HOME' 
+  | 'MULTI_NICHE';
 
 export type VideoResolution = '720p' | '1080p' | '4K';
 export type AspectRatio = '9:16' | '16:9' | '1:1';
@@ -33,16 +50,15 @@ export type ScriptModel = 'Gemini 2.5 Flash' | 'Gemini 3 Pro' | 'GPT-4o' | 'Grok
 export type VisualModel = 'VEO' | 'SORA' | 'KLING' | 'IMAGEN' | 'MIDJOURNEY';
 export type VoiceModel = 'ElevenLabs' | 'OpenAI TTS' | 'Google Chirp' | 'Vbee TTS';
 
-export type AppLanguage = 'vi' | 'en' | 'jp' | 'es' | 'cn' | 'de' | 'fr' | 'kr'; 
-export type ContentLanguage = 'vi' | 'en' | 'es' | 'jp' | 'cn' | 'de' | 'fr' | 'kr';
-
-export type TargetRegion = 'VN' | 'US' | 'GLOBAL' | string;
+export type AppLanguage = 'vi' | 'en'; 
+export type ContentLanguage = 'vi' | 'en';
 
 export interface CompetitorChannel {
   id: string;
   url: string;
   name: string;
   status: 'pending' | 'analyzing' | 'completed' | 'error';
+  dna_preview?: string;
 }
 
 export interface VideoConfig {
@@ -73,72 +89,40 @@ export interface ProductionPlan {
   };
 }
 
-export interface GeneratedContent {
-  title: string;
-  description: string;
-  hashtags: string[];
-  thumbnail_prompt: string;
-}
-
 export interface OrchestratorResponse {
   market_scoring: MarketScoring;
   audience_personas: AudiencePersona[];
   deep_analysis: DeepAnalysis;
   production_plan: ProductionPlan;
-  generated_content?: GeneratedContent; 
+  generated_content?: {
+    title: string;
+    description: string;
+    hashtags: string[];
+    thumbnail_prompt: string;
+  }; 
   consent_log: {
     user_confirmed_clone: boolean;
     timestamp: string;
   };
 }
 
-export interface CompletedVideo {
-  id: string;
-  title: string;
-  description: string;
-  thumbnailUrl: string;
-  videoUrl?: string; 
-  platform: string;
-  niche: string;
-  createdAt: number;
-  stats?: {
-    views: number;
-    likes: number;
-  };
+export interface PostingJob {
+    id: string;
+    content_title: string;
+    caption: string;
+    hashtags: string[];
+    platforms: string[];
+    scheduled_time: number;
+    status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'processing';
+    thumbnail_url?: string;
+    video_url?: string;
 }
 
-export interface SourceMetadata {
-  url: string;
-  type: 'channel' | 'product' | 'auto_detect';
-  notes?: string;
-  detected_strategy?: ContentWorkflow; 
-  manual_niche?: ContentNiche;
-  manual_workflow?: ContentWorkflow;
-  prefer_google_stack?: boolean; 
-  video_config?: VideoConfig; 
-}
-
-export enum AppStatus {
-  IDLE = 'IDLE',
-  ANALYZING = 'ANALYZING',
-  ROUTING = 'ROUTING',
-  PLANNING = 'PLANNING',
-  PARAPHRASING = 'PARAPHRASING',
-  RENDERING = 'RENDERING',
-  COMPLETE = 'COMPLETE',
-  ERROR = 'ERROR'
-}
-
-export type TabView = 'campaign' | 'integrations' | 'queue' | 'analytics' | 'risk_center' | 'marketplace' | 'settings' | 'auto_pilot' | 'models' | 'studio' | 'docs';
-
-export interface ApiKeyConfig {
-  id: string;
-  alias: string;
-  key: string;
-  provider: 'google' | 'openai' | 'veo' | 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'zalo' | 'zalo_personal' | 'shopee' | 'amazon' | 'clickbank';
-  category: 'model' | 'social' | 'affiliate' | 'storage';
-  status: 'active' | 'quota_exceeded' | 'error';
-  lastUsed?: string;
+export interface KnowledgeBase {
+    customInstructions: string;
+    learnedPreferences: string[];
+    autoImprovementEnabled: boolean;
+    lastUpdated: number;
 }
 
 export interface ViralDNAProfile {
@@ -169,11 +153,38 @@ export interface StudioSettings {
   musicSync: boolean;
 }
 
-export interface KnowledgeBase {
-    customInstructions: string;
-    learnedPreferences: string[];
-    autoImprovementEnabled: boolean;
-    lastUpdated: number;
+export enum AppStatus {
+  IDLE = 'IDLE',
+  ANALYZING = 'ANALYZING',
+  ROUTING = 'ROUTING',
+  PLANNING = 'PLANNING',
+  PARAPHRASING = 'PARAPHRASING',
+  RENDERING = 'RENDERING',
+  COMPLETE = 'COMPLETE',
+  ERROR = 'ERROR'
+}
+
+export type TabView = 'campaign' | 'integrations' | 'queue' | 'analytics' | 'risk_center' | 'marketplace' | 'settings' | 'auto_pilot' | 'models' | 'studio' | 'docs';
+
+export interface ApiKeyConfig {
+  id: string;
+  alias: string;
+  key: string;
+  extra_fields?: Record<string, string>; // Để lưu AppID, Secret, v.v...
+  // Added 'zalo' to the provider union to match the comparison in socialService.ts
+  provider: 
+    | 'google' | 'openai' | 'veo' 
+    | 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'twitter' | 'threads' | 'zalo_personal' | 'zalo'
+    | 'shopee' | 'amazon' | 'lazada' | 'tiki' | 'accesstrade' | 'clickbank' | 'adflex' | 'ecomobi' | 'masoffer' | 'ebay' | 'aliexpress' | 'walmart' | 'rakuten' | 'cj'
+    | 'binance' | 'bybit' | 'okx' | 'gateio' | 'mexc';
+  category: 'model' | 'social' | 'affiliate' | 'storage';
+  status: 'active' | 'quota_exceeded' | 'error';
+  lastUsed?: string;
+}
+
+export interface AgentCommand {
+  action: 'NAVIGATE' | 'SET_INPUT' | 'EXECUTE_RUN' | 'UPDATE_MEMORY';
+  payload: any;
 }
 
 export interface AppContext {
@@ -187,73 +198,87 @@ export interface AppContext {
   autoPilotContext: string;
 }
 
-export interface AgentCommand {
-  action: 'NAVIGATE' | 'SET_INPUT' | 'EXECUTE_RUN' | 'UPDATE_MEMORY';
-  payload: any;
-  reasoning?: string;
+export interface AIProduct {
+  id: string;
+  product_name: string;
+  affiliate_link: string;
+  commission_est: string;
+  network: string;
+  opportunity_score: number;
+  reason_to_promote: string;
+  content_angle?: string;
+  timestamp: number;
 }
 
 export interface AffiliateHuntResult {
-  products: {
-      product_name: string;
-      network: string;
-      commission_est: string;
-      opportunity_score: number;
-      affiliate_link: string;
-      reason_to_promote: string;
-      content_angle: string;
-  }[];
+  products: AIProduct[];
   strategy_note: string;
 }
 
+export interface SourceMetadata {
+  url: string;
+  title: string;
+  snippet: string;
+}
+
 export interface HunterInsight {
+  type: string;
   target_name: string;
-  type: 'WINNING_PRODUCT' | 'VIRAL_CHANNEL' | 'NICHE_OPPORTUNITY';
-  match_score: number;
   market_status: string;
-  key_metrics: { label: string; value: string; trend: 'up' | 'down' | 'stable'; }[];
-  hidden_analysis: { consumer_psychology: string; competitor_weakness: string; profit_potential: string; risk_assessment: string; };
+  match_score: number;
+  hidden_analysis: {
+    consumer_psychology: string;
+    competitor_weakness: string;
+  };
+  key_metrics: {
+    label: string;
+    value: string;
+    trend: 'up' | 'down';
+  }[];
   strategic_suggestion: string;
-}
-
-export interface GoldenHourRecommendation {
-  time_label: string;
-  reason: string;
-  score: number;
-}
-
-export interface ChannelHealthReport {
-    channel_name: string;
-    platform: 'tiktok' | 'youtube' | 'facebook' | 'instagram';
-    health_score: number;
-    status: 'HEALTHY' | 'AT_RISK' | 'CRITICAL';
-    metrics: { views_growth: string; avg_watch_time: string; ctr: string; };
-    risks: { type: string; severity: string; description: string; }[];
-    ai_diagnosis: string;
-    action_plan: string[];
-}
-
-export interface ScheduleSlot {
-  slot_id: number;
-  time_of_day: string;
-  purpose: string;
-  target_audience_activity: string;
 }
 
 export interface NetworkScanResult {
   scan_id: string;
   focus_area: string;
-  targets: { rank: number; name: string; url: string; reason: string; }[];
+  targets: {
+    rank: number;
+    name: string;
+    reason: string;
+    url: string;
+  }[];
 }
 
-export type PipelineStage = 'IDLE' | 'SIGNAL_ANALYSIS' | 'SCRIPTING' | 'VISUAL_GEN' | 'VOICE_GEN' | 'MERGING' | 'PUBLISHING' | 'COMPLETE';
+export interface GoldenHourRecommendation {
+  time_label: string;
+  score: number;
+  reason: string;
+}
 
-export interface AutoPilotLog {
-  timestamp: string;
-  action: string;
-  detail: string;
-  status: 'info' | 'success' | 'warning' | 'error';
-  stage?: PipelineStage;
+export interface ScheduleSlot {
+  slot_id: string;
+  time_of_day: string;
+  purpose: string;
+  target_audience_activity: string;
+}
+
+export interface ChannelHealthReport {
+  channel_name: string;
+  platform: string;
+  health_score: number;
+  status: 'HEALTHY' | 'AT_RISK' | 'CRITICAL';
+  metrics: {
+    views_growth: string;
+    avg_watch_time: string;
+    ctr: string;
+  };
+  risks: {
+    type: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH';
+    description?: string;
+  }[];
+  ai_diagnosis: string;
+  action_plan: string[];
 }
 
 export interface AutoPilotStats {
@@ -263,17 +288,40 @@ export interface AutoPilotStats {
   uptime: number;
 }
 
-export interface PostingJob {
-    id: string;
-    content_title: string;
-    caption: string;
-    hashtags: string[];
-    platforms: string[];
-    scheduled_time: number;
-    status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'processing';
-    thumbnail_url?: string;
-    video_url?: string;
+export interface AutoPilotLog {
+  timestamp: string;
+  action: string;
+  status: 'success' | 'error' | 'warning' | 'info';
+  detail: string;
 }
+
+export interface CompletedVideo {
+  id: string;
+  url: string;
+  title: string;
+  thumbnail?: string;
+  timestamp: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+  command?: AgentCommand;
+  detected_lang?: string;
+  suggestions?: string[];
+  sentiment?: 'happy' | 'urgent' | 'thinking' | 'neutral';
+}
+
+export interface ChatSession {
+  id: string;
+  name: string;
+  messages: ChatMessage[];
+  createdAt: number;
+}
+
+export type TargetRegion = 'VN' | 'US' | 'GLOBAL';
 
 export interface BatchJobItem {
   id: string;
@@ -283,31 +331,4 @@ export interface BatchJobItem {
   log: string;
 }
 
-export interface ChatMessage {
-    id: string;
-    role: 'user' | 'model';
-    text: string;
-    timestamp: number;
-    command?: AgentCommand;
-    detected_lang?: string;
-    suggestions?: string[];
-    sentiment?: 'neutral' | 'happy' | 'urgent' | 'thinking';
-}
-
-export interface ChatSession {
-    id: string;
-    name: string;
-    messages: ChatMessage[];
-    createdAt: number;
-}
-
-export interface AIProduct {
-  id: string;
-  name: string;
-  description: string;
-  commission_rate: string;
-  tags: string[];
-  affiliate_link_template: string;
-  icon_color: string;
-  is_google_ecosystem?: boolean;
-}
+export type PipelineStage = 'IDLE' | 'HUNTING' | 'PLANNING' | 'RENDERING' | 'POSTING';

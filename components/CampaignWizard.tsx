@@ -4,12 +4,13 @@ import {
   Wand2, Target, Rocket, Zap, 
   BarChart, Users, ChevronRight, 
   Sparkles, Globe, ShieldCheck, 
-  Search, PlayCircle, Plus, FileText
+  Search, PlayCircle, Plus, FileText, Settings, Key
 } from 'lucide-react';
 import NeonButton from './NeonButton';
 
 interface CampaignWizardProps {
   onStartProduction: (topic: string) => void;
+  onNavigateToSettings: () => void;
   t: any;
 }
 
@@ -19,7 +20,7 @@ const OBJECTIVES = [
   { id: 'brand', label: 'Brand Awareness', icon: Users, desc: 'Xây dựng uy tín & độ nhận diện thương hiệu.' },
 ];
 
-const CampaignWizard: React.FC<CampaignWizardProps> = ({ onStartProduction, t }) => {
+const CampaignWizard: React.FC<CampaignWizardProps> = ({ onStartProduction, onNavigateToSettings, t }) => {
   const [step, setStep] = useState(1);
   const [selectedObjective, setSelectedObjective] = useState('affiliate');
   const [targetTopic, setTargetTopic] = useState('');
@@ -51,8 +52,8 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onStartProduction, t })
         {step === 1 && (
           <div className="animate-fade-in space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-black text-white mb-3">MỤC TIÊU CHIẾN DỊCH</h2>
-              <p className="text-slate-400">Chọn mục tiêu chính để AI tối ưu hóa kịch bản & góc quay.</p>
+              <h2 className="text-3xl font-black text-white mb-3 uppercase tracking-tighter">Mục Tiêu Chiến Dịch</h2>
+              <p className="text-slate-400">Chọn mục tiêu để AI tối ưu hóa kịch bản & điểm chạm khách hàng.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {OBJECTIVES.map((obj) => (
@@ -65,11 +66,16 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onStartProduction, t })
                     <obj.icon size={24} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white mb-1">{obj.label}</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">{obj.desc}</p>
+                    <h3 className="font-bold text-white mb-1 uppercase text-xs">{obj.label}</h3>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">{obj.desc}</p>
                   </div>
                 </button>
               ))}
+            </div>
+            <div className="pt-8 border-t border-slate-800 flex justify-center">
+              <button onClick={onNavigateToSettings} className="flex items-center gap-2 text-slate-500 hover:text-primary transition-all text-[10px] font-black uppercase tracking-widest">
+                <Key size={14} /> Kiểm tra kết nối tài khoản / API trước khi bắt đầu
+              </button>
             </div>
           </div>
         )}
@@ -77,23 +83,23 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onStartProduction, t })
         {step === 2 && (
           <div className="animate-fade-in space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-black text-white mb-3">TÍN HIỆU THỊ TRƯỜNG</h2>
-              <p className="text-slate-400">Nhập chủ đề hoặc link sản phẩm để AI tiến hành Recon.</p>
+              <h2 className="text-3xl font-black text-white mb-3 uppercase tracking-tighter">Tín Hiệu Đầu Vào</h2>
+              <p className="text-slate-400">Dán link sản phẩm hoặc nhập chủ đề để AI tiến hành Recon.</p>
             </div>
             <div className="space-y-4 max-w-2xl mx-auto">
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-inner flex items-center gap-4">
+              <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 shadow-inner flex items-center gap-4">
                 <Search className="text-primary" />
                 <input 
                   autoFocus
                   value={targetTopic}
                   onChange={(e) => setTargetTopic(e.target.value)}
-                  placeholder="Nhập link TikTok/Shopee hoặc từ khóa (VD: Top 3 AI Tools)..."
-                  className="bg-transparent border-none outline-none text-white flex-1 font-medium placeholder:text-slate-700"
+                  placeholder="Link TikTok/Shopee hoặc từ khóa (VD: Top 3 AI Tools)..."
+                  className="bg-transparent border-none outline-none text-white flex-1 font-medium placeholder:text-slate-800"
                 />
               </div>
               <div className="flex flex-wrap gap-2 justify-center">
                 {['Mỹ phẩm trending', 'Gadgets Amazon', 'Khóa học AI'].map(tag => (
-                  <button key={tag} onClick={() => setTargetTopic(tag)} className="text-[10px] font-bold uppercase px-3 py-1.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 hover:text-white transition-colors">
+                  <button key={tag} onClick={() => setTargetTopic(tag)} className="text-[10px] font-bold uppercase px-3 py-1.5 rounded-full bg-slate-800 text-slate-500 border border-slate-700 hover:text-white transition-colors">
                     + {tag}
                   </button>
                 ))}
@@ -105,25 +111,25 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onStartProduction, t })
         {step === 3 && (
           <div className="animate-fade-in space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-black text-white mb-3">XÁC NHẬN CHIẾN LƯỢC</h2>
+              <h2 className="text-3xl font-black text-white mb-3 uppercase tracking-tighter">Xác Nhận Lộ Trình</h2>
               <p className="text-slate-400">Xem lại cấu hình trước khi đẩy vào Studio sản xuất.</p>
             </div>
-            <div className="max-w-md mx-auto bg-slate-950 border border-slate-800 rounded-2xl p-8 space-y-6">
+            <div className="max-w-md mx-auto bg-slate-950 border border-slate-800 rounded-[32px] p-8 space-y-6">
               <div className="flex justify-between items-center pb-4 border-b border-slate-800">
-                <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">Objective</span>
-                <span className="text-primary font-black uppercase">{selectedObjective}</span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Mục tiêu</span>
+                <span className="text-primary font-black uppercase text-xs">{selectedObjective}</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b border-slate-800">
-                <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">Topic</span>
-                <span className="text-white font-bold">{targetTopic || 'N/A'}</span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Nội dung</span>
+                <span className="text-white font-bold text-xs truncate max-w-[150px]">{targetTopic || 'N/A'}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">AI Engine</span>
-                <span className="text-orange-500 font-bold">GEMINI 3 PRO</span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Engine</span>
+                <span className="text-purple-500 font-bold text-xs uppercase">AI Neural Core</span>
               </div>
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex gap-3 italic text-xs text-slate-400">
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex gap-3 italic text-[10px] text-slate-400">
                 <Sparkles size={16} className="text-primary shrink-0" />
-                Bot sẽ tự động trích xuất DNA từ các nguồn liên quan để tạo kịch bản viral nhất.
+                <span>Bot sẽ tự động trích xuất Viral DNA từ các nguồn để tạo kịch bản đột phá nhất.</span>
               </div>
             </div>
           </div>
@@ -133,14 +139,14 @@ const CampaignWizard: React.FC<CampaignWizardProps> = ({ onStartProduction, t })
           <button 
             disabled={step === 1}
             onClick={() => setStep(step - 1)}
-            className="text-slate-500 hover:text-white font-bold text-sm uppercase disabled:opacity-0 transition-all"
+            className="text-slate-500 hover:text-white font-bold text-[10px] uppercase disabled:opacity-0 transition-all tracking-widest"
           >
             Quay lại
           </button>
           <NeonButton 
             onClick={handleNext} 
             disabled={step === 2 && !targetTopic}
-            className="min-w-[200px]"
+            className="min-w-[200px] h-14"
           >
             {step === 3 ? 'KÍCH HOẠT STUDIO' : 'TIẾP TỤC'} <ChevronRight size={18} />
           </NeonButton>
