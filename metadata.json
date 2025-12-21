@@ -1,7 +1,8 @@
 {
   "name": "AV STUDIO",
-  "description": "A 1-Click AutoPilot video production suite that analyzes public metadata to create paraphrased scripts and render plans without downloading original content.",
+  "description": "A 1-Click AutoPilot video production suite that analyzes public metadata to create paraphrased scripts and render plans using Agentic Recon and Google Search Grounding.",
   "requestFramePermissions": [
-    "microphone"
+    "microphone",
+    "geolocation"
   ]
 }

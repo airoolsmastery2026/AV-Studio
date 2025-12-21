@@ -4,7 +4,7 @@ import {
     AffiliateHuntResult, SourceMetadata, OrchestratorResponse, 
     ViralDNAProfile, StudioSettings, HunterInsight, NetworkScanResult,
     GoldenHourRecommendation, ScheduleSlot, ChannelHealthReport,
-    AppContext, AgentCommand, KnowledgeBase
+    AppContext, AgentCommand, KnowledgeBase, MissionIntel
 } from "../types";
 
 const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -35,6 +35,61 @@ const cleanAndParseJSON = (text: string): any => {
 };
 
 /**
+ * RECON AGENT: Agent chinh sát sử dụng thuật toán Google Search
+ */
+export const runAgenticRecon = async (niche: string): Promise<{ 
+    discovered_signals: MissionIntel[], 
+    market_gaps: string[], 
+    trending_keywords: string[], 
+    recommended_action: string,
+    raw_sources: any[]
+}> => {
+    const ai = getAi();
+    const prompt = `
+    ĐÓNG VAI: Chuyên gia phân tích thị trường (Agent Chinh Sát).
+    NHIỆM VỤ: Sử dụng Google Search để thu thập dữ liệu về ngách ${niche}.
+    CÁC BƯỚC THỰC HIỆN:
+    1. Tìm kiếm các sản phẩm đang trending và có mức hoa hồng tốt.
+    2. Phân tích điểm yếu của các nội dung hiện tại (competitor gap).
+    3. Trích xuất các từ khóa (keywords) có volume tìm kiếm đang tăng.
+    4. Dự đoán "Winning Angle" cho video tiếp theo.
+    
+    TRẢ VỀ JSON:
+    {
+      "discovered_signals": [
+        {
+          "product_name": "Tên sản phẩm",
+          "platform": "Shopee/Amazon/TikTok Shop",
+          "store_name": "Tên cửa hàng nguồn",
+          "price_range": "Giá dự kiến",
+          "commission_rate": "Hoa hồng %",
+          "target_audience": "Đối tượng (VD: GenZ, Nội trợ...)",
+          "winning_rationale": "Lý do robot chọn sản phẩm này",
+          "market_threat_level": "LOW|MEDIUM|HIGH",
+          "competitor_urls": ["url_1", "url_2"]
+        }
+      ],
+      "market_gaps": ["khoảng trống 1", "khoảng trống 2"],
+      "trending_keywords": ["keyword 1", "keyword 2"],
+      "recommended_action": "Hành động cụ thể"
+    }
+    `;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: prompt,
+        config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json"
+        }
+    });
+
+    const data = cleanAndParseJSON(response.text || "{}");
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    return { ...data, raw_sources: sources };
+};
+
+/**
  * COMMANDER CHAT: Trung tâm điều phối ngôn ngữ Việt
  */
 export const sendChatToAssistant = async (apiKey: string, history: any[], text: string, appContext: AppContext): Promise<{ 
@@ -49,13 +104,7 @@ export const sendChatToAssistant = async (apiKey: string, history: any[], text: 
     const systemInstruction = `
     Bạn là AI Commander - Chỉ huy trưởng của hệ thống AV Studio.
     PHONG CÁCH: Chuyên gia sáng tạo, quyết đoán, sử dụng tiếng Việt thuần thục và chuyên nghiệp.
-    
     BỐI CẢNH: Người dùng đang ở tab "${appContext.activeTab}".
-    NHIỆM VỤ:
-    - Hỗ trợ sản xuất video affiliate, phân tích trend và điều khiển ứng dụng qua giọng nói/văn bản.
-    - Phản hồi bằng tiếng Việt súc tích, đầy đủ ý nghĩa chuyên môn.
-    - Đưa ra các gợi ý hành động tiếp theo (suggestions) bằng tiếng Việt.
-    
     JSON OUTPUT:
     {
       "text": "Câu trả lời tiếng Việt (tối đa 2 câu)",
@@ -90,9 +139,7 @@ export const sendChatToAssistant = async (apiKey: string, history: any[], text: 
  */
 export const generateGeminiTTS = async (text: string, lang: string = 'vi', sentiment: string = 'neutral') => {
     const ai = getAi();
-    // Ưu tiên giọng Việt (Kore)
     let voiceName = 'Kore';
-    
     const prefixes = {
         happy: "Nói hào hứng: ",
         urgent: "Nói khẩn cấp: ",
@@ -113,8 +160,6 @@ export const generateGeminiTTS = async (text: string, lang: string = 'vi', senti
 
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 };
-
-// --- Việt hóa các logic nghiệp vụ ---
 
 export const huntAffiliateProducts = async (apiKey: string, niche: string, networks: string[]): Promise<AffiliateHuntResult & { searchSources?: any[] }> => {
     const ai = getAi();

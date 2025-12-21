@@ -1,4 +1,16 @@
 
+export interface MissionIntel {
+  product_name: string;
+  platform: string;
+  store_name: string;
+  price_range: string;
+  commission_rate: string;
+  target_audience: string;
+  winning_rationale: string;
+  market_threat_level: 'LOW' | 'MEDIUM' | 'HIGH';
+  competitor_urls: string[];
+}
+
 export interface Scene {
   scene_id: string;
   start: number;
@@ -155,11 +167,11 @@ export interface StudioSettings {
 
 export enum AppStatus {
   IDLE = 'IDLE',
+  HUNTING = 'HUNTING',
   ANALYZING = 'ANALYZING',
-  ROUTING = 'ROUTING',
   PLANNING = 'PLANNING',
-  PARAPHRASING = 'PARAPHRASING',
   RENDERING = 'RENDERING',
+  SCHEDULING = 'SCHEDULING',
   COMPLETE = 'COMPLETE',
   ERROR = 'ERROR'
 }
@@ -331,4 +343,4 @@ export interface BatchJobItem {
   log: string;
 }
 
-export type PipelineStage = 'IDLE' | 'HUNTING' | 'PLANNING' | 'RENDERING' | 'POSTING';
+export type PipelineStage = 'IDLE' | 'HUNTING' | 'ANALYZING' | 'PLANNING' | 'RENDERING' | 'SCHEDULING' | 'POSTING';
