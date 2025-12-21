@@ -24,24 +24,28 @@ export interface MarketScoring {
   estimated_cpm: string;
 }
 
-// New Types for Manual Classification
 export type ContentWorkflow = 'AUTO' | 'VIRAL_CLONE' | 'REVIEW_TUTORIAL' | 'NEWS_SUMMARY' | 'STORYTELLING' | 'EDUCATIONAL' | 'REACTION';
 export type ContentNiche = 'AUTO' | 'TECH' | 'BEAUTY' | 'FINANCE' | 'HEALTH' | 'ENTERTAINMENT' | 'NEWS' | 'CRYPTO';
 
-// --- NEW VIDEO CONFIG TYPES ---
 export type VideoResolution = '720p' | '1080p' | '4K';
 export type AspectRatio = '9:16' | '16:9' | '1:1';
 export type ScriptModel = 'Gemini 2.5 Flash' | 'Gemini 3 Pro' | 'GPT-4o' | 'Grok Beta';
 export type VisualModel = 'VEO' | 'SORA' | 'KLING' | 'IMAGEN' | 'MIDJOURNEY';
 export type VoiceModel = 'ElevenLabs' | 'OpenAI TTS' | 'Google Chirp' | 'Vbee TTS';
 
-// --- SAAS LANGUAGE ARCHITECTURE ---
-// Layer 1: Application UI Language (Interface only)
-// Added: de (German), fr (French), kr (Korean) for High RPM Markets
 export type AppLanguage = 'vi' | 'en' | 'jp' | 'es' | 'cn' | 'de' | 'fr' | 'kr'; 
-
-// Layer 2: Video Content Language (Script, Voice, SEO)
 export type ContentLanguage = 'vi' | 'en' | 'es' | 'jp' | 'cn' | 'de' | 'fr' | 'kr';
+
+// Fix: Added missing TargetRegion type for QueueDashboard
+export type TargetRegion = 'VN' | 'US' | 'GLOBAL' | string;
+
+// Fix: Added missing CompetitorChannel interface for ViralDNAStudio
+export interface CompetitorChannel {
+  id: string;
+  url: string;
+  name: string;
+  status: 'pending' | 'analyzing' | 'completed' | 'error';
+}
 
 export interface VideoConfig {
   resolution: VideoResolution;
@@ -71,7 +75,6 @@ export interface ProductionPlan {
   };
 }
 
-// NEW: Metadata for the generated video
 export interface GeneratedContent {
   title: string;
   description: string;
@@ -84,20 +87,19 @@ export interface OrchestratorResponse {
   audience_personas: AudiencePersona[];
   deep_analysis: DeepAnalysis;
   production_plan: ProductionPlan;
-  generated_content?: GeneratedContent; // Added generated metadata
+  generated_content?: GeneratedContent; 
   consent_log: {
     user_confirmed_clone: boolean;
     timestamp: string;
   };
 }
 
-// NEW: COMPLETED VIDEO ASSET
 export interface CompletedVideo {
   id: string;
   title: string;
   description: string;
   thumbnailUrl: string;
-  videoUrl?: string; // Simulated path
+  videoUrl?: string; 
   platform: string;
   niche: string;
   createdAt: number;
@@ -131,83 +133,44 @@ export enum AppStatus {
 
 export type TabView = 'campaign' | 'integrations' | 'queue' | 'analytics' | 'risk_center' | 'marketplace' | 'settings' | 'auto_pilot' | 'models' | 'studio' | 'docs';
 
-export interface CreditUsage {
-  remaining: number;
-  total: number;
-  unit: 'tokens' | 'credits' | 'requests';
-  requiredPerRun?: number;
-}
-
 export interface ApiKeyConfig {
   id: string;
   alias: string;
   key: string;
-  provider: 'google' | 'openai' | 'veo' | 'stitch' | 'wish' | 'switch' | 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'pinterest' | 'telegram' | 'shopee' | 'amazon' | 'ebay' | 'etsy' | 'walmart' | 'aliexpress' | 'upstash' | 'other' | 'zalo' | 'zalo_personal' | 'accesstrade' | 'clickbank' | 'digistore24' | 'cj' | 'masoffer' | 'ecomobi' | 'adflex' | 'lazada';
+  // Fix: Added 'zalo_personal' to resolve comparison errors in socialService.ts
+  provider: 'google' | 'openai' | 'veo' | 'youtube' | 'tiktok' | 'facebook' | 'instagram' | 'zalo' | 'zalo_personal' | 'shopee' | 'amazon' | 'clickbank';
   category: 'model' | 'social' | 'affiliate' | 'storage';
   status: 'active' | 'quota_exceeded' | 'error';
   lastUsed?: string;
-  credits?: CreditUsage;
-}
-
-// --- VIRAL DNA STUDIO PRO TYPES ---
-
-export interface CompetitorChannel {
-  id: string;
-  url: string;
-  name: string;
-  status: 'pending' | 'analyzing' | 'done' | 'error';
-  dna_score?: number; // How much "DNA" was extracted
-  report?: {
-      avg_duration: string;
-      post_frequency: string;
-      hook_style: string;
-      algorithm_fit: number;
-      risk_score: number;
-      suggested_prompt: string;
-  }
 }
 
 export interface ViralDNAProfile {
   structure: {
-    hook_type: string; // e.g., "Negative Hook", "Visual Shock"
+    hook_type: string;
     pacing: 'Fast' | 'Moderate' | 'Slow';
     avg_scene_duration: number;
   };
-  emotional_curve: string[]; // e.g., ["Curiosity", "Fear", "Relief", "Desire"]
+  emotional_curve: string[];
   keywords: string[];
-  algorithm_fit_score: number; // 0-100
+  algorithm_fit_score: number;
   risk_level: 'Safe' | 'Moderate' | 'High';
-  channel_breakdown?: CompetitorChannel[]; // Detailed breakdown for Studio Pro
 }
 
 export interface StudioSettings {
-  // Video Settings
   quality: 'Draft' | 'Standard' | 'Ultra';
   aspectRatio: '9:16' | '16:9' | '1:1';
   model: 'Fast' | 'Balanced' | 'Cinematic';
-  
-  // Prompt Control
-  hookStrength: number; // 1-10
+  hookStrength: number;
   storyMode: 'One-shot' | 'Episodic' | 'Documentary';
   riskLevel: 'Safe' | 'Medium' | 'High';
-  
-  // Script Settings
   videoFormat: 'Shorts' | 'Long Form';
-  contentLanguage: ContentLanguage; // STRICT SEPARATION
+  contentLanguage: ContentLanguage;
   topic: string;
-  
-  // Generation
   generationMode: 'Free Storyboard' | 'Veo';
-
-  // Consistency
   characterLock: boolean;
   styleLock: boolean;
-  
-  // Rendering
   musicSync: boolean;
 }
-
-// --- NEWLY ADDED TYPES ---
 
 export interface KnowledgeBase {
     customInstructions: string;
@@ -233,13 +196,6 @@ export interface AgentCommand {
   reasoning?: string;
 }
 
-export interface NicheAnalysisResult {
-    [key: string]: any;
-}
-export interface CompetitorAnalysisResult {
-    [key: string]: any;
-}
-
 export interface AffiliateHuntResult {
   products: {
       product_name: string;
@@ -253,7 +209,15 @@ export interface AffiliateHuntResult {
   strategy_note: string;
 }
 
-export type TargetRegion = 'VN' | 'US' | 'GLOBAL';
+export interface HunterInsight {
+  target_name: string;
+  type: 'WINNING_PRODUCT' | 'VIRAL_CHANNEL' | 'NICHE_OPPORTUNITY';
+  match_score: number;
+  market_status: string;
+  key_metrics: { label: string; value: string; trend: 'up' | 'down' | 'stable'; }[];
+  hidden_analysis: { consumer_psychology: string; competitor_weakness: string; profit_potential: string; risk_assessment: string; };
+  strategic_suggestion: string;
+}
 
 export interface GoldenHourRecommendation {
   time_label: string;
@@ -262,43 +226,14 @@ export interface GoldenHourRecommendation {
 }
 
 export interface ChannelHealthReport {
-    channel_id?: string;
     channel_name: string;
     platform: 'tiktok' | 'youtube' | 'facebook' | 'instagram';
     health_score: number;
     status: 'HEALTHY' | 'AT_RISK' | 'CRITICAL';
-    metrics: {
-        views_growth: string;
-        avg_watch_time: string;
-        ctr: string;
-    };
-    risks: {
-        type: string;
-        severity: string;
-        description: string;
-        detected_at?: number;
-    }[];
+    metrics: { views_growth: string; avg_watch_time: string; ctr: string; };
+    risks: { type: string; severity: string; description: string; }[];
     ai_diagnosis: string;
     action_plan: string[];
-}
-
-export interface HunterInsight {
-  target_name: string;
-  type: 'WINNING_PRODUCT' | 'VIRAL_CHANNEL' | 'NICHE_OPPORTUNITY';
-  match_score: number;
-  market_status: string;
-  key_metrics: {
-    label: string;
-    value: string;
-    trend: 'up' | 'down' | 'stable';
-  }[];
-  hidden_analysis: {
-    consumer_psychology: string;
-    competitor_weakness: string;
-    profit_potential: string;
-    risk_assessment: string;
-  };
-  strategic_suggestion: string;
 }
 
 export interface ScheduleSlot {
@@ -310,42 +245,25 @@ export interface ScheduleSlot {
 
 export interface NetworkScanResult {
   scan_id: string;
-  timestamp?: string;
   focus_area: string;
-  market_summary?: string;
-  targets: {
-    rank: number;
-    name: string;
-    type: 'CHANNEL' | 'NICHE' | 'PROFILE';
-    platform?: string;
-    url: string;
-    metrics: {
-      rpm_est: string;
-      search_volume: string;
-      view_velocity: string;
-      competition: string;
-    };
-    reason: string;
-  }[];
+  targets: { rank: number; name: string; url: string; reason: string; }[];
 }
 
-// --- PIPELINE & AUTOMATION TYPES ---
-export type PipelineStage = 
-  | 'IDLE' 
-  | 'SIGNAL_ANALYSIS'   // Step 1: Decode input
-  | 'SCRIPTING'         // Step 2: Write script
-  | 'VISUAL_PROMPTING'  // Step 3: Create image/video prompts
-  | 'VOICE_SYNTHESIS'   // Step 4: Generate audio
-  | 'RENDERING'         // Step 5: Merge into video
-  | 'PUBLISHING'        // Step 6: Upload
-  | 'COMPLETED'
-  | 'FAILED';
+export type PipelineStage = 'IDLE' | 'SIGNAL_ANALYSIS' | 'SCRIPTING' | 'VISUAL_GEN' | 'VOICE_GEN' | 'MERGING' | 'PUBLISHING' | 'COMPLETE';
 
-export interface ProductionLog {
-    stage: PipelineStage;
-    message: string;
-    timestamp: number;
-    agentName: string;
+export interface AutoPilotLog {
+  timestamp: string;
+  action: string;
+  detail: string;
+  status: 'info' | 'success' | 'warning' | 'error';
+  stage?: PipelineStage;
+}
+
+export interface AutoPilotStats {
+  cyclesRun: number;
+  videosCreated: number;
+  postedCount: number;
+  uptime: number;
 }
 
 export interface PostingJob {
@@ -356,16 +274,16 @@ export interface PostingJob {
     platforms: string[];
     scheduled_time: number;
     status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'processing';
-    
-    // --- PIPELINE DATA (The "Brain" State) ---
-    pipelineStage?: PipelineStage;
-    pipelineLogs?: ProductionLog[];
-    sourceMetadata?: SourceMetadata; // Original Input
-    scriptData?: OrchestratorResponse; // Script Output
-    visualAssets?: string[]; // Generated URLs/Prompt IDs
-    audioUrl?: string; // Voiceover URL
-    
     thumbnail_url?: string;
+    video_url?: string;
+}
+
+export interface BatchJobItem {
+  id: string;
+  input: string;
+  status: 'queued' | 'analyzing' | 'scripting' | 'generating_assets' | 'rendering' | 'completed' | 'failed';
+  progress: number;
+  log: string;
 }
 
 export interface ChatMessage {
@@ -392,28 +310,4 @@ export interface AIProduct {
   affiliate_link_template: string;
   icon_color: string;
   is_google_ecosystem?: boolean;
-}
-
-export interface BatchJobItem {
-  id: string;
-  input: string;
-  status: 'queued' | 'analyzing' | 'scripting' | 'generating_assets' | 'rendering' | 'completed' | 'failed';
-  progress: number;
-  log: string;
-  result?: OrchestratorResponse;
-  error?: string;
-}
-
-export interface AutoPilotLog {
-  timestamp: string;
-  action: string;
-  detail: string;
-  status: 'info' | 'success' | 'warning' | 'error';
-}
-
-export interface AutoPilotStats {
-  cyclesRun: number;
-  videosCreated: number;
-  postedCount: number;
-  uptime: number;
 }

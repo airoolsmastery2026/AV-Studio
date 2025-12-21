@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Send, X, Minimize2, Maximize2, Sparkles, MessageSquare, Trash2, Cpu, ArrowRight, GripHorizontal, ChevronDown, History, Plus, Edit2, Zap } from 'lucide-react';
+import { Bot, Send, X, History, Plus, Trash2, Mic, MicOff, Zap, Volume2 } from 'lucide-react';
 import { AppContext, ChatMessage, ChatSession, AgentCommand } from '../types';
 import { sendChatToAssistant } from '../services/geminiService';
+import { GoogleGenAI, Modality } from '@google/genai';
 
 interface AIChatAssistantProps {
   apiKey: string | undefined;
@@ -14,510 +15,189 @@ const STORAGE_KEY = 'av_studio_chat_sessions_v2';
 
 const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, onCommand }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isLiveMode, setIsLiveMode] = useState(false);
   
-  // Session Management
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [showHistory, setShowHistory] = useState(false);
-  
-  // Derived state for current view
-  const currentSession = sessions.find(s => s.id === currentSessionId);
-  const messages = currentSession?.messages || [];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatWindowRef = useRef<HTMLDivElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const nextStartTimeRef = useRef(0);
+  const liveSessionRef = useRef<any>(null);
 
-  // Dragging State with Initial Responsive Position
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragOffset = useRef({ x: 0, y: 0 });
-
-  // Handle Resize & Boundary Checks
+  // Persistence Logic
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      
-      if (!mobile) {
-        // Desktop: Ensure it stays within bounds if resized
-        setPosition(prev => {
-          const maxWidth = window.innerWidth - 460; // 450px width + margin
-          const maxHeight = window.innerHeight - 620; // 600px height + margin
-          return {
-            x: Math.min(Math.max(0, prev.x), maxWidth),
-            y: Math.min(Math.max(0, prev.y), maxHeight)
-          };
-        });
-      }
-    };
-
-    // Initial positioning for Desktop
-    if (!isMobile && position.x === 0 && position.y === 0) {
-        setPosition({ 
-            x: window.innerWidth - 480, 
-            y: window.innerHeight - 650 
-        });
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setSessions(parsed);
+      if (parsed.length > 0) setCurrentSessionId(parsed[0].id);
+    } else {
+        const init: ChatSession = { id: 'init', name: 'New Chat', messages: [], createdAt: Date.now() };
+        setSessions([init]);
+        setCurrentSessionId('init');
     }
+  }, []);
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isMobile]);
-
-  // --- HELPER: LOAD FROM STORAGE ---
-  const loadSessionsFromStorage = () => {
-    const savedSessionsRaw = localStorage.getItem(STORAGE_KEY);
-    let loadedSessions: ChatSession[] = [];
-    
-    if (savedSessionsRaw) {
-      try {
-        loadedSessions = JSON.parse(savedSessionsRaw);
-      } catch (e) {
-        console.error("Failed to parse chat history", e);
-      }
-    }
-
-    if (loadedSessions.length === 0) {
-       // Create first default session
-       const initSession: ChatSession = {
-           id: crypto.randomUUID(),
-           name: 'New Chat',
-           messages: [{
-            id: 'init',
-            role: 'model',
-            text: 'Chào chỉ huy! Tôi là AV Commander. Hệ thống Brain Engine v2.0 đã được kích hoạt. Tôi có thể tự động điều phối quy trình sản xuất (Script -> Visual -> Voice).',
-            timestamp: Date.now()
-           }],
-           createdAt: Date.now()
-       };
-       loadedSessions = [initSession];
-    }
-    return loadedSessions;
-  };
-
-  // --- INITIALIZATION ---
   useEffect(() => {
-    const loaded = loadSessionsFromStorage();
-    setSessions(loaded);
-    setCurrentSessionId(loaded[0].id);
-
-    // EVENT LISTENER FOR EXTERNAL UPDATES
-    const handleStorageUpdate = () => {
-        const updated = loadSessionsFromStorage();
-        setSessions(updated);
-        if (!updated.find(s => s.id === currentSessionId)) {
-            setCurrentSessionId(updated[0].id);
-        }
-    };
-
-    window.addEventListener('chat-storage-updated', handleStorageUpdate);
-    return () => {
-        window.removeEventListener('chat-storage-updated', handleStorageUpdate);
-    };
-  }, []); 
-
-  // --- PERSISTENCE ---
-  useEffect(() => {
-    if (sessions.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    }
+    if (sessions.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
   }, [sessions]);
 
-  useEffect(() => {
-    if (!showHistory) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // LIVE API INTEGRATION
+  const toggleLiveMode = async () => {
+    if (isLiveMode) {
+      setIsLiveMode(false);
+      liveSessionRef.current?.close();
+      return;
     }
-  }, [messages, isOpen, showHistory]);
 
-
-  // --- SESSION LOGIC ---
-  const createNewSession = () => {
-      const newSession: ChatSession = {
-          id: crypto.randomUUID(),
-          name: `Chat ${new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}`,
-          messages: [{
-            id: Date.now().toString(),
-            role: 'model',
-            text: 'Phiên làm việc mới đã được tạo. Tôi có thể giúp gì?',
-            timestamp: Date.now()
-           }],
-          createdAt: Date.now()
-      };
-      setSessions(prev => [newSession, ...prev]);
-      setCurrentSessionId(newSession.id);
-      setShowHistory(false);
-  };
-
-  const deleteSession = (id: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-      const newSessions = sessions.filter(s => s.id !== id);
-      if (newSessions.length === 0) {
-          createNewSession();
-      } else {
-          setSessions(newSessions);
-          if (currentSessionId === id) {
-              setCurrentSessionId(newSessions[0].id);
-          }
-      }
-  };
-
-  const updateCurrentSessionMessages = (newMessages: ChatMessage[]) => {
-      setSessions(prev => prev.map(s => {
-          if (s.id === currentSessionId) {
-              let name = s.name;
-              if (s.messages.length <= 1 && newMessages.length > 1) {
-                  const firstUserMsg = newMessages.find(m => m.role === 'user');
-                  if (firstUserMsg) {
-                      name = firstUserMsg.text.substring(0, 25) + (firstUserMsg.text.length > 25 ? '...' : '');
-                  }
-              }
-              return { ...s, messages: newMessages, name };
-          }
-          return s;
-      }));
-  };
-
-  // --- DRAG LOGIC (DESKTOP ONLY) ---
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (isMobile) return; // Disable drag on mobile
-    if ((e.target as HTMLElement).closest('button')) return;
-    if (!chatWindowRef.current) return;
+    if (!process.env.API_KEY) return;
+    setIsLiveMode(true);
     
-    setIsDragging(true);
-    // Calculate offset relative to the element
-    const rect = chatWindowRef.current.getBoundingClientRect();
-    dragOffset.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !chatWindowRef.current || isMobile) return;
-
-      const rect = chatWindowRef.current.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      const viewportW = window.innerWidth;
-      const viewportH = window.innerHeight;
-
-      // New position based on mouse - offset
-      let newX = e.clientX - dragOffset.current.x;
-      let newY = e.clientY - dragOffset.current.y;
-
-      // Boundary Constraints
-      newX = Math.max(0, Math.min(newX, viewportW - w));
-      newY = Math.max(0, Math.min(newY, viewportH - h));
-
-      setPosition({ x: newX, y: newY });
-    };
-
-    const handleMouseUp = () => setIsDragging(false);
-
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, isMobile]);
-
-
-  // --- MESSAGING LOGIC ---
-  const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
-    if (!apiKey) {
-        const errorMsg: ChatMessage = {
-            id: Date.now().toString(),
-            role: 'model',
-            text: '⚠️ Vui lòng cấu hình API Key trong phần "Cài đặt Vault" để chat với tôi.',
-            timestamp: Date.now()
-        };
-        updateCurrentSessionMessages([...messages, errorMsg]);
-        return;
-    }
-
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      text: inputText,
-      timestamp: Date.now()
-    };
-
-    const updatedMessages = [...messages, userMsg];
-    updateCurrentSessionMessages(updatedMessages);
-    setInputText('');
-    setIsLoading(true);
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+    const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+    audioContextRef.current = outputCtx;
 
     try {
-        // Use 'messages' (previous state) for history
-        const apiHistory = messages.map(m => ({
-            role: m.role,
-            parts: [{ text: m.text }]
-        }));
-
-        // Inject App Context into the service call
-        const { text, command } = await sendChatToAssistant(apiKey, apiHistory, userMsg.text, appContext);
-
-        const botMsg: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            role: 'model',
-            text: text,
-            timestamp: Date.now(),
-            command: command
-        };
-
-        updateCurrentSessionMessages([...updatedMessages, botMsg]);
-
-        if (command) {
-          onCommand(command);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const sessionPromise = ai.live.connect({
+        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        config: {
+          responseModalities: [Modality.AUDIO],
+          systemInstruction: "You are AV Commander. You are in Voice Mode. Be helpful and very brief."
+        },
+        callbacks: {
+          onopen: () => {
+            const source = inputCtx.createMediaStreamSource(stream);
+            const processor = inputCtx.createScriptProcessor(4096, 1, 1);
+            processor.onaudioprocess = (e) => {
+              const input = e.inputBuffer.getChannelData(0);
+              const int16 = new Int16Array(input.length);
+              for (let i = 0; i < input.length; i++) int16[i] = input[i] * 32768;
+              const base64 = btoa(String.fromCharCode(...new Uint8Array(int16.buffer)));
+              sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64, mimeType: 'audio/pcm;rate=16000' } }));
+            };
+            source.connect(processor);
+            processor.connect(inputCtx.destination);
+          },
+          onmessage: async (msg) => {
+             const audioData = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+             if (audioData) {
+                const binary = atob(audioData);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                const dataInt16 = new Int16Array(bytes.buffer);
+                const buffer = outputCtx.createBuffer(1, dataInt16.length, 24000);
+                const channelData = buffer.getChannelData(0);
+                for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
+                
+                const source = outputCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(outputCtx.destination);
+                const startTime = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
+                source.start(startTime);
+                nextStartTimeRef.current = startTime + buffer.duration;
+             }
+          }
         }
+      });
+      liveSessionRef.current = await sessionPromise;
+    } catch (e) {
+      console.error(e);
+      setIsLiveMode(false);
+    }
+  };
 
-    } catch (error) {
-        const errorMsg: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            role: 'model',
-            text: '🚫 Đã xảy ra lỗi kết nối. Vui lòng thử lại.',
-            timestamp: Date.now()
-        };
-        updateCurrentSessionMessages([...updatedMessages, errorMsg]);
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || !apiKey) return;
+    const current = sessions.find(s => s.id === currentSessionId);
+    if (!current) return;
+
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: inputText, timestamp: Date.now() };
+    const history = current.messages.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
+    
+    setInputText('');
+    setIsLoading(true);
+    
+    try {
+        const { text, command } = await sendChatToAssistant(apiKey, history, inputText, appContext);
+        const botMsg: ChatMessage = { id: (Date.now()+1).toString(), role: 'model', text, timestamp: Date.now(), command };
+        
+        setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, messages: [...s.messages, userMsg, botMsg] } : s));
+        if (command) onCommand(command);
+    } catch (e) {
+        console.error(e);
     } finally {
         setIsLoading(false);
     }
   };
 
-  // Determine styles based on Mobile vs Desktop
-  const containerStyle: React.CSSProperties = isMobile 
-    ? { position: 'fixed', bottom: 0, left: 0, right: 0, height: '85vh', width: '100%', borderRadius: '16px 16px 0 0' }
-    : { position: 'fixed', left: `${position.x}px`, top: `${position.y}px`, width: '450px', height: '600px', borderRadius: '16px' };
-
   return (
     <>
-      {/* CHAT WINDOW (Floating Portal) */}
-      {isOpen && (
-        <div 
-            ref={chatWindowRef}
-            style={containerStyle}
-            className="z-[9999] bg-slate-900/95 backdrop-blur-xl border border-primary/30 shadow-2xl flex flex-col overflow-hidden animate-fade-in transition-shadow duration-300"
-        >
-            {/* Header (Draggable Handle on Desktop) */}
-            <div 
-                onMouseDown={handleMouseDown}
-                className={`h-14 bg-gradient-to-r from-slate-950 to-slate-900 border-b border-slate-700 flex items-center justify-between px-3 shrink-0 select-none ${!isMobile ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''} active:bg-slate-900`}
-            >
-                <div className="flex items-center gap-3">
-                     <button 
-                        onClick={() => setShowHistory(!showHistory)}
-                        className={`p-2 rounded-lg transition-colors ${showHistory ? 'bg-primary text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-                        title="Lịch sử chat"
-                     >
-                        <History size={18} />
-                     </button>
-
-                    <div className="pointer-events-none">
-                        <h3 className="text-sm font-bold text-white leading-none flex items-center gap-2">
-                           AV COMMANDER <span className="text-[9px] bg-primary/20 text-primary px-1 rounded border border-primary/30">BRAIN</span>
-                        </h3>
-                        <p className="text-[10px] text-green-400 mt-0.5 flex items-center gap-1 truncate max-w-[150px]">
-                           {appContext.status === 'PLANNING' ? <span className="animate-pulse">Thinking...</span> : (currentSession?.name || 'New Chat')}
-                        </p>
-                    </div>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                     <button 
-                        onClick={createNewSession}
-                        className="p-1.5 text-slate-500 hover:text-primary transition-colors" 
-                        title="Đoạn chat mới"
-                     >
-                        <Plus size={18} />
-                    </button>
-                    <button 
-                        onClick={() => setIsOpen(false)} 
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
-                        title="Ẩn xuống"
-                    >
-                        <ChevronDown size={20} />
-                    </button>
-                </div>
-            </div>
-
-            {/* CONTENT AREA */}
-            <div className="flex-1 overflow-hidden relative bg-[#050B14]">
-                
-                {/* HISTORY SIDEBAR */}
-                {showHistory && (
-                    <div className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-md flex flex-col animate-fade-in">
-                        <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-                            <span className="font-bold text-white flex items-center gap-2">
-                                <History size={16} /> Các đoạn chat đã lưu
-                            </span>
-                            <button onClick={() => setShowHistory(false)} className="text-slate-500 hover:text-white"><X size={16}/></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                            {sessions.map(s => (
-                                <div 
-                                    key={s.id}
-                                    onClick={() => { setCurrentSessionId(s.id); setShowHistory(false); }}
-                                    className={`p-3 rounded-xl border cursor-pointer group transition-all ${
-                                        s.id === currentSessionId 
-                                        ? 'bg-primary/10 border-primary/50' 
-                                        : 'bg-slate-800/50 border-slate-700 hover:border-slate-500 hover:bg-slate-800'
-                                    }`}
-                                >
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-2 overflow-hidden">
-                                            <MessageSquare size={14} className={s.id === currentSessionId ? 'text-primary' : 'text-slate-500'} />
-                                            <span className={`text-sm font-medium truncate ${s.id === currentSessionId ? 'text-white' : 'text-slate-300'}`}>
-                                                {s.name}
-                                            </span>
-                                        </div>
-                                        <button 
-                                            onClick={(e) => deleteSession(s.id, e)}
-                                            className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                        >
-                                            <Trash2 size={12} />
-                                        </button>
-                                    </div>
-                                    <div className="text-[10px] text-slate-500 mt-1 pl-6">
-                                        {new Date(s.createdAt).toLocaleDateString('vi-VN')} • {s.messages.length} tin nhắn
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* MESSAGES LIST */}
-                <div className="h-full overflow-y-auto p-4 space-y-5">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                            <div className={`flex max-w-[85%] ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                {msg.role === 'model' && (
-                                    <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-primary mr-2 mt-1 shrink-0">
-                                        <Bot size={12} />
-                                    </div>
-                                )}
-                                <div className={`rounded-2xl px-3 py-2 text-sm leading-relaxed shadow-md ${
-                                    msg.role === 'user' 
-                                        ? 'bg-primary/20 text-white border border-primary/20 rounded-tr-none' 
-                                        : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'
-                                }`}>
-                                    {msg.text.split('\n').map((line, i) => (
-                                        <React.Fragment key={i}>
-                                            {line}
-                                            {i < msg.text.split('\n').length - 1 && <br />}
-                                        </React.Fragment>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* COMMAND VISUALIZATION */}
-                            {msg.command && (
-                            <div className="mt-2 ml-8 max-w-[85%]">
-                                <div className="bg-slate-900/80 border border-green-500/30 rounded-lg p-2 text-xs flex items-center gap-2 text-green-400">
-                                    <div className="p-1 bg-green-500/20 rounded">
-                                        <Cpu size={12} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <span className="font-bold opacity-70">EXECUTING:</span> {msg.command.action}
-                                    </div>
-                                    <ArrowRight size={12} />
-                                </div>
-                            </div>
-                            )}
-                        </div>
-                    ))}
-                    {isLoading && (
-                        <div className="flex justify-start items-center gap-2 ml-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-primary">
-                                <Bot size={12} />
-                            </div>
-                            <div className="text-xs text-primary animate-pulse font-mono flex items-center gap-1">
-                                <Zap size={10} className="animate-bounce"/> Analyzing intent...
-                            </div>
-                        </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                </div>
-            </div>
-
-            {/* Input Footer */}
-            <div className="p-3 bg-slate-900 border-t border-slate-800 shrink-0 pb-safe">
-                <div className="relative flex items-center">
-                    <input 
-                        type="text" 
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder={showHistory ? "Đang xem lịch sử..." : "Type instruction..."}
-                        disabled={showHistory}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-4 pr-10 py-3 text-base md:text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-inner disabled:opacity-50"
-                    />
-                    <button 
-                        onClick={handleSendMessage}
-                        disabled={isLoading || !inputText.trim() || showHistory}
-                        className="absolute right-2 p-1.5 bg-primary rounded-lg text-white hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Send size={16} />
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
-
-      {/* 3D ROBOT ICON */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end pointer-events-none">
-        <button
-            onClick={() => {
-                setIsOpen(!isOpen);
-            }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`pointer-events-auto relative group transition-all duration-300 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
-        >
-            <div className={`absolute inset-0 bg-primary rounded-full blur-xl opacity-40 transition-opacity ${appContext.status !== 'IDLE' ? 'animate-pulse opacity-80' : 'group-hover:opacity-60'}`}></div>
-            
-            <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-slate-800 via-slate-900 to-black border border-slate-600 shadow-[inset_0_2px_10px_rgba(255,255,255,0.1),0_10px_20px_rgba(0,0,0,0.5)] flex items-center justify-center transform group-hover:-translate-y-1 transition-transform duration-300">
-                <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/20"></div>
-                    {/* Dynamic Eyes based on Brain Status */}
-                    <div className="flex gap-1.5 z-10">
-                        {appContext.status === 'PLANNING' ? (
-                             <>
-                                <div className="w-3 h-1 bg-red-400 rounded-full shadow-[0_0_5px_red] animate-pulse"></div>
-                                <div className="w-3 h-1 bg-red-400 rounded-full shadow-[0_0_5px_red] animate-pulse"></div>
-                             </>
-                        ) : (
-                             <>
-                                <div className="w-1.5 h-3 bg-cyan-400 rounded-full shadow-[0_0_5px_cyan] animate-[blink_4s_infinite]"></div>
-                                <div className="w-1.5 h-3 bg-cyan-400 rounded-full shadow-[0_0_5px_cyan] animate-[blink_4s_infinite]"></div>
-                             </>
-                        )}
-                    </div>
-                </div>
-                
-                {appContext.lastError && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[8px] text-white font-bold items-center justify-center">!</span>
-                    </span>
-                )}
-            </div>
-            
-            {isHovered && !isOpen && (
-                <div className="absolute bottom-full right-0 mb-3 whitespace-nowrap px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white shadow-lg animate-fade-in">
-                    AI Commander (Active)
-                </div>
-            )}
+      <div className={`fixed bottom-6 right-6 z-[100] transition-all ${isOpen ? 'scale-0' : 'scale-100'}`}>
+        <button onClick={() => setIsOpen(true)} className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-neon hover:scale-110 transition-transform">
+          <Bot size={32} className="text-white" />
         </button>
       </div>
+
+      {isOpen && (
+        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[101] animate-fade-in">
+          <div className="p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Zap size={18} className="text-primary" />
+              <span className="font-bold text-white text-sm">AV COMMANDER</span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={toggleLiveMode} className={`p-1.5 rounded-lg transition-colors ${isLiveMode ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:bg-slate-800'}`}>
+                {isLiveMode ? <Mic size={18} /> : <MicOff size={18} />}
+              </button>
+              <button onClick={() => setIsOpen(false)} className="text-slate-500 hover:text-white"><X size={20}/></button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#050B14] custom-scrollbar">
+            {isLiveMode ? (
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
+                    <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+                        <Volume2 size={48} className="text-primary" />
+                    </div>
+                    <div>
+                        <h4 className="text-white font-bold">Voice Commander Active</h4>
+                        <p className="text-xs text-slate-500 mt-1">Talk to me directly. I'm listening...</p>
+                    </div>
+                </div>
+            ) : (
+                sessions.find(s => s.id === currentSessionId)?.messages.map((m, i) => (
+                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${m.role === 'user' ? 'bg-primary/20 text-white border border-primary/20' : 'bg-slate-800 text-slate-200'}`}>
+                            {m.text}
+                        </div>
+                    </div>
+                ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {!isLiveMode && (
+            <div className="p-3 bg-slate-950 border-t border-slate-800 flex gap-2">
+                <input 
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Type instruction..."
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary"
+                />
+                <button onClick={handleSendMessage} disabled={isLoading} className="p-2 bg-primary rounded-xl text-white">
+                    <Send size={18} />
+                </button>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 };
