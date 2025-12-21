@@ -6,12 +6,13 @@ import NeonButton from './NeonButton';
 
 interface PlanResultProps {
   data: OrchestratorResponse;
+  videoUrl?: string | null;
   onPost?: (content: { title: string, description: string }) => Promise<boolean>;
   onAddToQueue?: (job: PostingJob) => void;
   t?: any;
 }
 
-const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue, t }) => {
+const PlanResult: React.FC<PlanResultProps> = ({ data, videoUrl, onPost, onAddToQueue, t }) => {
   const texts = t || {};
   const [autoPostTime, setAutoPostTime] = useState<number>(3600); // 1 hour in seconds
   const [isAutoPosting, setIsAutoPosting] = useState(true);
@@ -101,6 +102,16 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue, t }
       const link = document.createElement('a');
       link.href = url;
       link.download = `AV_Studio_Plan_${Date.now()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
+  const handleDownloadVideo = () => {
+      if (!videoUrl) return;
+      const link = document.createElement('a');
+      link.href = videoUrl;
+      link.download = `AV_Studio_Video_${Date.now()}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -422,17 +433,29 @@ const PlanResult: React.FC<PlanResultProps> = ({ data, onPost, onAddToQueue, t }
                            <CheckCircle size={18} /> {texts.posted_success || "POSTED SUCCESSFULLY"}
                         </div>
                      ) : (
-                        <div className="grid grid-cols-2 gap-3">
-                           {/* Add to Queue Button */}
-                           <button 
-                             onClick={handleAddToQueue}
-                             className="py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
-                           >
-                              <Calendar size={14} /> {texts.schedule || "SCHEDULE / QUEUE"}
-                           </button>
-                           <NeonButton onClick={handleApprove} size="md">
-                              {texts.post_now || "POST NOW"}
-                           </NeonButton>
+                        <div className="flex flex-col gap-3">
+                           <div className="grid grid-cols-2 gap-3">
+                              {/* Add to Queue Button */}
+                              <button 
+                                onClick={handleAddToQueue}
+                                className="py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                              >
+                                 <Calendar size={14} /> {texts.schedule || "SCHEDULE / QUEUE"}
+                              </button>
+                              <NeonButton onClick={handleApprove} size="md">
+                                 {texts.post_now || "POST NOW"}
+                              </NeonButton>
+                           </div>
+                           
+                           {/* New Download Video Button */}
+                           {videoUrl && (
+                             <button 
+                               onClick={handleDownloadVideo}
+                               className="w-full py-3 bg-primary/10 border border-primary/40 hover:bg-primary hover:text-white text-primary rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-neon-hover group"
+                             >
+                                <Download size={16} className="group-hover:translate-y-0.5 transition-transform" /> {texts.download_video || "DOWNLOAD VIDEO"}
+                             </button>
+                           )}
                         </div>
                      )}
                   </div>

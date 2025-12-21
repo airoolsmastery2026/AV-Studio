@@ -33,7 +33,7 @@ const KNOWLEDGE_BASE_KEY = 'av_studio_brain_v1';
 const App: React.FC = () => {
   // --- UI & LANGUAGE ---
   const [appLang, setAppLang] = useState<AppLanguage>('vi');
-  const t = translations[appLang];
+  const t = translations[appLang] || translations['en'];
   
   const [activeTab, setActiveTab] = useState<TabView>('auto_pilot');
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
@@ -104,9 +104,7 @@ const App: React.FC = () => {
           setStatus(AppStatus.RENDERING);
           setAutoPilotLogs(prev => [{ timestamp: new Date().toLocaleTimeString(), action: 'ASSETS', detail: `Đang render Voice (Chirp) & Video (Veo)...`, status: 'info', stage: 'VISUAL_GEN' }, ...prev]);
           
-          // Thực tế: Gọi các hàm render
           const voiceBase64 = await generateGeminiTTS(plan.production_plan.script_master);
-          // Trong môi trường demo, chúng ta bỏ qua việc render video thật nếu chưa có quyền Veo để tránh crash loop
           await new Promise(r => setTimeout(r, 3000)); 
 
           // D. DISPATCH
@@ -176,17 +174,23 @@ const App: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-4">
-                <select 
-                    value={appLang} 
-                    onChange={(e) => setAppLang(e.target.value as AppLanguage)}
-                    className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[10px] font-bold text-white focus:outline-none"
-                >
-                    <option value="vi">TIẾNG VIỆT</option>
-                    <option value="en">ENGLISH</option>
-                </select>
+                <div className="flex items-center gap-2">
+                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest mr-1">UI Lang</span>
+                   <select 
+                        value={appLang} 
+                        onChange={(e) => setAppLang(e.target.value as AppLanguage)}
+                        className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[10px] font-bold text-white focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                    >
+                        <option value="vi">VIỆT NAM</option>
+                        <option value="en">ENGLISH</option>
+                        <option value="jp">日本語</option>
+                        <option value="es">ESPAÑOL</option>
+                        <option value="cn">中文</option>
+                    </select>
+                </div>
                 <div className="hidden lg:flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800">
                   <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                  <span className="text-[10px] font-bold text-slate-400">GEMINI ENGINE READY</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">GEMINI ENGINE READY</span>
                </div>
             </div>
         </header>
@@ -211,7 +215,7 @@ const App: React.FC = () => {
             {activeTab === 'marketplace' && <AIMarketplace apiKeys={apiKeys} onSelectProduct={() => setActiveTab('studio')} t={t} />}
             {activeTab === 'risk_center' && <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={() => {}} t={t} />}
             {activeTab === 'queue' && <QueueDashboard apiKeys={apiKeys} currentPlan={null} jobs={jobs} setJobs={setJobs} t={t} />}
-            {activeTab === 'settings' && <SettingsDashboard apiKeys={apiKeys} setApiKeys={setApiKeys} knowledgeBase={knowledgeBase} setKnowledgeBase={setKnowledgeBase} t={t} />}
+            {activeTab === 'settings' && <SettingsDashboard apiKeys={apiKeys} setApiKeys={setApiKeys} knowledgeBase={knowledgeBase} setKnowledgeBase={setKnowledgeBase} t={t} appLang={appLang} setAppLang={setAppLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} />}
             {activeTab === 'docs' && <Documentation />}
           </div>
         </div>

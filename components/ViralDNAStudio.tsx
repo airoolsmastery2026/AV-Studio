@@ -155,7 +155,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
             <div className="p-2 bg-primary rounded-lg shadow-neon"><Dna className="text-white" size={24} /></div>
             <h1 className="text-xl font-black text-white tracking-tight uppercase">Viral DNA Studio <span className="hidden sm:inline-block text-[10px] bg-red-500 px-2 py-0.5 rounded text-white ml-2">Google VEO Enabled</span></h1>
         </div>
-        <div className="flex gap-2 bg-slate-900 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
+        <div className="flex gap-2 bg-slate-900 p-1 rounded-xl w-full md:auto overflow-x-auto">
             {['analyzer', 'script', 'studio'].map((tab) => (
                 <button 
                   key={tab} 
@@ -290,7 +290,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                 <div className="max-w-6xl mx-auto space-y-8 animate-fade-in py-4">
                     {generatedPlan ? (
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                            <div className="xl:col-span-2"><PlanResult data={generatedPlan} /></div>
+                            <div className="xl:col-span-2"><PlanResult data={generatedPlan} videoUrl={videoUrl} /></div>
                             <div className="space-y-6">
                                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
                                     <h4 className="text-white font-bold mb-4 flex items-center gap-2"><Video size={18} className="text-primary"/> Ultimate Render Engine</h4>
