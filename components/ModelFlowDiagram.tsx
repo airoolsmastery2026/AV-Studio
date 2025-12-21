@@ -19,12 +19,14 @@ const ModelFlowDiagram: React.FC<ModelFlowDiagramProps> = ({
   aspectRatio
 }) => {
   // Detect Ecosystem
-  const isGoogleStack = scriptModel.includes('Gemini') && (visualModel.includes('Veo') || visualModel.includes('Imagen')) && voiceModel.includes('Google');
-  const isOpenAIStack = scriptModel.includes('GPT') && visualModel.includes('Sora') && voiceModel.includes('OpenAI');
+  const isGoogleStack = scriptModel.includes('Gemini') && (visualModel.includes('VEO') || visualModel.includes('IMAGEN')) && voiceModel.includes('Google');
+  const isOpenAIStack = scriptModel.includes('GPT') && visualModel.includes('SORA') && voiceModel.includes('OpenAI');
+  const isXAIStack = scriptModel.includes('Grok');
+  const isNextGenVisual = visualModel.includes('KLING') || visualModel.includes('HAILUO');
 
   // Dynamic Styles
-  const scriptColor = scriptModel.includes('Gemini') ? 'text-blue-400' : scriptModel.includes('GPT') ? 'text-green-400' : 'text-purple-400';
-  const scriptBorder = scriptModel.includes('Gemini') ? 'border-blue-500' : scriptModel.includes('GPT') ? 'border-green-500' : 'border-purple-500';
+  const scriptColor = scriptModel.includes('Gemini') ? 'text-blue-400' : scriptModel.includes('GPT') ? 'text-green-400' : scriptModel.includes('Grok') ? 'text-white' : 'text-purple-400';
+  const scriptBorder = scriptModel.includes('Gemini') ? 'border-blue-500' : scriptModel.includes('GPT') ? 'border-green-500' : scriptModel.includes('Grok') ? 'border-white' : 'border-purple-500';
   
   // Output Icon
   const OutputIcon = aspectRatio === '9:16' ? Smartphone : Monitor;
@@ -40,9 +42,9 @@ const ModelFlowDiagram: React.FC<ModelFlowDiagramProps> = ({
               <ShieldCheck size={12} /> Google Ecosystem Active
           </div>
       )}
-      {isOpenAIStack && (
-          <div className="absolute top-4 right-4 z-10 bg-green-900/20 border border-green-500/30 text-green-300 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 animate-fade-in">
-              <ShieldCheck size={12} /> OpenAI Stack Active
+      {isXAIStack && (
+          <div className="absolute top-4 right-4 z-10 bg-slate-800/50 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 animate-fade-in">
+              <Zap size={12} className="text-white" /> xAI Grok Engine Active
           </div>
       )}
 
@@ -61,9 +63,6 @@ const ModelFlowDiagram: React.FC<ModelFlowDiagramProps> = ({
         <div className="flex-1 h-px bg-slate-800 relative hidden md:block w-full md:w-auto">
            <div className="absolute top-1/2 left-0 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] -translate-y-1/2 animate-[moveRight_2s_linear_infinite]"></div>
         </div>
-        <div className="md:hidden h-12 w-px bg-slate-800 relative">
-           <div className="absolute left-1/2 top-0 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] -translate-x-1/2 animate-[moveDown_2s_linear_infinite]"></div>
-        </div>
 
         {/* NODE 2: SCRIPT BRAIN */}
         <div className="flex flex-col items-center gap-2 z-20">
@@ -77,33 +76,16 @@ const ModelFlowDiagram: React.FC<ModelFlowDiagramProps> = ({
 
         {/* CONNECTION 2: SPLIT FLOW */}
         <div className="flex-1 relative h-24 hidden md:flex items-center">
-            {/* Upper Path (Visual) */}
             <div className="absolute top-0 left-0 w-full h-1/2 border-l border-t border-slate-700 rounded-tl-3xl"></div>
-            <div className="absolute top-0 left-0 w-full h-full">
-               <div className="absolute top-0 left-10 w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_8px_#3b82f6] animate-[movePathTop_2s_linear_infinite]"></div>
-            </div>
-
-            {/* Lower Path (Voice) */}
             <div className="absolute bottom-0 left-0 w-full h-1/2 border-l border-b border-slate-700 rounded-bl-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-full h-full">
-               <div className="absolute bottom-0 left-10 w-1.5 h-1.5 bg-green-400 rounded-full shadow-[0_0_8px_#22c55e] animate-[movePathBottom_2s_linear_infinite]"></div>
-            </div>
-        </div>
-        
-        {/* Mobile Split */}
-        <div className="md:hidden flex w-full justify-center gap-12 relative h-12">
-             <div className="w-px h-full bg-slate-800 absolute left-1/2 -translate-x-1/2 top-[-10px]"></div>
-             <div className="w-1/2 h-px bg-slate-800 absolute top-1/2 left-1/2 -translate-x-1/2"></div>
-             <div className="w-px h-1/2 bg-slate-800 absolute top-1/2 left-[25%]"></div>
-             <div className="w-px h-1/2 bg-slate-800 absolute top-1/2 right-[25%]"></div>
         </div>
 
         {/* NODE 3 & 4: PARALLEL PROCESSING */}
         <div className="flex flex-row md:flex-col gap-8 md:gap-4 z-20">
             {/* Visual Node */}
-            <div className={`flex items-center gap-3 bg-slate-900 border ${visualModel.includes('VEO') ? 'border-blue-500' : 'border-slate-700'} p-3 rounded-xl shadow-lg min-w-[160px] transition-colors`}>
-               <div className={`p-2 rounded-lg ${visualModel.includes('VEO') ? 'bg-blue-500/20' : 'bg-slate-800'}`}>
-                  <Palette size={20} className={visualModel.includes('VEO') ? 'text-blue-400' : 'text-slate-400'} />
+            <div className={`flex items-center gap-3 bg-slate-900 border ${isNextGenVisual ? 'border-accent' : 'border-slate-700'} p-3 rounded-xl shadow-lg min-w-[160px] transition-colors`}>
+               <div className={`p-2 rounded-lg ${isNextGenVisual ? 'bg-accent/20' : 'bg-slate-800'}`}>
+                  <Palette size={20} className={isNextGenVisual ? 'text-accent' : 'text-slate-400'} />
                </div>
                <div>
                   <div className="text-[10px] text-slate-400 uppercase font-bold">Visual Engine</div>
@@ -112,38 +94,15 @@ const ModelFlowDiagram: React.FC<ModelFlowDiagramProps> = ({
             </div>
 
             {/* Voice Node */}
-            <div className={`flex items-center gap-3 bg-slate-900 border ${voiceModel.includes('Chirp') ? 'border-green-500' : 'border-slate-700'} p-3 rounded-xl shadow-lg min-w-[160px] transition-colors`}>
-               <div className={`p-2 rounded-lg ${voiceModel.includes('Chirp') ? 'bg-green-500/20' : 'bg-slate-800'}`}>
-                  <Mic size={20} className={voiceModel.includes('Chirp') ? 'text-green-400' : 'text-slate-400'} />
+            <div className={`flex items-center gap-3 bg-slate-900 border ${voiceModel.includes('Chirp') || voiceModel.includes('Eleven') ? 'border-green-500' : 'border-slate-700'} p-3 rounded-xl shadow-lg min-w-[160px] transition-colors`}>
+               <div className={`p-2 rounded-lg ${voiceModel.includes('Chirp') || voiceModel.includes('Eleven') ? 'bg-green-500/20' : 'bg-slate-800'}`}>
+                  <Mic size={20} className={voiceModel.includes('Chirp') || voiceModel.includes('Eleven') ? 'text-green-400' : 'text-slate-400'} />
                </div>
                <div>
                   <div className="text-[10px] text-slate-500 uppercase font-bold">Voice Engine</div>
                   <div className="text-xs text-white font-bold">{voiceModel}</div>
                </div>
             </div>
-        </div>
-
-        {/* CONNECTION 3: MERGE */}
-        <div className="flex-1 relative h-24 hidden md:flex items-center">
-            {/* Upper Path Merge */}
-            <div className="absolute top-0 right-0 w-full h-1/2 border-r border-t border-slate-700 rounded-tr-3xl"></div>
-            <div className="absolute top-0 right-0 w-full h-full">
-               <div className="absolute top-0 right-10 w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_8px_#3b82f6] animate-[movePathMergeTop_2s_linear_infinite_0.5s]"></div>
-            </div>
-
-            {/* Lower Path Merge */}
-            <div className="absolute bottom-0 right-0 w-full h-1/2 border-r border-b border-slate-700 rounded-br-3xl"></div>
-            <div className="absolute bottom-0 right-0 w-full h-full">
-               <div className="absolute bottom-0 right-10 w-1.5 h-1.5 bg-green-400 rounded-full shadow-[0_0_8px_#22c55e] animate-[movePathMergeBottom_2s_linear_infinite_0.5s]"></div>
-            </div>
-        </div>
-        
-        {/* Mobile Merge */}
-        <div className="md:hidden flex w-full justify-center gap-12 relative h-12">
-             <div className="w-px h-1/2 bg-slate-800 absolute top-0 left-[25%]"></div>
-             <div className="w-px h-1/2 bg-slate-800 absolute top-0 right-[25%]"></div>
-             <div className="w-1/2 h-px bg-slate-800 absolute top-1/2 left-1/2 -translate-x-1/2"></div>
-             <div className="w-px h-1/2 bg-slate-800 absolute bottom-0 left-1/2 -translate-x-1/2"></div>
         </div>
 
         {/* NODE 5: OUTPUT */}
@@ -155,7 +114,6 @@ const ModelFlowDiagram: React.FC<ModelFlowDiagramProps> = ({
                   <span className="font-bold text-white">{resolution}</span>
                   <span>{aspectRatio}</span>
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-ping"></div>
            </div>
            <span className="text-xs font-bold text-primary uppercase tracking-widest">Final Render</span>
         </div>
@@ -168,32 +126,6 @@ const ModelFlowDiagram: React.FC<ModelFlowDiagramProps> = ({
           10% { opacity: 1; }
           90% { opacity: 1; }
           100% { left: 100%; opacity: 0; }
-        }
-        @keyframes moveDown {
-          0% { top: 0; opacity: 0; }
-          100% { top: 100%; opacity: 1; }
-        }
-        @keyframes movePathTop {
-          0% { left: 0; top: 0; opacity: 0; }
-          20% { opacity: 1; }
-          50% { left: 50%; top: 0; }
-          100% { left: 100%; top: 50%; opacity: 0; }
-        }
-        @keyframes movePathBottom {
-          0% { left: 0; bottom: 0; opacity: 0; }
-          20% { opacity: 1; }
-          50% { left: 50%; bottom: 0; }
-          100% { left: 100%; bottom: 50%; opacity: 0; }
-        }
-        @keyframes movePathMergeTop {
-          0% { right: 100%; top: 0; opacity: 0; }
-          50% { right: 50%; top: 0; opacity: 1; }
-          100% { right: 0; top: 50%; opacity: 0; }
-        }
-        @keyframes movePathMergeBottom {
-          0% { right: 100%; bottom: 0; opacity: 0; }
-          50% { right: 50%; bottom: 0; opacity: 1; }
-          100% { right: 0; bottom: 50%; opacity: 0; }
         }
       `}</style>
     </div>

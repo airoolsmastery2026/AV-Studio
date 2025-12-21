@@ -20,13 +20,10 @@ const cleanAndParseJSON = (text: string) => {
 };
 
 const VIRAL_FORMULAS: ViralFormula[] = [
-    { id: 'f_01', name: 'Vòng lặp vô tận (Infinite Loop)', structure_logic: 'Cảnh cuối trùng khớp với cảnh đầu để tạo vòng lặp xem lại.', retention_hook_rule: 'Nêu bật một sự thật gây sốc ngay giây đầu.', transition_style: 'SEAMLESS' },
-    { id: 'f_02', name: 'Đòn bẩy cảm xúc (Emotional Leverage)', structure_logic: 'Đưa ra nỗi đau -> Giải pháp AI -> Kết quả sung sướng.', retention_hook_rule: 'Hình ảnh biến đổi (Before/After) cực nhanh.', transition_style: 'ZOOM_FLOW' }
+    { id: 'f_01', name: 'Infinite Loop', structure_logic: 'End frame matches start frame.', retention_hook_rule: 'Shocking truth in first sec.', transition_style: 'SEAMLESS' },
+    { id: 'f_02', name: 'Pain-Solution', structure_logic: 'Pain -> AI Solution -> Joy.', retention_hook_rule: 'Fast before/after transitions.', transition_style: 'ZOOM_FLOW' }
 ];
 
-/**
- * Tạo kịch bản tích hợp Deep Viral Logic & Seamless Transitions
- */
 export const generateProScript = async (
   apiKey: string, 
   dna: ViralDNAProfile, 
@@ -38,19 +35,20 @@ export const generateProScript = async (
   const formula = VIRAL_FORMULAS.find(f => f.id === kb.globalStrategyRules.viralFormulaId) || VIRAL_FORMULAS[0];
 
   const prompt = `
-    VAI TRÒ: Chuyên gia sáng tạo nội dung Viral triệu view & Kỹ sư kịch bản AI.
-    YÊU CẦU ĐỒNG NHẤT (GLOBAL RULES): 
-    - Tính đồng nhất: ${kb.globalStrategyRules.enforceConsistency ? 'BẮT BUỘC (Giữ nguyên phong cách hình ảnh xuyên suốt)' : 'Linh hoạt'}
-    - Nối cảnh liền mạch: ${kb.globalStrategyRules.seamlessTransitionLogic ? 'Sử dụng kỹ thuật SEAMLESS TRANSITION (Match cut, Zoom in/out)' : 'Cắt cảnh thông thường'}
-    - Công thức Viral: ${formula.name} - ${formula.structure_logic}
+    ROLE: Viral Content Strategist & AI Script Engineer.
+    TARGET LANGUAGE: ${settings.contentLanguage} (Must generate ALL spoken and text content in this language).
+    GLOBAL RULES: 
+    - Consistency: ${kb.globalStrategyRules.enforceConsistency ? 'STRICT' : 'Flexible'}
+    - Transitions: ${kb.globalStrategyRules.seamlessTransitionLogic ? 'SEAMLESS (Match cut, Zoom)' : 'Standard cuts'}
+    - Viral Formula: ${formula.name} - ${formula.structure_logic}
     
-    CHỦ ĐỀ: ${settings.topic}
-    DNA ĐỐI THỦ: ${JSON.stringify(dna)}
-    THÔNG SỐ THUẬT TOÁN: Tối ưu cho ${settings.videoFormat} (Thời gian vàng 3s đầu: ${settings.hookStrength}% lực hút).
+    TOPIC: ${settings.topic}
+    DNA PROFILE: ${JSON.stringify(dna)}
+    FORMAT: ${settings.videoFormat} (Hook strength: ${settings.hookStrength}%).
 
-    TRẢ VỀ JSON OrchestratorResponse:
-    - Cần mô tả chi tiết 'transition_logic' cho từng scene.
-    - Đảm bảo 'vo_text' ngắn gọn, súc tích theo phong cách ${settings.contentLanguage}.
+    RETURN JSON OrchestratorResponse:
+    - Ensure 'vo_text' is high-impact and native to ${settings.contentLanguage}.
+    - Include SEO metadata optimized for the target market.
   `;
 
   const response = await ai.models.generateContent({
@@ -63,7 +61,7 @@ export const generateProScript = async (
 
 export const extractViralDNA = async (apiKey: string, urls: string[], mode: string, lang: string): Promise<ViralDNAProfile> => {
   const ai = getAi();
-  const prompt = `Phân tích DNA Viral cho: ${urls.join(', ')}. Ngôn ngữ: ${lang}. Trả về JSON ViralDNAProfile.`;
+  const prompt = `Analyze Viral DNA for: ${urls.join(', ')}. Target Market Language: ${lang}. Return JSON ViralDNAProfile.`;
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt,
@@ -72,11 +70,43 @@ export const extractViralDNA = async (apiKey: string, urls: string[], mode: stri
   return cleanAndParseJSON(response.text || "{}");
 };
 
+export const generateGeminiTTS = async (text: string, lang: string = 'en', sentiment: string = 'neutral'): Promise<string> => {
+  const ai = getAi();
+  
+  // Map App/Content language to TTS-friendly hints
+  const langHints: any = {
+    vi: 'Vietnamese',
+    en: 'English',
+    es: 'Spanish',
+    fr: 'French',
+    ja: 'Japanese',
+    ko: 'Korean',
+    zh: 'Chinese',
+    th: 'Thai'
+  };
+
+  const styledPrompt = `Speak the following in ${langHints[lang] || 'English'} with a ${sentiment} emotion: ${text}`;
+  
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-preview-tts",
+    contents: [{ parts: [{ text: styledPrompt }] }],
+    config: { 
+      responseModalities: [Modality.AUDIO], 
+      speechConfig: { 
+        voiceConfig: { 
+          prebuiltVoiceConfig: { voiceName: lang === 'vi' ? 'Kore' : 'Zephyr' } 
+        } 
+      } 
+    },
+  });
+  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
+};
+
 export const runSeoAudit = async (title: string, description: string, topic: string): Promise<SEOAudit> => {
   const ai = getAi();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Audit SEO cho "${title}" - "${description}". Topic: ${topic}. Trả về JSON SEOAudit.`,
+    contents: `Audit SEO for "${title}" in context of "${topic}". Use Google Search to check global trends. Return JSON SEOAudit.`,
     config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
   });
   return cleanAndParseJSON(response.text || "{}");
@@ -86,7 +116,7 @@ export const runNeuralOverhaul = async (currentPlan: any, audit: any): Promise<a
     const ai = getAi();
     const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Tái cấu trúc kịch bản dựa trên SEO thấp: ${JSON.stringify(audit)}. Dữ liệu cũ: ${JSON.stringify(currentPlan)}.`,
+        contents: `Restructure script due to low SEO: ${JSON.stringify(audit)}. Old data: ${JSON.stringify(currentPlan)}.`,
         config: { responseMimeType: "application/json" }
     });
     return cleanAndParseJSON(response.text || "{}");
@@ -96,41 +126,27 @@ export const runAgenticRecon = async (niche: string): Promise<any> => {
   const ai = getAi();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Săn sản phẩm affiliate hot trong ngách ${niche}. Trả về JSON {discovered_signals, trending_keywords}.`,
+    contents: `Hunt for high-commission products in ${niche}. Search globally. Return JSON {discovered_signals, trending_keywords}.`,
     config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
   });
   return cleanAndParseJSON(response.text || "{}");
-};
-
-/* FIX: Updated signature to accept lang and sentiment */
-export const generateGeminiTTS = async (text: string, lang: string = 'vi', sentiment: string = 'neutral'): Promise<string> => {
-  const ai = getAi();
-  const styledText = `Say in ${lang} with ${sentiment} emotion: ${text}`;
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: styledText }] }],
-    config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } },
-  });
-  return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
 };
 
 export const predictGoldenHours = async (apiKey: string, region: string, niche: string, platforms: string[]): Promise<any[]> => {
   const ai = getAi();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Giờ vàng tại ${region} cho ${niche} trên ${platforms.join(',')}. Trả về JSON array.`,
+    contents: `Predict Golden Hours in ${region} for ${niche} on ${platforms.join(',')}. Return JSON array.`,
     config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
   });
   return cleanAndParseJSON(response.text || "[]");
 };
 
-/* FIX: Added missing exported functions */
-
 export const runCompetitorDeepDive = async (url: string): Promise<CompetitorDeepAudit> => {
   const ai = getAi();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Analyze competitor channel/video at ${url}. Return CompetitorDeepAudit JSON.`,
+    contents: `Deep analyze competitor at ${url}. Return CompetitorDeepAudit JSON.`,
     config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
   });
   return cleanAndParseJSON(response.text || "{}");
@@ -140,7 +156,7 @@ export const huntAffiliateProducts = async (apiKey: string, niche: string, netwo
   const ai = getAi();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Find high-commission trending products in ${niche} across ${networks.join(', ')}. Return AffiliateHuntResult JSON.`,
+    contents: `Find trending affiliate products in ${niche}. Networks: ${networks.join(', ')}. Return AffiliateHuntResult JSON.`,
     config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
   });
   return cleanAndParseJSON(response.text || "{}");
@@ -153,7 +169,8 @@ export const sendChatToAssistant = async (apiKey: string, history: any[], messag
     contents: history.concat([{ role: 'user', parts: [{ text: `CONTEXT: ${JSON.stringify(context)}. MESSAGE: ${message}` }] }]),
     config: { 
       responseMimeType: "application/json",
-      systemInstruction: "You are AI Commander. Help user manage AV Studio. Use NAVIGATE command for tab switching."
+      systemInstruction: `You are AI Commander. Help user manage AV Studio. Use NAVIGATE command for tab switching. 
+      IMPORTANT: Respond in the language detected from the user message. Be professional and high-tech.`
     }
   });
   return cleanAndParseJSON(response.text || "{}");

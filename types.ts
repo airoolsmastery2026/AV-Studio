@@ -80,12 +80,12 @@ export interface StudioSettings {
   viralFormulaId?: string;
 }
 
-export type AppLanguage = 'vi' | 'en'; 
-export type ContentLanguage = 'vi' | 'en';
+export type AppLanguage = 'vi' | 'en' | 'es' | 'fr' | 'ja' | 'ko' | 'zh' | 'th'; 
+export type ContentLanguage = 'vi' | 'en' | 'es' | 'fr' | 'ja' | 'ko' | 'zh' | 'th';
 export type VideoResolution = '720p' | '1080p' | '4K';
 export type AspectRatio = '9:16' | '16:9' | '1:1';
-export type ScriptModel = 'Gemini 2.5 Flash' | 'Gemini 3 Pro' | 'GPT-4o' | 'Grok Beta';
-export type VisualModel = 'VEO' | 'SORA' | 'KLING' | 'IMAGEN' | 'MIDJOURNEY';
+export type ScriptModel = 'Gemini 2.5 Flash' | 'Gemini 3 Pro' | 'GPT-4o' | 'Grok 3' | 'Claude 3.5 Sonnet';
+export type VisualModel = 'VEO' | 'SORA' | 'KLING 1.5' | 'HAILUO AI' | 'PIKA 2.1' | 'IMAGEN';
 export type VoiceModel = 'ElevenLabs' | 'OpenAI TTS' | 'Google Chirp' | 'Vbee TTS';
 
 export interface ApiKeyConfig {
@@ -132,8 +132,6 @@ export interface PostingJob { id: string; content_title: string; caption: string
 export interface OrchestratorResponse { production_plan: any; generated_content: any; [key: string]: any; market_scoring: any; audience_personas: any[]; deep_analysis: any; }
 export interface ViralDNAProfile { structure: any; emotional_curve: string[]; keywords: string[]; algorithm_fit_score: number; [key: string]: any; }
 export interface AgentCommand { action: 'NAVIGATE' | 'SET_INPUT' | 'EXECUTE_RUN' | 'UPDATE_MEMORY'; payload: any; }
-
-/* FIX: Added missing exported types */
 
 export interface AppContext {
   activeTab: string;

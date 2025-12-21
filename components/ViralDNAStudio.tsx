@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Dna, FileText, MonitorPlay, Sparkles, AlertTriangle,
-  Search, Plus, X, Loader2, BrainCircuit, BarChart2, Zap, Gauge, Info, Target, TrendingUp, Activity, BarChartHorizontal, ShieldCheck, Radar, 
-  Layers, Scissors, Globe, ArrowRight, MousePointer2, Settings, ChevronRight, CheckCircle2, Waves, Hash
+  Plus, X, Loader2, BrainCircuit, Zap, Gauge, Info, Target, TrendingUp, BarChartHorizontal, ShieldCheck, Radar, 
+  Globe, TrendingDown, Hash, Waves, Settings, CheckCircle2
 } from 'lucide-react';
 import { 
   ApiKeyConfig, KnowledgeBase, ScriptModel, VisualModel, VoiceModel, 
@@ -27,6 +27,7 @@ interface ViralDNAStudioProps {
   setVisualModel: (m: VisualModel) => void;
   voiceModel: VoiceModel;
   setVoiceModel: (m: VoiceModel) => void;
+  resolution: VideoResolution;
   setResolution: (r: VideoResolution) => void;
   aspectRatio: AspectRatio;
   setAspectRatio: (a: AspectRatio) => void;
@@ -36,7 +37,7 @@ interface ViralDNAStudioProps {
 const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ 
   predefinedTopic, apiKeys, appLanguage, contentLanguage, setContentLanguage, 
   knowledgeBase, scriptModel, setScriptModel, visualModel, setVisualModel, 
-  voiceModel, setVoiceModel, setResolution, aspectRatio, setAspectRatio, t 
+  voiceModel, setVoiceModel, resolution, setResolution, aspectRatio, setAspectRatio, t 
 }) => {
   const [activeStudioTab, setActiveStudioTab] = useState<'recon' | 'studio'>('recon');
   const [status, setStatus] = useState<'idle' | 'analyzing' | 'generating' | 'auditing' | 'overhauling' | 'done'>('idle');
@@ -259,7 +260,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                             <div className="text-xl font-black text-white uppercase leading-tight group-hover:text-primary transition-colors">{dnaProfile.structure.hook_type}</div>
                         </div>
                         <div className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 shadow-inner group hover:border-accent/30 transition-all">
-                            <div className="text-[9px] text-slate-500 font-black uppercase mb-2 tracking-widest flex items-center gap-2"><Waves size={12} className="text-accent"/> Pacing & Rhytm</div>
+                            <div className="text-[9px] text-slate-500 font-black uppercase mb-2 tracking-widest flex items-center gap-2"><Waves size={12} className="text-accent"/> Pacing & Rhythm</div>
                             <div className="text-xl font-black text-white uppercase group-hover:text-accent transition-colors">{dnaProfile.structure.pacing}</div>
                         </div>
                         <div className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 shadow-inner group">
@@ -318,7 +319,18 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 animate-fade-in items-start">
           
           {/* PRODUCTION MAIN PANEL */}
-          <div className="xl:col-span-8 space-y-10">
+          <div className="xl:col-span-12 space-y-6">
+            
+            {/* INTEGRATED COMPACT TOOLBAR */}
+            <ModelSelector 
+                scriptModel={scriptModel} setScriptModel={setScriptModel}
+                visualModel={visualModel} setVisualModel={setVisualModel}
+                voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+                resolution={resolution} setResolution={setResolution}
+                aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                t={t}
+            />
+
             <div className="bg-slate-900 border border-slate-800 rounded-[40px] p-10 shadow-2xl space-y-8 relative overflow-hidden">
                 {status === 'overhauling' && (
                   <div className="absolute inset-0 bg-amber-500/10 backdrop-blur-xl z-20 flex flex-col items-center justify-center animate-fade-in border-4 border-amber-500/40 rounded-[40px] p-12 text-center">
@@ -376,51 +388,45 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
             </div>
 
             {generatedPlan && (
-                <div className="space-y-10 animate-fade-in">
-                    <PlanResult data={generatedPlan} t={t} />
+                <div className="space-y-10 animate-fade-in grid grid-cols-1 xl:grid-cols-12 gap-8">
+                    <div className="xl:col-span-8">
+                      <PlanResult data={generatedPlan} t={t} />
+                    </div>
                     
                     {seoAudit && (
-                        <div className="bg-slate-950 border border-slate-800 rounded-[40px] p-10 shadow-2xl relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity"><Gauge size={120} className="text-purple-500" /></div>
+                        <div className="xl:col-span-4 bg-slate-950 border border-slate-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden group h-fit">
+                            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity"><Gauge size={80} className="text-purple-500" /></div>
                             
-                            <div className="flex items-center gap-6 mb-10 border-b border-slate-800 pb-6">
-                                <div className="p-4 bg-purple-500/10 rounded-2xl text-purple-500 shadow-neon border border-purple-500/20">
-                                    <TrendingUp size={28} />
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="p-3 bg-purple-500/10 rounded-xl text-purple-500 shadow-neon border border-purple-500/20">
+                                    <TrendingUp size={20} />
                                 </div>
-                                <div>
-                                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter">{t.seo_score}</h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">VidIQ AI Predictive Engine</p>
-                                    </div>
-                                </div>
+                                <h3 className="text-lg font-black text-white uppercase tracking-tighter">{t.seo_score}</h3>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
-                                <div className="md:col-span-4 flex flex-col items-center justify-center p-10 bg-slate-900 rounded-[32px] border border-slate-800 shadow-inner group-hover:border-purple-500/30 transition-all">
-                                    <div className="text-8xl font-black text-purple-500 tracking-tighter">{seoAudit.seo_score}</div>
-                                    <div className="text-[10px] text-slate-500 font-black uppercase mt-4 tracking-widest">SEO Score / 100</div>
+                            <div className="space-y-8">
+                                <div className="flex flex-col items-center justify-center p-8 bg-slate-900 rounded-[32px] border border-slate-800 shadow-inner group-hover:border-purple-500/30 transition-all">
+                                    <div className="text-6xl font-black text-purple-500 tracking-tighter">{seoAudit.seo_score}</div>
+                                    <div className="text-[9px] text-slate-500 font-black uppercase mt-2 tracking-widest">VidIQ Score / 100</div>
                                 </div>
                                 
-                                <div className="md:col-span-8 space-y-8">
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="p-6 bg-slate-900 rounded-3xl border border-slate-800 shadow-sm">
-                                            <div className="text-[9px] text-slate-500 uppercase font-black mb-2 tracking-widest">{t.keyword_difficulty}</div>
-                                            <div className={`text-lg font-black uppercase ${seoAudit.keyword_difficulty === 'LOW' ? 'text-green-500' : 'text-yellow-500'}`}>{seoAudit.keyword_difficulty}</div>
-                                        </div>
-                                        <div className="p-6 bg-slate-900 rounded-3xl border border-slate-800 shadow-sm">
-                                            <div className="text-[9px] text-slate-500 uppercase font-black mb-2 tracking-widest">{t.viral_momentum}</div>
-                                            <div className="text-lg font-black text-white uppercase">{seoAudit.trending_momentum}% Potential</div>
-                                        </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                                        <div className="text-[8px] text-slate-500 uppercase font-black mb-1">Difficulty</div>
+                                        <div className={`text-sm font-black uppercase ${seoAudit.keyword_difficulty === 'LOW' ? 'text-green-500' : 'text-yellow-500'}`}>{seoAudit.keyword_difficulty}</div>
                                     </div>
-                                    
-                                    <div className="space-y-4">
-                                        <h4 className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Hashtag Synergy</h4>
-                                        <div className="flex flex-wrap gap-3">
-                                            {seoAudit.suggested_tags.map((tag, i) => (
-                                                <span key={i} className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[10px] text-slate-300 font-bold hover:border-purple-500 transition-all">#{tag}</span>
-                                            ))}
-                                        </div>
+                                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                                        <div className="text-[8px] text-slate-500 uppercase font-black mb-1">Viral Power</div>
+                                        <div className="text-sm font-black text-white uppercase">{seoAudit.trending_momentum}%</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    <h4 className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Synergy Tags</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {seoAudit.suggested_tags.map((tag, i) => (
+                                            <span key={i} className="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-[9px] text-slate-300 font-bold">#{tag}</span>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -429,48 +435,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                 </div>
             )}
           </div>
-
-          {/* SIDEBAR CONFIG */}
-          <div className="xl:col-span-4 space-y-8 sticky top-24">
-            <div className="bg-slate-950 border border-slate-800 rounded-[40px] p-8 shadow-2xl space-y-8">
-                <div className="flex items-center gap-3 pb-6 border-b border-slate-800">
-                    <Settings className="text-slate-500" size={20} />
-                    <h3 className="text-xs font-black text-white uppercase tracking-widest">Cấu hình xuất bản</h3>
-                </div>
-
-                <ModelSelector 
-                  scriptModel={scriptModel} setScriptModel={setScriptModel}
-                  visualModel={visualModel} setVisualModel={setVisualModel}
-                  voiceModel={voiceModel} setVoiceModel={setVoiceModel}
-                  resolution="1080p" setResolution={setResolution}
-                  aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
-                  t={t}
-                />
-
-                <div className="pt-8 space-y-4 border-t border-slate-800">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-500/10 rounded-lg text-green-500 border border-green-500/20">
-                            <ShieldCheck size={16} />
-                        </div>
-                        <div className="flex-1">
-                            <div className="text-[10px] text-white font-black uppercase">Originality Gate</div>
-                            <div className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Đã kiểm duyệt đạo văn</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="bg-slate-950/50 border border-slate-800 rounded-[40px] p-8 flex items-center gap-6 group hover:bg-primary/5 transition-all">
-                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 group-hover:border-primary/30">
-                    <Zap size={24} className="text-primary" />
-                </div>
-                <div>
-                    <h4 className="text-xs font-black text-white uppercase mb-1">Cần hỗ trợ?</h4>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Hỏi AI Commander để tinh chỉnh kịch bản theo ý muốn.</p>
-                </div>
-            </div>
-          </div>
-
         </div>
       )}
     </div>
