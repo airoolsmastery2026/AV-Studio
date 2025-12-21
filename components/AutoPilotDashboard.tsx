@@ -1,6 +1,10 @@
 
 import React, { useRef, useEffect } from 'react';
-import { Infinity as InfinityIcon, Play, Pause, Zap, Crosshair, BarChart3, Loader2, Activity } from 'lucide-react';
+import { 
+    Infinity as InfinityIcon, Play, Pause, Zap, Crosshair, 
+    BarChart3, Loader2, Activity, Cpu, Sparkles, 
+    ArrowRight, Rocket, TrendingUp, DollarSign, Bot 
+} from 'lucide-react';
 import { 
     ApiKeyConfig, PostingJob, CompletedVideo, ScriptModel, VisualModel, VoiceModel, 
     VideoResolution, AspectRatio, AutoPilotStats, AutoPilotLog 
@@ -36,6 +40,15 @@ interface AutoPilotDashboardProps {
   setSelectedNiche: (n: string) => void;
 }
 
+const NICHE_PRESETS = [
+    { value: 'AUTO', label: '🚀 AUTO-DETECT (Max Trending)', color: 'text-primary' },
+    { value: 'AI SaaS Tools', label: '🤖 AI SaaS Tools (Recurring $)', color: 'text-blue-400' },
+    { value: 'Machine Learning Platforms', label: '🧠 ML Platforms (High Ticket)', color: 'text-purple-400' },
+    { value: 'AI Productivity Hacks', label: '⚡ AI Productivity Hacks (Viral)', color: 'text-cyan-400' },
+    { value: 'Passive Income Methods', label: '💰 Passive Income Methods', color: 'text-green-400' },
+    { value: 'Smart Home Gadgets', label: '🏠 Smart Home Gadgets (E-com)', color: 'text-orange-400' }
+];
+
 const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ 
     t, scriptModel, visualModel, voiceModel,
     isRunning, setIsRunning, stats, logs, currentAction, selectedNiche, setSelectedNiche
@@ -55,167 +68,190 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
     };
 
     return (
-        <div className="animate-fade-in space-y-6 pb-12">
+        <div className="animate-fade-in space-y-4 pb-12">
             
-            {/* Header Status Bar */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <InfinityIcon size={32} className={isRunning ? "text-primary drop-shadow-[0_0_8px_rgba(14,165,164,0.8)]" : "text-slate-600"} />
-                        {texts.auto || "Infinity Auto-Pilot"}
-                    </h2>
-                    <p className="text-slate-400 text-sm">Autonomous Agent Loop: Hunt -> Plan -> Create -> Repeat</p>
+            {/* CONSOLIDATED HEADER: SYSTEM STATUS & CORE METRICS */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur-md flex flex-col xl:flex-row justify-between items-center gap-6 shadow-2xl">
+                <div className="flex items-center gap-4">
+                    <div className={`p-4 rounded-2xl bg-slate-950 border ${isRunning ? 'border-primary shadow-[0_0_15px_rgba(14,165,164,0.4)]' : 'border-slate-800'}`}>
+                        <InfinityIcon size={32} className={isRunning ? "text-primary animate-pulse" : "text-slate-600"} />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-black text-white tracking-tighter flex items-center gap-2">
+                            INFINITY AUTO-PILOT <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black animate-pulse">LIVE</span>
+                        </h2>
+                        <p className="text-slate-400 text-xs font-mono">Autonomous Hunter-Creator Protocol v2.5</p>
+                    </div>
                 </div>
 
-                <div className="flex gap-4 items-center">
-                    <div className="text-right hidden md:block">
-                        <div className="text-xs text-slate-500 font-bold uppercase">Uptime (Session)</div>
-                        <div className="font-mono text-xl text-white">{formatUptime(stats.uptime)}</div>
+                {/* MERGED STATS INTO HEADER */}
+                <div className="flex flex-wrap items-center justify-center gap-8 px-8 py-3 bg-black/40 rounded-2xl border border-white/5">
+                    <div className="text-center">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Session Uptime</div>
+                        <div className="font-mono text-lg text-white font-bold">{formatUptime(stats.uptime)}</div>
                     </div>
-                    
-                    <NeonButton 
-                        onClick={() => setIsRunning(!isRunning)} 
-                        variant={isRunning ? 'danger' : 'primary'}
-                        size="lg"
-                    >
-                        {isRunning ? (
-                            <span className="flex items-center gap-2"><Pause fill="currentColor" /> PAUSE ENGINE</span>
-                        ) : (
-                            <span className="flex items-center gap-2"><Play fill="currentColor" /> START ENGINE</span>
-                        )}
-                    </NeonButton>
+                    <div className="w-px h-8 bg-slate-800 hidden sm:block"></div>
+                    <div className="text-center">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Total Cycles</div>
+                        <div className="font-mono text-lg text-primary font-bold">{stats.cyclesRun}</div>
+                    </div>
+                    <div className="w-px h-8 bg-slate-800 hidden sm:block"></div>
+                    <div className="text-center">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">Assets Minted</div>
+                        <div className="font-mono text-lg text-blue-400 font-bold">{stats.videosCreated}</div>
+                    </div>
                 </div>
+
+                <NeonButton 
+                    onClick={() => setIsRunning(!isRunning)} 
+                    variant={isRunning ? 'danger' : 'primary'}
+                    size="lg"
+                    className="min-w-[220px] h-14"
+                >
+                    {isRunning ? (
+                        <span className="flex items-center gap-2"><Pause fill="currentColor" size={20} /> PAUSE SYSTEM</span>
+                    ) : (
+                        <span className="flex items-center gap-2"><Play fill="currentColor" size={20} /> ACTIVATE ENGINE</span>
+                    )}
+                </NeonButton>
             </div>
 
-            {/* Main Dashboard Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* MAIN OPERATIONAL GRID */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 
-                {/* Left: Configuration */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
-                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                            <Crosshair size={16} className="text-primary"/> {texts.config_title || "Mission Config"}
+                {/* LEFT: TACTICAL DEPLOYMENT CENTER (Consolidated) */}
+                <div className="lg:col-span-4 space-y-4">
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                            <Rocket size={80} />
+                        </div>
+                        
+                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                            <Crosshair size={14} className="text-primary"/> Deployment Parameters
                         </h3>
                         
-                        <div className="space-y-4">
+                        <div className="space-y-6">
+                            {/* NICHE SELECTOR */}
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Niche Mode</label>
-                                <div className="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
-                                    <button 
-                                        onClick={() => setSelectedNiche('AUTO')}
-                                        className={`flex-1 py-2 rounded text-xs font-bold transition-all ${selectedNiche === 'AUTO' ? 'bg-primary text-white shadow' : 'text-slate-400'}`}
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Target Revenue Stream (Niche)</label>
+                                <div className="relative group">
+                                    <select 
+                                        value={selectedNiche}
+                                        onChange={(e) => setSelectedNiche(e.target.value)}
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl py-4 pl-4 pr-10 text-sm text-white appearance-none focus:outline-none focus:border-primary transition-all font-bold cursor-pointer"
                                     >
-                                        AUTO (Trend)
-                                    </button>
-                                    <button 
-                                        onClick={() => setSelectedNiche('MANUAL')}
-                                        className={`flex-1 py-2 rounded text-xs font-bold transition-all ${selectedNiche === 'MANUAL' ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
-                                    >
-                                        MANUAL
-                                    </button>
-                                </div>
-                                {selectedNiche === 'MANUAL' && (
-                                    <input 
-                                        type="text" 
-                                        placeholder="Enter specific niche..."
-                                        className="w-full mt-2 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white"
-                                    />
-                                )}
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-800">
-                                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">AI Model Stack</label>
-                                <div className="text-[10px] text-slate-400 space-y-1 bg-slate-950 p-2 rounded border border-slate-800">
-                                    <div className="flex justify-between"><span>Script:</span> <span className="text-white">{scriptModel}</span></div>
-                                    <div className="flex justify-between"><span>Visual:</span> <span className="text-white">{visualModel}</span></div>
-                                    <div className="flex justify-between"><span>Voice:</span> <span className="text-white">{voiceModel}</span></div>
+                                        {NICHE_PRESETS.map(niche => (
+                                            <option key={niche.value} value={niche.value} className="bg-slate-900 text-white font-sans">
+                                                {niche.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                                        <TrendingUp size={18} />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5">
-                         <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                            <BarChart3 size={16} className="text-green-500"/> Live Stats
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
-                                <div className="text-2xl font-bold text-white">{stats.cyclesRun}</div>
-                                <div className="text-[10px] text-slate-500 uppercase">Cycles</div>
+                            {/* DYNAMIC MODEL STACK INFO */}
+                            <div className="pt-6 border-t border-slate-800/50">
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block">Injected AI Intelligence</label>
+                                <div className="grid grid-cols-1 gap-2">
+                                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-white/5 group hover:border-primary/30 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <Bot size={14} className="text-purple-400" />
+                                            <span className="text-xs text-slate-400">Logic Core:</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-white">{scriptModel}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-white/5 group hover:border-primary/30 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <Sparkles size={14} className="text-blue-400" />
+                                            <span className="text-xs text-slate-400">Visual Engine:</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-white">{visualModel}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-white/5 group hover:border-primary/30 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <Zap size={14} className="text-yellow-400" />
+                                            <span className="text-xs text-slate-400">Voice Synth:</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-white">{voiceModel}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
-                                <div className="text-2xl font-bold text-primary">{stats.videosCreated}</div>
-                                <div className="text-[10px] text-slate-500 uppercase">Videos</div>
+
+                            {/* QUICK ACTION BANNER */}
+                            <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                                <div className="flex items-start gap-3">
+                                    <div className="mt-1"><DollarSign size={16} className="text-primary"/></div>
+                                    <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                                        Bot is currently monitoring global API signals. For faster results, ensure your <strong>Google Search Grounding</strong> is active in settings.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Right: Live Terminal & Visualizer */}
-                <div className="lg:col-span-2 flex flex-col gap-6">
-                    
-                    {/* Compact Status Display */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-lg">
-                        <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-full ${isRunning ? 'bg-primary/20 text-primary' : 'bg-slate-800 text-slate-500'}`}>
-                                <Activity size={18} className={isRunning ? "animate-pulse" : ""} />
+                {/* RIGHT: LIVE INTELLIGENCE STREAM (Logs + Action integrated) */}
+                <div className="lg:col-span-8 flex flex-col h-full">
+                    <div className="flex-1 bg-black border border-slate-800 rounded-2xl overflow-hidden flex flex-col shadow-2xl min-h-[500px]">
+                        {/* TERMINAL HEADER WITH ACTION INTEGRATION */}
+                        <div className="bg-slate-900 px-5 py-3 border-b border-slate-800 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-slate-700'}`}></div>
+                                <span className="text-[10px] font-black font-mono text-slate-400 uppercase tracking-widest">
+                                    Autonomous execution stream
+                                </span>
                             </div>
-                            <div>
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Current Action</div>
-                                <div className="text-lg font-bold text-white flex items-center gap-2">
-                                    {currentAction}
-                                    {isRunning && currentAction !== 'IDLE' && currentAction !== 'COOLDOWN' && (
-                                        <Loader2 size={14} className="animate-spin text-primary" />
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        {isRunning && (
-                            <div className="flex gap-1.5">
-                                <span className="w-1.5 h-6 bg-primary/20 rounded-full animate-[pulse_1s_ease-in-out_infinite]"></span>
-                                <span className="w-1.5 h-6 bg-primary/40 rounded-full animate-[pulse_1s_ease-in-out_0.2s_infinite]"></span>
-                                <span className="w-1.5 h-6 bg-primary/60 rounded-full animate-[pulse_1s_ease-in-out_0.4s_infinite]"></span>
-                                <span className="w-1.5 h-6 bg-primary rounded-full animate-[pulse_1s_ease-in-out_0.6s_infinite]"></span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Live Logs */}
-                    <div className="flex-1 bg-black border border-slate-800 rounded-xl overflow-hidden flex flex-col shadow-2xl min-h-[400px]">
-                        <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <Zap size={14} className={isRunning ? "text-yellow-400" : "text-slate-600"} />
-                                <span className="text-xs font-mono font-bold text-slate-300">SYSTEM_LOGS.exe</span>
-                            </div>
-                            <div className="flex gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                                <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                            
+                            {/* CURRENT ACTION DISPLAYED HERE */}
+                            <div className="flex items-center gap-3 px-4 py-1 bg-slate-950 border border-white/10 rounded-full">
+                                <span className="text-[9px] font-bold text-slate-500 uppercase">Process:</span>
+                                <span className="text-[11px] font-black text-primary font-mono tracking-tighter">
+                                    {currentAction} {isRunning && currentAction !== 'IDLE' && currentAction !== 'COOLDOWN' && <Loader2 size={10} className="inline animate-spin ml-1" />}
+                                </span>
                             </div>
                         </div>
                         
-                        <div className="flex-1 p-4 font-mono text-xs overflow-y-auto space-y-2 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-90">
-                            {logs.length === 0 && <div className="text-slate-700 italic text-center mt-10">System Ready. Initiate Engine to start logs...</div>}
+                        <div className="flex-1 p-6 font-mono text-xs overflow-y-auto space-y-3 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-fixed opacity-95 custom-scrollbar">
+                            {logs.length === 0 && (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-700 space-y-4">
+                                    <Activity size={48} className="opacity-20" />
+                                    <p className="italic text-sm">System idle. Pending command initiation...</p>
+                                </div>
+                            )}
                             {logs.map((log, i) => (
-                                <div key={i} className="flex gap-3 animate-fade-in group hover:bg-white/5 p-1 rounded">
-                                    <span className="text-slate-600 shrink-0">[{log.timestamp}]</span>
-                                    <span className={`font-bold shrink-0 w-24 ${
+                                <div key={i} className="flex gap-4 animate-fade-in group py-0.5">
+                                    <span className="text-slate-600 shrink-0 select-none opacity-50">[{log.timestamp}]</span>
+                                    <span className={`font-black shrink-0 w-24 tracking-tighter ${
                                         log.status === 'error' ? 'text-red-500' : 
-                                        log.status === 'success' ? 'text-green-400' : 
+                                        log.status === 'success' ? 'text-emerald-400' : 
                                         log.status === 'warning' ? 'text-yellow-400' : 'text-blue-400'
                                     }`}>
                                         {log.action}
                                     </span>
-                                    <span className="text-slate-300 break-all">{log.detail}</span>
+                                    <span className="text-slate-200 break-all leading-relaxed">{log.detail}</span>
                                 </div>
                             ))}
                             <div ref={logsEndRef} />
                         </div>
-                    </div>
 
+                        {/* TERMINAL FOOTER DECORATION */}
+                        <div className="h-1.5 w-full bg-slate-800">
+                            {isRunning && <div className="h-full bg-primary animate-[loading_2s_ease-in-out_infinite]" style={{width: '30%'}}></div>}
+                        </div>
+                    </div>
                 </div>
 
             </div>
+
+            <style>{`
+                @keyframes loading {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(400%); }
+                }
+            `}</style>
         </div>
     );
 };
