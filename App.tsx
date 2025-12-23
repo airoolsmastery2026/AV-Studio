@@ -1,15 +1,13 @@
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ShieldCheck, AlertCircle, Wifi, CloudSync, Ghost } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Activity, ShieldAlert, ShieldCheck, Menu, CloudSync, ZapOff } from 'lucide-react';
 import { 
-  AppStatus, TabView, AppContext, ApiKeyConfig, 
-  KnowledgeBase, AutoPilotStats, AutoPilotLog, 
-  PostingJob, CompletedVideo,
-  ScriptModel, VisualModel, VoiceModel, VideoResolution, AspectRatio,
-  ContentLanguage, AppLanguage, AgentCommand, MissionIntel
+  AppStatus, TabView, ApiKeyConfig, KnowledgeBase, 
+  AutoPilotStats, AutoPilotLog, PostingJob, MissionIntel, 
+  CompletedVideo, ScriptModel, VisualModel, VoiceModel, 
+  VideoResolution, AspectRatio, ContentLanguage, AppLanguage, AgentCommand 
 } from './types';
 
-// Components
 import Sidebar from './components/Sidebar';
 import ViralDNAStudio from './components/ViralDNAStudio';
 import AutoPilotDashboard from './components/AutoPilotDashboard';
@@ -23,46 +21,38 @@ import ConsentModal from './components/ConsentModal';
 import CampaignWizard from './components/CampaignWizard';
 import ChannelHealthDashboard from './components/ChannelHealthDashboard';
 
-// Services & Translations
-import { runAgenticRecon, generateProScript, generateGeminiTTS, predictGoldenHours, runSeoAudit } from './services/geminiService';
 import { translations } from './constants/translations';
-import { saveMissionState, getMissionState } from './services/storageService';
+import { huntAffiliateProducts, runSeoAudit, synthesizeKnowledge, syncPlatformPolicies, getApiHealthStatus } from './services/geminiService';
 
 const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
 const KNOWLEDGE_BASE_KEY = 'av_studio_brain_v1';
+const LIBRARY_STORAGE_KEY = 'av_studio_video_library_v1';
+const UI_LANG_KEY = 'av_studio_ui_lang';
+const CONTENT_LANG_KEY = 'av_studio_content_lang';
 
 const App: React.FC = () => {
-  const [appLang, setAppLang] = useState<AppLanguage>(() => {
-    return (localStorage.getItem('av_studio_ui_lang') as AppLanguage) || 'vi';
-  });
+  const [appLang, setAppLang] = useState<AppLanguage>(() => (localStorage.getItem(UI_LANG_KEY) as AppLanguage) || 'vi');
+  const [contentLanguage, setContentLanguage] = useState<ContentLanguage>(() => (localStorage.getItem(CONTENT_LANG_KEY) as ContentLanguage) || 'vi');
   
-  const t = useMemo(() => {
-    const base = translations['vi'];
-    const selected = translations[appLang] || base;
-    return { ...base, ...selected };
-  }, [appLang]);
+  const t = useMemo(() => ({ ...translations['vi'], ...(translations[appLang] || {}) }), [appLang]);
 
   const [activeTab, setActiveTab] = useState<TabView>('auto_pilot');
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isConsentOpen, setIsConsentOpen] = useState(false);
-  const [analyticsTarget, setAnalyticsTarget] = useState('');
+  const [isPolicySyncing, setIsPolicySyncing] = useState(false);
+  const [apiHealth, setApiHealth] = useState(getApiHealthStatus());
 
-  const [apiKeys, setApiKeys] = useState<ApiKeyConfig[]>(() => {
-    const saved = localStorage.getItem(VAULT_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const hasActiveGemini = useMemo(() => {
-    return apiKeys.some(k => k.provider === 'google' && k.status === 'active');
-  }, [apiKeys]);
-
+  const [apiKeys, setApiKeys] = useState<ApiKeyConfig[]>(() => JSON.parse(localStorage.getItem(VAULT_STORAGE_KEY) || '[]'));
+  const [completedVideos, setCompletedVideos] = useState<CompletedVideo[]>(() => JSON.parse(localStorage.getItem(LIBRARY_STORAGE_KEY) || '[]'));
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBase>(() => {
     const saved = localStorage.getItem(KNOWLEDGE_BASE_KEY);
-    return saved ? JSON.parse(saved) : { customInstructions: '', learnedPreferences: [], autoImprovementEnabled: true, lastUpdated: Date.now() };
+    return saved ? JSON.parse(saved) : { 
+      customInstructions: '', learnedPreferences: [], autoImprovementEnabled: true, lastUpdated: 0,
+      platformPolicies: [], globalStrategyRules: { enforceConsistency: true, seamlessTransitionLogic: true, viralFormulaId: 'f_01', algorithmOptimizationLevel: 85 }
+    };
   });
 
-  // State AutoPilot đồng bộ hóa
   const [autoPilotActive, setAutoPilotActive] = useState(false);
   const [autoPilotStats, setAutoPilotStats] = useState<AutoPilotStats>({ cyclesRun: 0, videosCreated: 0, postedCount: 0, uptime: 0 });
   const [autoPilotLogs, setAutoPilotLogs] = useState<AutoPilotLog[]>([]);
@@ -70,210 +60,160 @@ const App: React.FC = () => {
   const [currentMission, setCurrentMission] = useState<MissionIntel | null>(null);
 
   const [scriptModel, setScriptModel] = useState<ScriptModel>('Gemini 3 Pro');
-  const [visualModel, setVisualModel] = useState<VisualModel>('VEO');
+  const [visualModel, setVisualModel] = useState<VisualModel>('VEO 3.1');
   const [voiceModel, setVoiceModel] = useState<VoiceModel>('Google Chirp');
   const [resolution, setResolution] = useState<VideoResolution>('1080p');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
-  const [contentLanguage, setContentLanguage] = useState<ContentLanguage>('vi');
-  const [campaignTopic, setCampaignTopic] = useState('');
-
   const [jobs, setJobs] = useState<PostingJob[]>([]);
-  const loopRef = useRef<number | null>(null);
 
-  // PHỤC HỒI NHIỆM VỤ (MISSION RECOVERY)
+  const lastSyncAttemptRef = useRef<number>(0);
+
+  // Persistence effects
+  useEffect(() => { localStorage.setItem(UI_LANG_KEY, appLang); }, [appLang]);
+  useEffect(() => { localStorage.setItem(CONTENT_LANG_KEY, contentLanguage); }, [contentLanguage]);
+  useEffect(() => { localStorage.setItem(KNOWLEDGE_BASE_KEY, JSON.stringify(knowledgeBase)); }, [knowledgeBase]);
+  useEffect(() => { localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(completedVideos)); }, [completedVideos]);
+
+  // Periodically update UI about API Health (lockouts)
   useEffect(() => {
-    const savedMission = getMissionState();
-    if (savedMission && savedMission.autoPilotActive) {
-        setAutoPilotActive(true);
-        setAutoPilotStats(savedMission.stats);
-        setAutoPilotLogs(savedMission.logs);
-        setAutoPilotNiche(savedMission.niche);
-        setCurrentMission(savedMission.currentMission);
-        addAutoPilotLog("RECOVERY", "Đã phục hồi phiên làm việc từ nền tảng ngầm.", "success");
-    }
+    const timer = setInterval(() => setApiHealth(getApiHealthStatus()), 2000);
+    return () => clearInterval(timer);
   }, []);
 
-  // LƯU TRẠNG THÁI MỖI KHI CẬP NHẬT
+  // Unified Autonomous Policy Guard - Optimized for strict 429 compliance
   useEffect(() => {
-    saveMissionState({
-        autoPilotActive,
-        stats: autoPilotStats,
-        logs: autoPilotLogs,
-        niche: autoPilotNiche,
-        currentMission
-    });
-  }, [autoPilotActive, autoPilotStats, autoPilotLogs, autoPilotNiche, currentMission]);
+    const runPolicySync = async () => {
+      if (!process.env.API_KEY || isPolicySyncing) return;
+      const now = Date.now();
+      if (now - lastSyncAttemptRef.current < 600000) return;
+      if (getApiHealthStatus().status === 'exhausted') return;
+      const lastSync = knowledgeBase.lastUpdated || 0;
+      const hoursSinceSync = (now - lastSync) / 3600000;
+      if (hoursSinceSync < 24 && knowledgeBase.platformPolicies.length > 0) return;
 
-  const addAutoPilotLog = (action: string, detail: string, status: 'success' | 'error' | 'warning' | 'info' = 'info') => {
-    const log: AutoPilotLog = {
-      timestamp: new Date().toLocaleTimeString(),
-      action,
-      detail,
-      status
-    };
-    setAutoPilotLogs(prev => [log, ...prev].slice(0, 50));
-  };
-
-  const handleNavigateToAnalytics = (target: string) => {
-    setAnalyticsTarget(target);
-    setActiveTab('analytics');
-  };
-
-  const runAutonomousCycle = async () => {
-      if (!autoPilotActive) return;
-      const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
-      if (!googleKey) {
-          addAutoPilotLog("LỖI", "Thiếu khóa Google Gemini.", "error");
-          setAutoPilotActive(false);
-          return;
-      }
-
+      setIsPolicySyncing(true);
+      lastSyncAttemptRef.current = now;
       try {
-          setStatus(AppStatus.HUNTING);
-          addAutoPilotLog("RECON", `Săn sản phẩm ngách: ${autoPilotNiche}`);
-          const recon = await runAgenticRecon(autoPilotNiche);
-          
-          if (!recon.discovered_signals || recon.discovered_signals.length === 0) {
-              throw new Error("Không có tín hiệu mới.");
-          }
-          const target = recon.discovered_signals[0];
-          setCurrentMission(target);
-          addAutoPilotLog("SEO", `VidIQ Predict Score: ${target.vidiq_score?.seo_score || 'N/A'}`, "success");
-
-          setStatus(AppStatus.PLANNING);
-          addAutoPilotLog("PLAN", `Thiết kế kịch bản cho ${target.product_name}...`);
-          const plan = await generateProScript(googleKey.key, {
-              structure: { hook_type: 'Lợi ích', pacing: 'Fast', avg_scene_duration: 3 },
-              emotional_curve: ['Tò mò', 'Hào hứng'],
-              keywords: recon.trending_keywords || [],
-              algorithm_fit_score: 95,
-              risk_level: 'Safe'
-          }, { topic: target.product_name, contentLanguage } as any, knowledgeBase);
-
-          setStatus(AppStatus.RENDERING);
-          addAutoPilotLog("RENDER", `Render VEO Cinematic...`);
-          await generateGeminiTTS(plan.production_plan.script_master);
-          
-          setStatus(AppStatus.SCHEDULING);
-          addAutoPilotLog("SCHEDULE", "Tính toán giờ vàng...");
-          const goldenHours = await predictGoldenHours(googleKey.key, 'VN', autoPilotNiche, ['TikTok', 'YouTube']);
-          const bestTime = goldenHours[0]?.time_label || "19:00";
-
-          const newJob: PostingJob = {
-              id: crypto.randomUUID(),
-              content_title: target.product_name,
-              caption: plan.generated_content?.description || target.product_name,
-              hashtags: target.vidiq_score?.suggested_tags || plan.generated_content?.hashtags || [],
-              platforms: ['TikTok', 'YouTube'],
-              scheduled_time: Date.now() + 3600000, 
-              status: 'scheduled'
-          };
-          setJobs(prev => [newJob, ...prev]);
-          addAutoPilotLog("DONE", `Nhiệm vụ hoàn tất! Lịch đăng: ${bestTime}`, "success");
-
-          setAutoPilotStats(prev => ({
-              ...prev,
-              cyclesRun: prev.cyclesRun + 1,
-              videosCreated: prev.videosCreated + 1,
-              uptime: prev.uptime + 300 
-          }));
+        const updated = await syncPlatformPolicies(['TikTok', 'YouTube', 'Shopee']);
+        if (updated && updated.length > 0) {
+          setKnowledgeBase(prev => ({ ...prev, platformPolicies: updated, lastUpdated: Date.now() }));
+        }
       } catch (e: any) {
-          addAutoPilotLog("LỖI", e.message, "error");
-          setStatus(AppStatus.ERROR);
+        if (e.message.includes("QUOTA") || e.message.includes("429")) {
+            console.warn("Policy Sync: Quota exhausted. Deferring next attempt.");
+            lastSyncAttemptRef.current = Date.now() + 14400000; 
+        }
       } finally {
-          setStatus(AppStatus.IDLE);
+        setIsPolicySyncing(false);
       }
+    };
+    const timeout = setTimeout(runPolicySync, 5000);
+    return () => clearTimeout(timeout);
+  }, [knowledgeBase.lastUpdated, knowledgeBase.platformPolicies.length, isPolicySyncing]);
+
+  const addLog = (action: string, detail: string, status: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    const newLog: AutoPilotLog = { timestamp: new Date().toLocaleTimeString('vi-VN', { hour12: false }), action, detail, status };
+    setAutoPilotLogs(prev => [newLog, ...prev].slice(0, 50));
   };
+
+  const runAutoPilotCycle = useCallback(async () => {
+    if (!process.env.API_KEY) {
+        addLog("SYSTEM", "API Key required for AutoPilot", "error");
+        setAutoPilotActive(false);
+        return;
+    }
+    if (getApiHealthStatus().status === 'exhausted') {
+        addLog("SYSTEM", "AutoPilot deferred: API Quota exhausted. Waiting...", "warning");
+        return;
+    }
+    try {
+        setStatus(AppStatus.HUNTING);
+        addLog("HUNTER", `Scouring web for ${autoPilotNiche}...`, "info");
+        const hunt = await huntAffiliateProducts(process.env.API_KEY, autoPilotNiche, ['SHOPEE', 'AMAZON']);
+        if (!hunt.products?.length) {
+            addLog("HUNTER", "No rising trends found. Retrying...", "warning");
+            setStatus(AppStatus.IDLE);
+            return;
+        }
+        const target = hunt.products[0];
+        addLog("HUNTER", `Target Locked: ${target.product_name}`, "success");
+        setStatus(AppStatus.ANALYZING);
+        const seo = await runSeoAudit(target.product_name, target.reason_to_promote, autoPilotNiche);
+        setCurrentMission({ ...target, vidiq_score: seo });
+        setAutoPilotStats(prev => ({ ...prev, cyclesRun: prev.cyclesRun + 1 }));
+        setStatus(AppStatus.IDLE);
+    } catch (error: any) {
+        if (error.message.includes("QUOTA") || error.message.includes("429")) {
+            addLog("ENGINE", "Neural Core exhausted. Pausing production...", "error");
+        } else {
+            addLog("ENGINE", `Fault detected: ${error.message}`, "error");
+        }
+        setStatus(AppStatus.IDLE);
+    }
+  }, [autoPilotNiche]);
 
   useEffect(() => {
     if (autoPilotActive) {
-      runAutonomousCycle();
-      loopRef.current = window.setInterval(runAutonomousCycle, 300000); 
-    } else if (loopRef.current) {
-      clearInterval(loopRef.current);
+        runAutoPilotCycle();
+        const cycle = setInterval(runAutoPilotCycle, 600000);
+        const uptime = setInterval(() => setAutoPilotStats(p => ({ ...p, uptime: p.uptime + 1 })), 1000);
+        return () => { clearInterval(cycle); clearInterval(uptime); };
     }
-    return () => { if (loopRef.current) clearInterval(loopRef.current); };
-  }, [autoPilotActive]);
+  }, [autoPilotActive, runAutoPilotCycle]);
 
-  const handleCommand = useCallback((command: AgentCommand) => {
-    if (command.action === 'NAVIGATE') setActiveTab(command.payload);
-  }, []);
-
-  const handleCampaignStart = (topic: string) => {
-    setCampaignTopic(topic);
-    setActiveTab('studio');
+  const handleCommand = (cmd: AgentCommand) => {
+    if (cmd.action === 'NAVIGATE') setActiveTab(cmd.payload);
   };
 
   return (
-    <div className="flex bg-[#020617] min-h-screen text-slate-200 font-sans">
+    <div className="flex bg-[#020617] min-h-screen text-slate-200 font-sans overflow-hidden select-none">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} t={t} />
-      
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/50 backdrop-blur-md sticky top-0 z-30">
-            <div className="flex items-center gap-6">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <header className="h-14 md:h-16 border-b border-slate-800/60 flex items-center justify-between px-4 md:px-6 bg-slate-950/90 backdrop-blur-2xl sticky top-0 z-[60] shadow-xl">
+            <div className="flex items-center gap-3">
+                <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white md:hidden"><Menu size={20} /></button>
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">ROBOT STATUS:</span>
-                    <span className={`text-[10px] font-black px-2 py-1 rounded border transition-all ${autoPilotActive ? 'text-primary border-primary/20 bg-primary/5 animate-pulse' : 'text-slate-500 border-slate-800'}`}>
-                        {autoPilotActive ? `${status}` : 'STANDBY'}
-                    </span>
-                    {autoPilotActive && (
-                        <div className="flex items-center gap-1 ml-2 text-green-500">
-                            <CloudSync size={14} className="animate-spin-slow" />
-                            <span className="text-[8px] font-black uppercase">Vercel 24/7 Linked</span>
-                        </div>
-                    )}
-                </div>
-                
-                <div className="hidden md:flex items-center gap-4 pl-6 border-l border-slate-800">
-                    <div className="flex items-center gap-2">
-                        <Wifi size={14} className={hasActiveGemini ? 'text-green-500' : 'text-red-500'} />
-                        <span className={`text-[9px] font-black uppercase ${hasActiveGemini ? 'text-green-500' : 'text-red-500'}`}>
-                            {hasActiveGemini ? t.api_health_good : t.api_health_bad}
-                        </span>
+                    <Activity size={16} className="text-primary animate-pulse" />
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-white uppercase">{scriptModel.split(' ')[0]} REAL-TIME</span>
+                        {isPolicySyncing && <CloudSync size={10} className="text-primary animate-spin" />}
                     </div>
                 </div>
             </div>
-
-            <div className="flex items-center gap-4">
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2">
-                   <ShieldCheck size={14} className="text-primary" />
-                   <span className="text-[10px] font-black text-white uppercase tracking-tighter">Enterprise Mode</span>
+            
+            {apiHealth.status === 'exhausted' && (
+                <div className="flex items-center gap-2 bg-red-950/50 border border-red-500/30 px-4 py-1.5 rounded-full animate-fade-in">
+                    <ZapOff size={14} className="text-red-500 animate-pulse" />
+                    <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Neural Cool-off: {apiHealth.remainingCooldown}s</span>
                 </div>
-                <select value={appLang} onChange={(e) => setAppLang(e.target.value as AppLanguage)} className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[10px] font-bold outline-none cursor-pointer">
-                    <option value="vi">VIỆT NAM</option>
-                    <option value="en">ENGLISH</option>
-                </select>
+            )}
+
+            <div className="flex items-center gap-2 md:gap-4">
+                <div className="hidden lg:flex items-center gap-2 bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-1.5">
+                   <ShieldCheck size={14} className={knowledgeBase.platformPolicies.length > 0 ? "text-green-500" : "text-slate-700"} />
+                   <span className="text-[9px] font-black text-slate-400 uppercase">Policy Guard Active</span>
+                </div>
+                <div className="bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 shadow-inner">
+                   <ShieldAlert size={14} className="text-primary" />
+                   <span className="text-[9px] font-black text-white uppercase">{t.vip_badge}</span>
+                </div>
             </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
-            {activeTab === 'auto_pilot' && (
-                <AutoPilotDashboard 
-                    apiKeys={apiKeys} isRunning={autoPilotActive} 
-                    setIsRunning={(v) => v ? setIsConsentOpen(true) : setAutoPilotActive(false)}
-                    stats={autoPilotStats} logs={autoPilotLogs} currentAction={status} 
-                    selectedNiche={autoPilotNiche} setSelectedNiche={setAutoPilotNiche}
-                    onAddToQueue={(j) => setJobs([j, ...jobs])} onVideoGenerated={() => {}}
-                    completedVideos={[]} scriptModel={scriptModel} setScriptModel={setScriptModel} 
-                    visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} 
-                    resolution={resolution} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
-                    contentLanguage={contentLanguage}
-                    currentMission={currentMission}
-                    onNavigateToAnalytics={handleNavigateToAnalytics}
-                />
-            )}
-            {activeTab === 'settings' && <SettingsDashboard apiKeys={apiKeys} setApiKeys={setApiKeys} knowledgeBase={knowledgeBase} setKnowledgeBase={setKnowledgeBase} t={t} appLang={appLang} setAppLang={setAppLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} />}
-            {activeTab === 'studio' && <ViralDNAStudio predefinedTopic={campaignTopic} apiKeys={apiKeys} appLanguage={appLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} knowledgeBase={knowledgeBase} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} t={t} />}
-            {activeTab === 'analytics' && <AnalyticsDashboard predefinedTarget={analyticsTarget} apiKeys={apiKeys} onDeployStrategy={() => setActiveTab('studio')} t={t} />}
+            {activeTab === 'auto_pilot' && <AutoPilotDashboard apiKeys={apiKeys} isRunning={autoPilotActive} setIsRunning={(v) => v ? setIsConsentOpen(true) : setAutoPilotActive(false)} stats={autoPilotStats} logs={autoPilotLogs} currentAction={status} selectedNiche={autoPilotNiche} setSelectedNiche={setAutoPilotNiche} onAddToQueue={(j) => setJobs([j, ...jobs])} onVideoGenerated={(v) => setCompletedVideos([v, ...completedVideos])} completedVideos={completedVideos} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} resolution={resolution} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} contentLanguage={contentLanguage} currentMission={currentMission} t={t} />}
+            {activeTab === 'settings' && <SettingsDashboard apiKeys={apiKeys} setApiKeys={setApiKeys} knowledgeBase={knowledgeBase} setKnowledgeBase={setKnowledgeBase} onTrainBrain={async (text) => { const rules = await synthesizeKnowledge(process.env.API_KEY!, text, knowledgeBase.learnedPreferences); setKnowledgeBase(prev => ({ ...prev, learnedPreferences: [...new Set([...prev.learnedPreferences, ...rules])] })); }} t={t} appLang={appLang} setAppLang={setAppLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} />}
+            {activeTab === 'studio' && <ViralDNAStudio predefinedTopic="" apiKeys={apiKeys} appLanguage={appLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} knowledgeBase={knowledgeBase} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} completedVideos={completedVideos} setCompletedVideos={setCompletedVideos} t={t} />}
+            {activeTab === 'analytics' && <AnalyticsDashboard apiKeys={apiKeys} onDeployStrategy={() => setActiveTab('studio')} t={t} />}
             {activeTab === 'marketplace' && <AIMarketplace apiKeys={apiKeys} onSelectProduct={() => setActiveTab('studio')} t={t} />}
             {activeTab === 'risk_center' && <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={() => {}} t={t} />}
             {activeTab === 'queue' && <QueueDashboard apiKeys={apiKeys} currentPlan={null} jobs={jobs} setJobs={setJobs} t={t} />}
             {activeTab === 'docs' && <Documentation apiKeys={apiKeys} knowledgeBase={knowledgeBase} scriptModel={scriptModel} visualModel={visualModel} voiceModel={voiceModel} appLang={appLang} />}
-            {activeTab === 'campaign' && <CampaignWizard onStartProduction={handleCampaignStart} onNavigateToSettings={() => setActiveTab('settings')} t={t} />}
+            {activeTab === 'campaign' && <CampaignWizard onStartProduction={(topic) => { setActiveTab('studio'); }} onNavigateToSettings={() => setActiveTab('settings')} t={t} />}
         </div>
       </main>
 
-      <AIChatAssistant apiKey={apiKeys.find(k => k.provider === 'google' && k.status === 'active')?.key} appContext={{ activeTab, status, urlInput: campaignTopic, activeKeys: apiKeys.length, lastError: null, detectedStrategy: null, knowledgeBase, autoPilotContext: autoPilotNiche }} onCommand={handleCommand} />
+      <AIChatAssistant t={t} apiKey={apiKeys.find(k => k.provider === 'google' && k.status === 'active')?.key} appContext={{ activeTab, status, urlInput: '', activeKeys: apiKeys.length, knowledgeBase }} onCommand={handleCommand} />
       <ConsentModal isOpen={isConsentOpen} onClose={() => setIsConsentOpen(false)} onConfirm={() => { setIsConsentOpen(false); setAutoPilotActive(true); }} />
     </div>
   );

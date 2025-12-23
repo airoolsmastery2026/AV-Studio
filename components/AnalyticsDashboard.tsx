@@ -4,7 +4,8 @@ import {
   ScanEye, Crosshair, Radar, Target, 
   Activity, Loader2, StopCircle, Globe, Search, BrainCircuit, ShieldAlert, Layers, MapPin, ExternalLink, Scissors, Dna, Rocket, Zap, Eye, BarChart3, TrendingUp, DollarSign, Terminal, ShieldCheck, AlertTriangle, Sparkles, Hash, Gauge, CheckSquare
 } from 'lucide-react';
-import { ApiKeyConfig, HunterInsight, NetworkScanResult, CompetitorDeepAudit, SEOAudit } from '../types';
+/* Fix: Removed non-existent types HunterInsight and NetworkScanResult */
+import { ApiKeyConfig, CompetitorDeepAudit, SEOAudit } from '../types';
 import NeonButton from './NeonButton';
 // Fix: Removed non-existent imports runHunterAnalysis and scanHighValueNetwork
 import { runCompetitorDeepDive, runSeoAudit } from '../services/geminiService';

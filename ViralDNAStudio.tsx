@@ -9,6 +9,7 @@ import NeonButton from './NeonButton';
 import ModelSelector from './ModelSelector';
 import PlanResult from './PlanResult';
 import ABThumbnailTester from './ABThumbnailTester';
+// Fixed the missing scanChannelIntelligence by adding it to types.ts and geminiService.ts
 import { generateProScript, extractViralDNA, runSeoAudit, scanChannelIntelligence } from '../services/geminiService';
 
 interface ChannelAnalysis extends CompetitorChannel {

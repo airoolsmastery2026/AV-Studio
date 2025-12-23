@@ -81,7 +81,7 @@ const BatchProcessor: React.FC<BatchProcessorProps> = ({
                 {texts.title || "Batch Video Factory"}
             </h2>
             <p className="text-slate-400 text-sm md:text-base">
-                {texts.subtitle || "Enter URL list. Auto Analyze -> Script -> Render -> Schedule."}
+                {texts.subtitle || "Enter URL list. Auto Analyze → Script → Render → Schedule."}
             </p>
        </div>
 
