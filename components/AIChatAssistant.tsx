@@ -1,5 +1,5 @@
 
-import { Bot, Send, X, Mic, MicOff, Zap, Volume2, VolumeX, Activity, UserCheck, Play, Loader2, Waves, ChevronDown, ExternalLink, Globe, Search, BrainCircuit, Sparkles, Terminal } from 'lucide-react';
+import { Bot, Send, Mic, MicOff, Volume2, VolumeX, Activity, UserCheck, Loader2, Waves, ChevronDown, ExternalLink, Globe, Search, BrainCircuit, Sparkles, Terminal, Shield, MoveUpRight } from 'lucide-react';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { AppContext, ChatMessage, ChatSession, AgentCommand } from '../types';
@@ -45,7 +45,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
   const [isLoading, setIsLoading] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isVoiceCloneEnabled, setIsVoiceCloneEnabled] = useState(false);
   const [isSpeakingId, setIsSpeakingId] = useState<string | null>(null);
   const [isRecordingInput, setIsRecordingInput] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -77,22 +76,19 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
         recognitionRef.current.continuous = false;
         recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = 'vi-VN';
-
         recognitionRef.current.onresult = (event: any) => {
-            const transcript = Array.from(event.results)
-                .map((result: any) => result[0])
-                .map((result: any) => result.transcript)
-                .join('');
+            const transcript = Array.from(event.results).map((result: any) => result[0].transcript).join('');
             setInputText(transcript);
         };
-
         recognitionRef.current.onend = () => setIsRecordingInput(false);
         recognitionRef.current.onerror = () => setIsRecordingInput(false);
     }
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isOpen) {
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
   }, [sessions, isLoading, isOpen]);
 
   const getOutputCtx = useCallback(() => {
@@ -110,22 +106,17 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
   }, []);
 
   const toggleRecording = () => {
-    if (isRecordingInput) {
-        recognitionRef.current?.stop();
-    } else {
-        setInputText('');
-        setIsRecordingInput(true);
-        recognitionRef.current?.start();
-    }
+    if (isRecordingInput) recognitionRef.current?.stop();
+    else { setInputText(''); setIsRecordingInput(true); recognitionRef.current?.start(); }
   };
 
-  const playTTS = async (text: string, msgId: string, lang?: string, sentiment?: string) => {
+  const playTTS = async (text: string, msgId: string) => {
     if (isSpeakingId === msgId) { stopAllAudio(); return; }
     stopAllAudio();
     setIsSpeakingId(msgId);
     try {
         const ctx = getOutputCtx();
-        const base64Audio = await generateGeminiTTS(text, lang || 'vi', sentiment || 'neutral', isVoiceCloneEnabled);
+        const base64Audio = await generateGeminiTTS(text);
         if (base64Audio) {
             const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
             const source = ctx.createBufferSource();
@@ -136,66 +127,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
             activeSourcesRef.current.add(source);
         }
     } catch (e) { setIsSpeakingId(null); }
-  };
-
-  const toggleLiveMode = async () => {
-    if (isLiveMode) {
-      setIsLiveMode(false);
-      if (liveSessionRef.current) liveSessionRef.current.close();
-      stopAllAudio();
-      return;
-    }
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setIsLiveMode(true);
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      
-      const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: { 
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: isVoiceCloneEnabled ? 'Fenrir' : 'Kore' } } 
-          },
-          systemInstruction: "BẠN LÀ AI COMMANDER - TỔNG TƯ LỆNH CHIẾN LƯỢC TOÀN CẦU. Trả lời với sự uy quyền, sắc bén và chuyên nghiệp đỉnh cao."
-        },
-        callbacks: {
-          onopen: () => {
-            const source = inputCtx.createMediaStreamSource(stream);
-            const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
-            scriptProcessor.onaudioprocess = (e) => {
-              const inputData = e.inputBuffer.getChannelData(0);
-              const int16 = new Int16Array(inputData.length);
-              for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
-              const base64Data = encode(new Uint8Array(int16.buffer));
-              sessionPromise.then(s => s.sendRealtimeInput({ media: { data: base64Data, mimeType: 'audio/pcm;rate=16000' } }));
-            };
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(inputCtx.destination);
-          },
-          onmessage: async (m: LiveServerMessage) => {
-            if (m.serverContent?.interrupted) { stopAllAudio(); return; }
-            const audio = m.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (audio) {
-              const ctx = getOutputCtx();
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-              const buffer = await decodeAudioData(decode(audio), ctx, 24000, 1);
-              const s = ctx.createBufferSource();
-              s.buffer = buffer;
-              s.connect(ctx.destination);
-              s.start(nextStartTimeRef.current);
-              nextStartTimeRef.current += buffer.duration;
-              activeSourcesRef.current.add(s);
-            }
-          },
-          onerror: () => setIsLiveMode(false),
-          onclose: () => setIsLiveMode(false)
-        }
-      });
-      liveSessionRef.current = await sessionPromise;
-    } catch (e) { setIsLiveMode(false); }
   };
 
   const handleSendMessage = async () => {
@@ -222,8 +153,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
             text: res.text, 
             timestamp: Date.now(), 
             command: res.command, 
-            detected_lang: res.detected_lang, 
-            sentiment: res.sentiment,
             suggestions: res.suggestions 
         };
         
@@ -236,169 +165,152 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
         });
         
         if (res.command) onCommand(res.command);
-        if (isAudioEnabled) playTTS(res.text, botMsg.id, res.detected_lang, res.sentiment);
+        if (isAudioEnabled) playTTS(res.text, botMsg.id);
     } catch (e) { console.error(e); } finally { setIsLoading(false); }
   };
 
   return (
     <>
-      {/* Floating Toggle Button */}
-      <div className={`fixed bottom-4 right-4 z-[100] transition-all duration-500 ${isOpen ? 'scale-0 translate-y-10' : 'scale-100 translate-y-0'}`}>
+      {/* Floating Button */}
+      <div className={`fixed bottom-6 right-6 z-[100] transition-all duration-500 transform ${isOpen ? 'scale-0 translate-y-12' : 'scale-100 translate-y-0'}`}>
         <button 
             onClick={() => setIsOpen(true)} 
-            className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#0F172A] border border-primary/30 flex items-center justify-center shadow-neon hover:shadow-neon-hover group active:scale-90 transition-all overflow-hidden"
+            className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-900 border border-primary/30 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,164,0.4)] hover:shadow-primary/60 hover:scale-110 group transition-all"
         >
-          <Bot size={24} className="text-primary md:group-hover:rotate-12 transition-transform" />
-          <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#0F172A]"></div>
+          <Bot size={32} className="text-primary group-hover:rotate-12 transition-transform" />
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900 animate-pulse"></div>
         </button>
       </div>
 
-      {/* Chat Container */}
+      {/* Main Chat UI */}
       {isOpen && (
-        <div className="fixed bottom-0 right-0 w-full sm:bottom-4 sm:right-4 sm:w-[350px] md:w-[380px] h-full sm:h-[550px] md:h-[620px] bg-[#070B14]/98 backdrop-blur-2xl border-t sm:border border-slate-700/40 sm:rounded-[24px] shadow-2xl flex flex-col overflow-hidden z-[101] animate-fade-in ring-1 ring-white/5">
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[680px] bg-slate-950/98 backdrop-blur-2xl border border-slate-800/60 sm:rounded-[32px] shadow-2xl flex flex-col overflow-hidden z-[200] animate-fade-in ring-1 ring-white/5">
           
-          {/* Header - More compact for mobile */}
-          <div className="px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 flex justify-between items-center shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-primary/10 rounded-lg">
-                <Zap size={14} className="text-primary animate-pulse" />
+          {/* Header */}
+          <div className="h-[64px] px-6 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <Shield size={20} className="text-primary animate-pulse" />
               </div>
               <div className="flex flex-col">
-                <span className="font-black text-white text-[11px] tracking-tight uppercase leading-none">{t.commander_title}</span>
-                <span className="text-[7px] text-primary/70 font-black uppercase tracking-widest mt-0.5">Supreme Intel Core</span>
+                <span className="font-black text-white text-xs tracking-tight uppercase leading-none">{t.commander_title}</span>
+                <span className="text-[8px] text-primary/70 font-black uppercase tracking-widest mt-1.5">Intelligence Core Active</span>
               </div>
             </div>
-            <div className="flex items-center gap-0.5">
-              <button onClick={() => setIsVoiceCloneEnabled(!isVoiceCloneEnabled)} className={`p-1.5 rounded-lg transition-all ${isVoiceCloneEnabled ? 'bg-amber-500 text-white' : 'text-slate-500 hover:text-white'}`} title={t.voice_clone_active}>
-                <UserCheck size={14} />
-              </button>
-              <button onClick={() => setIsAudioEnabled(!isAudioEnabled)} className={`p-1.5 rounded-lg transition-all ${isAudioEnabled ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:text-white'}`}>
-                {isAudioEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
-              </button>
-              <button onClick={toggleLiveMode} className={`p-1.5 rounded-lg transition-all ${isLiveMode ? 'bg-red-500 text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>
-                {isLiveMode ? <Mic size={14} /> : <MicOff size={14} />}
-              </button>
-              <button onClick={() => setIsOpen(false)} className="p-1.5 text-slate-500 hover:text-white transition-colors ml-1">
-                <ChevronDown size={20}/>
-              </button>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setIsAudioEnabled(!isAudioEnabled)} className={`p-2 rounded-xl transition-all ${isAudioEnabled ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:text-white'}`}>{isAudioEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
+              <button onClick={() => setIsOpen(false)} className="p-2 text-slate-500 hover:text-white ml-1 transition-colors"><ChevronDown size={24}/></button>
             </div>
           </div>
 
-          {/* Messages Area - Mobile Optimized Padding */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[radial-gradient(circle_at_top_right,rgba(14,165,164,0.02),transparent)] custom-scrollbar">
-             {isLiveMode ? (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 animate-fade-in py-10">
-                    <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center border border-primary/20 animate-pulse relative">
-                        <div className="absolute inset-0 bg-primary/5 rounded-full animate-ping"></div>
-                        <div className="flex items-end gap-1 h-6 relative z-10">
-                            {[0, 0.1, 0.2, 0.3].map((delay) => (
-                                <div key={delay} className="w-1 bg-primary rounded-full animate-bounce" style={{ height: `${50 + Math.random()*50}%`, animationDelay: `${delay}s` }}></div>
-                            ))}
-                        </div>
+          {/* Messages Area - Chống tràn bằng min-h-0 và flex-1 */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[radial-gradient(circle_at_top_right,rgba(14,165,164,0.03),transparent)]">
+            <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-800/60 flex items-center gap-3">
+                <Terminal size={14} className="text-primary animate-pulse" />
+                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">AV-COMMANDER: Strategic Protocol Active</span>
+            </div>
+
+            {sessions.find(s => s.id === currentSessionId)?.messages.map((m, i) => (
+                <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in group`}>
+                    <div className={`max-w-[92%] px-4 py-3 rounded-2xl text-xs leading-relaxed shadow-lg border transition-all relative whitespace-pre-wrap ${
+                      m.role === 'user' 
+                        ? 'bg-primary border-primary/20 text-white rounded-tr-none shadow-primary/10' 
+                        : 'bg-slate-900 border-slate-800 text-slate-200 rounded-tl-none group-hover:border-primary/30'
+                    }`}>
+                        {m.text}
+                        
+                        {m.role === 'model' && (m as any).sources && (
+                          <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+                              <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                  <Globe size={12} /> Căn cứ dữ liệu trực tuyến:
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                  {(m as any).sources.map((src: any, idx: number) => (
+                                      <a key={idx} href={src.uri} target="_blank" className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-[9px] text-primary hover:text-white hover:bg-primary/20 transition-all flex items-center gap-1.5 group/link">
+                                          <ExternalLink size={10} /> {src.title || "Chi tiết nguồn"} <MoveUpRight size={8} className="opacity-0 group-hover/link:opacity-100" />
+                                      </a>
+                                  ))}
+                              </div>
+                          </div>
+                        )}
+
+                        {m.role === 'model' && (
+                          <button 
+                              onClick={() => playTTS(m.text, m.id)} 
+                              className={`absolute -bottom-2 -right-2 p-2 rounded-xl border transition-all ${isSpeakingId === m.id ? 'bg-primary text-white scale-110 shadow-neon' : 'bg-slate-800 text-slate-500 hover:text-primary border-slate-700'}`}
+                          >
+                              <Volume2 size={12} />
+                          </button>
+                        )}
                     </div>
-                    <div>
-                        <h4 className="font-black text-white text-[12px] uppercase tracking-wide">{t.chat_mic_on}</h4>
-                        <p className="text-[7px] text-slate-600 uppercase font-black mt-2 tracking-[0.1em]">Neural Link Established</p>
+                    
+                    {m.suggestions && m.role === 'model' && (
+                      <div className="flex flex-wrap gap-2 mt-4 ml-2">
+                          {m.suggestions.map((s, idx) => (
+                              <button 
+                                  key={idx} 
+                                  onClick={() => { setInputText(s); inputRef.current?.focus(); }}
+                                  className="text-[10px] font-bold text-slate-500 hover:text-primary bg-slate-900/40 hover:bg-primary/10 border border-slate-800 px-3 py-1.5 rounded-full transition-all"
+                              >
+                                  + {s}
+                              </button>
+                          ))}
+                      </div>
+                    )}
+                </div>
+            ))}
+            
+            {isLoading && (
+                <div className="flex justify-start animate-fade-in">
+                    <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl rounded-tl-none flex items-center gap-3">
+                          <div className="flex gap-1.5">
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                          <div className="text-[9px] font-black text-primary/70 uppercase tracking-widest flex items-center gap-2">
+                              <Search size={12} className="animate-pulse" /> Commander is reasoning...
+                          </div>
                     </div>
                 </div>
-             ) : (
-                <>
-                  <div className="bg-slate-900/40 rounded-xl px-3 py-2 border border-slate-800/40 mb-3 flex items-center gap-2">
-                      <Terminal size={12} className="text-primary animate-pulse" />
-                      <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Real-time Intelligence Active</span>
+            )}
+            <div ref={messagesEndRef} className="h-4" />
+          </div>
+
+          {/* Input Area */}
+          <div className="h-[96px] px-4 pb-6 pt-2 bg-slate-950 border-t border-slate-800 shrink-0 flex flex-col justify-center relative">
+              {isRecordingInput && (
+                  <div className="absolute top-[-36px] left-0 right-0 h-[36px] bg-primary/20 backdrop-blur-sm flex items-center justify-center gap-2 px-4 animate-fade-in border-t border-primary/20">
+                      <Waves size={14} className="text-primary animate-pulse" />
+                      <span className="text-[9px] text-primary font-black uppercase tracking-widest">Listening... speak your command clearly.</span>
                   </div>
-
-                  {sessions.find(s => s.id === currentSessionId)?.messages.map((m, i) => (
-                      <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in group`}>
-                          <div className={`max-w-[90%] px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed shadow-sm border transition-all relative ${
-                            m.role === 'user' 
-                              ? 'bg-primary/90 border-primary/20 text-white rounded-tr-none' 
-                              : 'bg-slate-900 border-slate-800/60 text-slate-200 rounded-tl-none group-hover:border-primary/20'
-                          }`}>
-                              {m.text}
-                              
-                              {m.role === 'model' && (m as any).sources && (
-                                <div className="mt-3 pt-2.5 border-t border-white/5 space-y-1.5">
-                                    <div className="flex items-center gap-1.5 text-[8px] font-black text-slate-500 uppercase tracking-widest">
-                                        <Globe size={10} /> Grounded Sources:
-                                    </div>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {(m as any).sources.map((src: any, idx: number) => (
-                                            <a key={idx} href={src.uri} target="_blank" className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-[8px] text-primary hover:text-white transition-all flex items-center gap-1">
-                                                <ExternalLink size={8} /> {src.title}
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-                              )}
-
-                              {m.role === 'model' && (
-                                <button 
-                                    onClick={() => playTTS(m.text, m.id, m.detected_lang, (m as any).sentiment)} 
-                                    className={`absolute -bottom-1.5 -right-1.5 p-1 rounded-md border transition-all ${isSpeakingId === m.id ? 'bg-primary text-white scale-110 shadow-neon' : 'bg-slate-800 text-slate-600 hover:text-primary'}`}
-                                >
-                                    <Volume2 size={10} />
-                                </button>
-                              )}
-                          </div>
-                      </div>
-                  ))}
-                  
-                  {isLoading && (
-                      <div className="flex justify-start animate-fade-in">
-                          <div className="bg-slate-900/50 border border-slate-800 p-2.5 rounded-xl rounded-tl-none flex items-center gap-2.5">
-                                <div className="flex gap-1">
-                                    <div className="w-1 h-1 bg-primary rounded-full animate-bounce"></div>
-                                    <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                    <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                                </div>
-                                <div className="flex items-center gap-1 text-[8px] font-black text-primary/70 uppercase tracking-widest">
-                                    <Search size={10} /> Neural Researching...
-                                </div>
-                          </div>
-                      </div>
-                  )}
-                </>
-             )}
-            <div ref={messagesEndRef} />
+              )}
+              <div className="flex items-center gap-3">
+                  <button 
+                      onClick={toggleRecording} 
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all shrink-0 ${isRecordingInput ? 'bg-red-500 text-white shadow-neon animate-pulse' : 'bg-slate-900 text-slate-500 hover:text-primary border border-slate-800'}`}
+                  >
+                      {isRecordingInput ? <MicOff size={20} /> : <Mic size={20} />}
+                  </button>
+                  <div className="flex-1 relative flex items-center group">
+                      <input 
+                          ref={inputRef} 
+                          value={inputText} 
+                          onChange={(e) => setInputText(e.target.value)} 
+                          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} 
+                          placeholder={t.placeholder_cmd || "Hỏi tư lệnh chiến lược..."} 
+                          className="w-full bg-slate-900 border border-slate-800 rounded-[20px] pl-5 pr-12 py-3.5 text-xs text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700 shadow-inner" 
+                      />
+                      <button 
+                          onClick={handleSendMessage} 
+                          disabled={isLoading || !inputText.trim()} 
+                          className="absolute right-1.5 w-9 h-9 bg-primary rounded-xl text-white flex items-center justify-center hover:bg-primary/80 transition-all disabled:opacity-0 shadow-lg active:scale-90"
+                      >
+                          <Send size={18} />
+                      </button>
+                  </div>
+              </div>
           </div>
-
-          {/* Input Area - More compact and ergonomic */}
-          {!isLiveMode && (
-            <div className="px-3 pb-3 pt-2 bg-slate-950 border-t border-slate-800 shrink-0 space-y-2">
-                {isRecordingInput && (
-                    <div className="flex items-center gap-2 px-2 py-1 bg-primary/5 border border-primary/10 rounded-lg animate-fade-in">
-                        <Waves size={12} className="text-primary animate-pulse" />
-                        <span className="text-[8px] text-primary font-black uppercase tracking-widest">Listening for commands...</span>
-                    </div>
-                )}
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={toggleRecording} 
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${isRecordingInput ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-900/50 text-slate-500 hover:text-primary border border-slate-800/50'}`}
-                    >
-                        {isRecordingInput ? <MicOff size={16} /> : <Mic size={16} />}
-                    </button>
-                    <div className="flex-1 relative flex items-center">
-                        <input 
-                            ref={inputRef} 
-                            value={inputText} 
-                            onChange={(e) => setInputText(e.target.value)} 
-                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} 
-                            placeholder="Commander Command..." 
-                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-[11px] text-white focus:outline-none focus:border-primary/40 transition-all placeholder:text-slate-800" 
-                        />
-                        <button 
-                            onClick={handleSendMessage} 
-                            disabled={isLoading || !inputText.trim()} 
-                            className="absolute right-1 w-7 h-7 bg-primary rounded-lg text-white flex items-center justify-center hover:bg-primary/80 transition-all disabled:opacity-0 shadow-lg active:scale-90"
-                        >
-                            <Send size={14} />
-                        </button>
-                    </div>
-                </div>
-            </div>
-          )}
         </div>
       )}
     </>

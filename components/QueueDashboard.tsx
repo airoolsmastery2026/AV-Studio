@@ -4,7 +4,7 @@ import {
   Calendar, Clock, Check, AlertCircle, RefreshCw, Send, 
   Hash, Globe, Video, Youtube, Facebook, Instagram, Twitter, MessageCircle, 
   MoreVertical, Trash2, Edit3, UploadCloud, PlayCircle, Zap, Sliders, ArrowRight, ChevronDown, CheckCircle2, ShieldCheck, Target, Layers, MapPin,
-  Music, BrainCircuit
+  Music, BrainCircuit, Eye, Lock, Unlock
 } from 'lucide-react';
 import { ApiKeyConfig, OrchestratorResponse, PostingJob, TargetRegion, GoldenHourRecommendation, ScheduleSlot } from '../types';
 import NeonButton from './NeonButton';
@@ -29,6 +29,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [scheduleMode, setScheduleMode] = useState<'now' | 'auto' | 'manual' | 'smart_rule'>('smart_rule'); 
   const [manualTime, setManualTime] = useState('');
+  const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>('public');
   const [isPosting, setIsPosting] = useState(false);
   
   const [isPredicting, setIsPredicting] = useState(false);
@@ -114,7 +115,8 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
               hashtags: ['#Scheduled', '#AutoViral', '#AVStudio'],
               platforms: [targetAccount],
               scheduled_time: postTime.getTime(),
-              status: 'scheduled'
+              status: 'scheduled',
+              visibility
           };
       });
       setJobs(prev => [...newJobs, ...prev]);
@@ -129,8 +131,7 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
     if (scheduleMode === 'manual' && manualTime) {
         finalTime = new Date(manualTime).getTime();
     } else if (scheduleMode === 'auto' && goldenHours.length > 0) {
-        // Use best scoring hour
-        const bestHour = goldenHours[0].time_label; // e.g. "20:30"
+        const bestHour = goldenHours[0].time_label; 
         const [h, m] = bestHour.split(':').map(Number);
         const t = new Date();
         t.setHours(h, m, 0, 0);
@@ -145,7 +146,8 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
         hashtags: ['#AI', '#Viral', '#AutoShorts'],
         platforms: selectedPlatforms,
         scheduled_time: finalTime,
-        status: scheduleMode === 'now' ? 'publishing' : 'scheduled'
+        status: scheduleMode === 'now' ? 'publishing' : 'scheduled',
+        visibility
     };
 
     setJobs(prev => [newJob, ...prev]);
@@ -183,7 +185,6 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
   return (
     <div className="animate-fade-in space-y-6 pb-12 h-full flex flex-col md:flex-row gap-6 overflow-hidden">
        
-       {/* LEFT: SCHEDULER CONFIG */}
        <div className="flex-1 space-y-6 overflow-y-auto pr-2 custom-scrollbar">
           
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
@@ -216,14 +217,40 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
                           className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-white font-bold focus:border-primary focus:outline-none transition-all shadow-inner"
                       />
                   </div>
-                  <div>
-                      <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Post Caption (Viral Optimized)</label>
-                      <textarea 
-                          value={draftCaption}
-                          onChange={(e) => setDraftCaption(e.target.value)}
-                          placeholder="Write your viral caption here..."
-                          className="w-full h-32 bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 focus:border-primary focus:outline-none resize-none transition-all shadow-inner"
-                      />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">Post Caption</label>
+                        <textarea 
+                            value={draftCaption}
+                            onChange={(e) => setDraftCaption(e.target.value)}
+                            placeholder="Write your viral caption here..."
+                            className="w-full h-32 bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 focus:border-primary focus:outline-none resize-none transition-all shadow-inner"
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-widest">YouTube Settings</label>
+                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black text-slate-400 uppercase">Visibility</span>
+                                <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+                                    {(['public', 'unlisted', 'private'] as const).map(v => (
+                                        <button 
+                                            key={v}
+                                            onClick={() => setVisibility(v)}
+                                            className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase transition-all ${visibility === v ? 'bg-primary text-white shadow-neon' : 'text-slate-600'}`}
+                                        >
+                                            {v === 'public' ? <Globe size={10} className="inline mr-1" /> : v === 'private' ? <Lock size={10} className="inline mr-1" /> : <Unlock size={10} className="inline mr-1" />}
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase border-t border-slate-800 pt-3">
+                                <span>Notify Subscribers</span>
+                                <input type="checkbox" defaultChecked className="accent-primary" />
+                            </div>
+                        </div>
+                      </div>
                   </div>
               </div>
 
@@ -405,7 +432,6 @@ const QueueDashboard: React.FC<QueueDashboardProps> = ({ apiKeys, currentPlan, j
           </div>
        </div>
 
-       {/* RIGHT: QUEUE MONITOR */}
        <div className="w-full md:w-[400px] bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col shadow-2xl overflow-hidden relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
           

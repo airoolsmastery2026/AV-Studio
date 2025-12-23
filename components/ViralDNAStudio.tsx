@@ -339,4 +339,41 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-              <div className="bg-[#0A101F] border border-slate-800 rounded-[32px] p
+              <div className="bg-[#0A101F] border border-slate-800 rounded-[32px] p-6 md:p-8 shadow-2xl backdrop-blur-md">
+                  <h3 className="text-xs font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2"><Zap size={16} className="text-primary" /> Multi-Layer Constraints</h3>
+                  <div className="space-y-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">Character Lock (Consistency)</label>
+                            <button onClick={() => setStudioSettings({...studioSettings, characterLock: !studioSettings.characterLock})} className={`p-1.5 rounded-lg border transition-all ${studioSettings.characterLock ? 'bg-primary/20 border-primary text-primary shadow-neon' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
+                              {studioSettings.characterLock ? <Lock size={14}/> : <Unlock size={14}/>}
+                            </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">Viral Pattern Strength</label>
+                            <span className="text-[10px] font-black text-primary">{studioSettings.hookStrength}%</span>
+                          </div>
+                          <input type="range" min="50" max="100" value={studioSettings.hookStrength} onChange={(e) => setStudioSettings({...studioSettings, hookStrength: parseInt(e.target.value)})} className="w-full accent-primary bg-slate-950 h-1.5 rounded-full" />
+                      </div>
+
+                      <NeonButton onClick={handleRenderCycle} disabled={!generatedPlan || isRendering} className="w-full h-14 uppercase text-[11px] font-black shadow-neon">
+                          {isRendering ? <Loader2 size={16} className="animate-spin" /> : <Film size={16} />}
+                          {isRendering ? "RENDERING..." : "Initiate Render Cycle"}
+                      </NeonButton>
+                  </div>
+              </div>
+
+              <div className="bg-primary/5 border border-primary/20 rounded-[32px] p-6 flex items-start gap-4">
+                  <Info className="text-primary shrink-0" size={20} />
+                  <p className="text-[10px] text-slate-400 italic leading-relaxed">"Sử dụng Veo 3.1 Fast để tạo ra video chất lượng cao dựa trên cấu trúc viral của đối thủ."</p>
+              </div>
+          </div>
+      </div>
+    </div>
+  );
+};
+
+export default ViralDNAStudio;

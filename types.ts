@@ -1,6 +1,6 @@
 
 // Types for application configuration and state management
-export type AppLanguage = 'vi' | 'en';
+export type AppLanguage = 'vi' | 'en' | 'ja' | 'es' | 'zh';
 export type ContentLanguage = 'vi' | 'en' | 'es' | 'fr' | 'ja' | 'ko' | 'zh' | 'th';
 export type ScriptModel = 'Gemini 3 Pro' | 'Gemini 3 Flash' | 'GPT-4o' | 'Grok 3' | 'Gemini 2.5 Flash';
 export type VisualModel = 'VEO 3.1' | 'KLING 1.5' | 'HAILUO AI' | 'SORA' | 'IMAGEN 4';
@@ -8,6 +8,23 @@ export type VoiceModel = 'Google Chirp' | 'ElevenLabs Clone' | 'OpenAI TTS' | 'V
 export type VideoResolution = '1080p' | '4K' | '720p';
 export type AspectRatio = '9:16' | '16:9' | '1:1';
 export type TabView = 'campaign' | 'integrations' | 'queue' | 'analytics' | 'risk_center' | 'marketplace' | 'settings' | 'auto_pilot' | 'models' | 'studio' | 'docs';
+
+export interface YouTubeChannel {
+  id: string;
+  name: string;
+  thumbnail: string;
+  subscribers: string;
+  videoCount: number;
+  status: 'connected' | 'disconnected' | 'error';
+}
+
+export interface YouTubeTrend {
+  keyword: string;
+  volume: string;
+  competition: 'LOW' | 'MEDIUM' | 'HIGH';
+  potential_ctr: number;
+  tags: string[];
+}
 
 export interface ABTestMetadata {
   variant_a_url: string;
@@ -158,6 +175,7 @@ export interface PostingJob {
   scheduled_time: number;
   status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed';
   video_url?: string;
+  visibility?: 'public' | 'private' | 'unlisted';
 }
 
 export interface KnowledgeBase {
