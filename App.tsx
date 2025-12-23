@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Activity, ShieldAlert, ShieldCheck, Menu, CloudSync, ZapOff } from 'lucide-react';
+import { Activity, ShieldAlert, ShieldCheck, Menu, CloudSync, ZapOff, Timer, Loader2 } from 'lucide-react';
 import { 
   AppStatus, TabView, ApiKeyConfig, KnowledgeBase, 
   AutoPilotStats, AutoPilotLog, PostingJob, MissionIntel, 
@@ -22,7 +22,7 @@ import CampaignWizard from './components/CampaignWizard';
 import ChannelHealthDashboard from './components/ChannelHealthDashboard';
 
 import { translations } from './constants/translations';
-import { huntAffiliateProducts, runSeoAudit, synthesizeKnowledge, syncPlatformPolicies, getApiHealthStatus } from './services/geminiService';
+import { huntAffiliateProducts, runSeoAudit, synthesizeKnowledge, syncPlatformPolicies, getApiHealthStatus, generateVeoVideo, generateAIImage } from './services/geminiService';
 
 const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
 const KNOWLEDGE_BASE_KEY = 'av_studio_brain_v1';
@@ -74,22 +74,25 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem(KNOWLEDGE_BASE_KEY, JSON.stringify(knowledgeBase)); }, [knowledgeBase]);
   useEffect(() => { localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(completedVideos)); }, [completedVideos]);
 
-  // Periodically update UI about API Health (lockouts)
+  // Periodically update UI about API Health
   useEffect(() => {
-    const timer = setInterval(() => setApiHealth(getApiHealthStatus()), 2000);
+    const timer = setInterval(() => setApiHealth(getApiHealthStatus()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Unified Autonomous Policy Guard - Optimized for strict 429 compliance
+  // Unified Autonomous Policy Guard
   useEffect(() => {
     const runPolicySync = async () => {
       if (!process.env.API_KEY || isPolicySyncing) return;
       const now = Date.now();
-      if (now - lastSyncAttemptRef.current < 600000) return;
-      if (getApiHealthStatus().status === 'exhausted') return;
+      if (now - lastSyncAttemptRef.current < 900000) return; 
+      
+      const health = getApiHealthStatus();
+      if (health.status === 'exhausted' || health.status === 'throttled') return;
+
       const lastSync = knowledgeBase.lastUpdated || 0;
       const hoursSinceSync = (now - lastSync) / 3600000;
-      if (hoursSinceSync < 24 && knowledgeBase.platformPolicies.length > 0) return;
+      if (hoursSinceSync < 48 && knowledgeBase.platformPolicies.length > 0) return;
 
       setIsPolicySyncing(true);
       lastSyncAttemptRef.current = now;
@@ -100,14 +103,14 @@ const App: React.FC = () => {
         }
       } catch (e: any) {
         if (e.message.includes("QUOTA") || e.message.includes("429")) {
-            console.warn("Policy Sync: Quota exhausted. Deferring next attempt.");
-            lastSyncAttemptRef.current = Date.now() + 14400000; 
+            console.warn("Policy Sync: Quota hit.");
+            lastSyncAttemptRef.current = Date.now() + 21600000; 
         }
       } finally {
         setIsPolicySyncing(false);
       }
     };
-    const timeout = setTimeout(runPolicySync, 5000);
+    const timeout = setTimeout(runPolicySync, 20000); 
     return () => clearTimeout(timeout);
   }, [knowledgeBase.lastUpdated, knowledgeBase.platformPolicies.length, isPolicySyncing]);
 
@@ -116,38 +119,77 @@ const App: React.FC = () => {
     setAutoPilotLogs(prev => [newLog, ...prev].slice(0, 50));
   };
 
+  /**
+   * GLOBAL RENDERER: Connects to Veo/Imagen
+   */
+  const handleInitiateRender = async (plan: OrchestratorResponse) => {
+    if (status === AppStatus.RENDERING) return;
+    
+    setStatus(AppStatus.RENDERING);
+    addLog("FACTORY", "Initiating Neural Render Cycle (Veo 3.1)...", "info");
+
+    try {
+      // 1. Generate Main Video
+      const videoUrl = await generateVeoVideo(plan.production_plan.script_master, plan.production_plan.technical_specs.ratio);
+      
+      // 2. Generate Optimized Thumbnail
+      const thumbUrl = await generateAIImage(plan.generated_content.thumbnail_prompt, "1:1");
+
+      const newVideo: CompletedVideo = {
+        id: crypto.randomUUID(),
+        url: videoUrl,
+        thumbnail: thumbUrl,
+        title: plan.generated_content.title,
+        timestamp: Date.now()
+      };
+
+      setCompletedVideos(prev => [newVideo, ...prev]);
+      addLog("FACTORY", `Render Complete: ${plan.generated_content.title}`, "success");
+      setStatus(AppStatus.COMPLETE);
+      setTimeout(() => setStatus(AppStatus.IDLE), 5000);
+
+      return newVideo;
+    } catch (e: any) {
+      addLog("FACTORY", `Render Failure: ${e.message}`, "error");
+      setStatus(AppStatus.ERROR);
+      setTimeout(() => setStatus(AppStatus.IDLE), 5000);
+    }
+  };
+
   const runAutoPilotCycle = useCallback(async () => {
     if (!process.env.API_KEY) {
         addLog("SYSTEM", "API Key required for AutoPilot", "error");
         setAutoPilotActive(false);
         return;
     }
-    if (getApiHealthStatus().status === 'exhausted') {
-        addLog("SYSTEM", "AutoPilot deferred: API Quota exhausted. Waiting...", "warning");
-        return;
-    }
+    const health = getApiHealthStatus();
+    if (health.status === 'exhausted' || health.status === 'throttled') return;
+    
     try {
         setStatus(AppStatus.HUNTING);
         addLog("HUNTER", `Scouring web for ${autoPilotNiche}...`, "info");
         const hunt = await huntAffiliateProducts(process.env.API_KEY, autoPilotNiche, ['SHOPEE', 'AMAZON']);
         if (!hunt.products?.length) {
-            addLog("HUNTER", "No rising trends found. Retrying...", "warning");
             setStatus(AppStatus.IDLE);
             return;
         }
         const target = hunt.products[0];
         addLog("HUNTER", `Target Locked: ${target.product_name}`, "success");
+        
+        await new Promise(r => setTimeout(r, 35000));
+
         setStatus(AppStatus.ANALYZING);
         const seo = await runSeoAudit(target.product_name, target.reason_to_promote, autoPilotNiche);
         setCurrentMission({ ...target, vidiq_score: seo });
+        
+        // AutoPilot creates the plan
+        setStatus(AppStatus.PLANNING);
+        const plan = await synthesizeKnowledge(process.env.API_KEY!, `Create video strategy for ${target.product_name}`, []);
+        // In a real flow, we'd call generateProScript here and then handleInitiateRender
+        
         setAutoPilotStats(prev => ({ ...prev, cyclesRun: prev.cyclesRun + 1 }));
         setStatus(AppStatus.IDLE);
     } catch (error: any) {
-        if (error.message.includes("QUOTA") || error.message.includes("429")) {
-            addLog("ENGINE", "Neural Core exhausted. Pausing production...", "error");
-        } else {
-            addLog("ENGINE", `Fault detected: ${error.message}`, "error");
-        }
         setStatus(AppStatus.IDLE);
     }
   }, [autoPilotNiche]);
@@ -155,7 +197,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (autoPilotActive) {
         runAutoPilotCycle();
-        const cycle = setInterval(runAutoPilotCycle, 600000);
+        const cycle = setInterval(runAutoPilotCycle, 1800000);
         const uptime = setInterval(() => setAutoPilotStats(p => ({ ...p, uptime: p.uptime + 1 })), 1000);
         return () => { clearInterval(cycle); clearInterval(uptime); };
     }
@@ -181,10 +223,24 @@ const App: React.FC = () => {
                 </div>
             </div>
             
+            {status === AppStatus.RENDERING && (
+              <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 px-5 py-2 rounded-full animate-fade-in shadow-neon">
+                  <Loader2 size={16} className="text-primary animate-spin" />
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Veo Render Core Active...</span>
+              </div>
+            )}
+
             {apiHealth.status === 'exhausted' && (
-                <div className="flex items-center gap-2 bg-red-950/50 border border-red-500/30 px-4 py-1.5 rounded-full animate-fade-in">
-                    <ZapOff size={14} className="text-red-500 animate-pulse" />
-                    <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Neural Cool-off: {apiHealth.remainingCooldown}s</span>
+                <div className="flex items-center gap-2 bg-red-950/50 border border-red-500/30 px-4 py-1.5 rounded-full animate-pulse">
+                    <ZapOff size={14} className="text-red-500" />
+                    <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">Neural Cooldown: {apiHealth.remainingCooldown}s</span>
+                </div>
+            )}
+            
+            {apiHealth.status === 'throttled' && (
+                <div className="flex items-center gap-2 bg-amber-950/40 border border-amber-500/20 px-4 py-1.5 rounded-full">
+                    <Timer size={14} className="text-amber-500 animate-spin-slow" />
+                    <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Grounding Gap: {apiHealth.remainingCooldown}s</span>
                 </div>
             )}
 
@@ -203,7 +259,7 @@ const App: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
             {activeTab === 'auto_pilot' && <AutoPilotDashboard apiKeys={apiKeys} isRunning={autoPilotActive} setIsRunning={(v) => v ? setIsConsentOpen(true) : setAutoPilotActive(false)} stats={autoPilotStats} logs={autoPilotLogs} currentAction={status} selectedNiche={autoPilotNiche} setSelectedNiche={setAutoPilotNiche} onAddToQueue={(j) => setJobs([j, ...jobs])} onVideoGenerated={(v) => setCompletedVideos([v, ...completedVideos])} completedVideos={completedVideos} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} resolution={resolution} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} contentLanguage={contentLanguage} currentMission={currentMission} t={t} />}
             {activeTab === 'settings' && <SettingsDashboard apiKeys={apiKeys} setApiKeys={setApiKeys} knowledgeBase={knowledgeBase} setKnowledgeBase={setKnowledgeBase} onTrainBrain={async (text) => { const rules = await synthesizeKnowledge(process.env.API_KEY!, text, knowledgeBase.learnedPreferences); setKnowledgeBase(prev => ({ ...prev, learnedPreferences: [...new Set([...prev.learnedPreferences, ...rules])] })); }} t={t} appLang={appLang} setAppLang={setAppLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} />}
-            {activeTab === 'studio' && <ViralDNAStudio predefinedTopic="" apiKeys={apiKeys} appLanguage={appLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} knowledgeBase={knowledgeBase} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} completedVideos={completedVideos} setCompletedVideos={setCompletedVideos} t={t} />}
+            {activeTab === 'studio' && <ViralDNAStudio predefinedTopic="" apiKeys={apiKeys} appLanguage={appLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} knowledgeBase={knowledgeBase} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} completedVideos={completedVideos} setCompletedVideos={setCompletedVideos} t={t} onInitiateRender={handleInitiateRender} />}
             {activeTab === 'analytics' && <AnalyticsDashboard apiKeys={apiKeys} onDeployStrategy={() => setActiveTab('studio')} t={t} />}
             {activeTab === 'marketplace' && <AIMarketplace apiKeys={apiKeys} onSelectProduct={() => setActiveTab('studio')} t={t} />}
             {activeTab === 'risk_center' && <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={() => {}} t={t} />}

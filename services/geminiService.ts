@@ -13,11 +13,31 @@ const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 // Global state to track API health and prevent spamming an exhausted quota
 let isQuotaExhausted = false;
 let exhaustionResetTime = 0;
+let lastGroundingRequestTime = 0;
+let activeRequestsCount = 0;
+
+// Configurable constants for Free Tier stability
+const MAX_CONCURRENT_GROUNDING_REQUESTS = 1; 
+const MANDATORY_GAP_MS = 30000; // 30s gap between any search grounding calls (2 RPM safety)
 
 export const getApiHealthStatus = () => {
-  if (isQuotaExhausted && Date.now() < exhaustionResetTime) {
-    return { status: 'exhausted', remainingCooldown: Math.ceil((exhaustionResetTime - Date.now()) / 1000) };
+  const now = Date.now();
+  if (isQuotaExhausted && now < exhaustionResetTime) {
+    return { 
+      status: 'exhausted', 
+      remainingCooldown: Math.ceil((exhaustionResetTime - now) / 1000) 
+    };
   }
+  
+  // Check if we are currently in a mandatory gap delay
+  const timeSinceLast = now - lastGroundingRequestTime;
+  if (timeSinceLast < MANDATORY_GAP_MS && activeRequestsCount === 0) {
+     return { 
+       status: 'throttled', 
+       remainingCooldown: Math.ceil((MANDATORY_GAP_MS - timeSinceLast) / 1000) 
+     };
+  }
+
   isQuotaExhausted = false;
   return { status: 'healthy' };
 };
@@ -36,45 +56,108 @@ const cleanAndParseJSON = (text: string) => {
 };
 
 /**
- * Enhanced retry wrapper with global lockout awareness.
- * Specifically optimized for search grounding limits which are much tighter.
+ * Enhanced retry wrapper with global lockout and mandatory inter-request pacing.
  */
 async function callAiWithRetry<T>(
   apiCall: () => Promise<T>,
   retries = 2, 
-  initialDelay = 8000 // Increased to 8s for grounding search limits
+  initialDelay = 15000 
 ): Promise<T> {
   const health = getApiHealthStatus();
   if (health.status === 'exhausted') {
     throw new Error(`API_QUOTA_COOLDOWN:${health.remainingCooldown}`);
   }
 
+  while (activeRequestsCount >= MAX_CONCURRENT_GROUNDING_REQUESTS) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (getApiHealthStatus().status === 'exhausted') throw new Error("QUOTA_EXHAUSTED_LOCKOUT");
+  }
+
+  const now = Date.now();
+  const timeSinceLast = now - lastGroundingRequestTime;
+  if (timeSinceLast < MANDATORY_GAP_MS) {
+    const waitTime = MANDATORY_GAP_MS - timeSinceLast;
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+
+  activeRequestsCount++;
+
   try {
-    return await apiCall();
+    const result = await apiCall();
+    lastGroundingRequestTime = Date.now();
+    return result;
   } catch (error: any) {
-    // Detect standard 429 or RESOURCE_EXHAUSTED errors in various formats
     const errorStr = JSON.stringify(error);
-    const isRateLimit = errorStr.includes('429') || 
-                        errorStr.includes('RESOURCE_EXHAUSTED') || 
-                        (error.status === 429) || 
-                        (error.response?.status === 429);
+    const isRateLimit = errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED');
     
     if (isRateLimit) {
       if (retries > 0) {
-        console.warn(`Rate limit hit (429). Backing off for ${initialDelay}ms... (${retries} attempts left)`);
+        lastGroundingRequestTime = Date.now() + initialDelay; 
+        activeRequestsCount--; 
         await new Promise(resolve => setTimeout(resolve, initialDelay));
-        return callAiWithRetry(apiCall, retries - 1, initialDelay * 2.5); 
+        return callAiWithRetry(apiCall, retries - 1, initialDelay * 2); 
       } else {
-        // Mark global lockout for 3 minutes (180s) if retries fail
         isQuotaExhausted = true;
-        exhaustionResetTime = Date.now() + 180000; 
-        console.error("API Quota fully exhausted. Neural Core entering 3min cool-off.");
+        exhaustionResetTime = Date.now() + 600000; 
         throw new Error("QUOTA_EXHAUSTED_LOCKOUT");
       }
     }
     throw error;
+  } finally {
+    activeRequestsCount--;
   }
 }
+
+/**
+ * PRODUCTION ENGINE: Render Video with Veo 3.1
+ */
+export const generateVeoVideo = async (prompt: string, aspectRatio: "16:9" | "9:16" = "9:16"): Promise<string> => {
+  const ai = getAi();
+  
+  // Checking for API Key selection (Required for Veo)
+  if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
+    await window.aistudio.openSelectKey();
+  }
+
+  let operation = await ai.models.generateVideos({
+    model: 'veo-3.1-fast-generate-preview',
+    prompt: prompt,
+    config: {
+      numberOfVideos: 1,
+      resolution: '1080p',
+      aspectRatio: aspectRatio
+    }
+  });
+
+  while (!operation.done) {
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    operation = await ai.operations.getVideosOperation({ operation: operation });
+  }
+
+  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+  if (!downloadLink) throw new Error("VIDEO_GENERATION_FAILED");
+
+  return `${downloadLink}&key=${process.env.API_KEY}`;
+};
+
+/**
+ * ASSET ENGINE: Create Thumbnails with Imagen 4
+ */
+export const generateAIImage = async (prompt: string, aspectRatio: "1:1" | "16:9" | "9:16" = "1:1"): Promise<string> => {
+  const ai = getAi();
+  const response = await ai.models.generateImages({
+    model: 'imagen-4.0-generate-001',
+    prompt: prompt,
+    config: {
+      numberOfImages: 1,
+      outputMimeType: 'image/jpeg',
+      aspectRatio: aspectRatio,
+    },
+  });
+
+  const base64EncodeString = response.generatedImages[0].image.imageBytes;
+  return `data:image/jpeg;base64,${base64EncodeString}`;
+};
 
 /**
  * Platform Policy Scout using Google Search Grounding.
@@ -84,7 +167,7 @@ export const syncPlatformPolicies = async (platforms: string[]): Promise<Platfor
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `BẠN LÀ CHUYÊN GIA PHÁP LÝ THUẬT TOÁN. Sử dụng Google Search tìm chính sách mới nhất (Community Guidelines, AI labels, quy định về nội dung do AI tạo ra) cho các nền tảng: ${platforms.join(', ')}.`,
+      contents: `BẠN LÀ CHUYÊN GIA PHÁP LÝ THUẬT TOÁN. Sử dụng Google Search tìm chính sách mới nhất cho các nền tảng: ${platforms.join(', ')}.`,
       config: { 
         responseMimeType: "application/json", 
         tools: [{ googleSearch: {} }],
@@ -117,7 +200,7 @@ export const extractViralDNA = async (apiKey: string, urls: string[], mode: stri
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `GIẢI PHẪU DNA VIRAL cho các URL: ${urls.join(', ')}. Phân tích Visual Pacing (ms), Character Consistency, và Triggers tâm lý. Trả về JSON ViralDNAProfile.`,
+      contents: `GIẢI PHẪU DNA VIRAL cho các URL: ${urls.join(', ')}. Trả về JSON ViralDNAProfile.`,
       config: { 
         responseMimeType: "application/json",
         responseSchema: {
@@ -166,11 +249,7 @@ export const generateProScript = async (apiKey: string, dna: ViralDNAProfile, se
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `BẠN LÀ SIÊU BIÊN KỊCH. Tạo kịch bản PHÁI SINH từ DNA: ${JSON.stringify(dna)}. 
-        - Character Lock: ${settings.characterLock ? 'Duy trì mô tả nhân vật nhất quán' : 'Tự do'}
-        - Chính sách: ${policyGuard}
-        - Chủ đề: ${settings.topic}
-        Sử dụng kịch bản gốc để paraphrase 70% nhưng giữ nhịp điệu viral.`,
+      contents: `Tạo kịch bản PHÁI SINH từ DNA: ${JSON.stringify(dna)}. Chủ đề: ${settings.topic}. Chính sách: ${policyGuard}`,
       config: { 
         responseMimeType: "application/json",
         responseSchema: {
@@ -307,7 +386,7 @@ export const huntAffiliateProducts = async (apiKey: string, niche: string, netwo
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `SĂN TÌM SẢN PHẨM AFFILIATE TRENDING cho ngách ${niche} trên các mạng lưới ${networks.join(', ')}. Dùng Google Search tìm sản phẩm 'Rising Star' có momentum cao.`,
+      contents: `SĂN TÌM SẢN PHẨM AFFILIATE TRENDING cho ngách ${niche}. Dùng Google Search tìm sản phẩm 'Rising Star'.`,
       config: { 
         responseMimeType: "application/json", 
         tools: [{ googleSearch: {} }],
@@ -347,7 +426,7 @@ export const generateChannelAudit = async (apiKey: string, channel: string, plat
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `CHẨN ĐOÁN KÊNH ${channel} trên ${platform}. Dùng Google Search quét các tín hiệu bị bóp Reach, vi phạm chính sách hoặc thay đổi thuật toán gần đây.`,
+      contents: `CHẨN ĐOÁN KÊNH ${channel} trên ${platform}. Dùng Google Search quét tín hiệu bóp Reach.`,
       config: { 
         responseMimeType: "application/json", 
         tools: [{ googleSearch: {} }],
@@ -430,7 +509,7 @@ export const generateDailySchedule = async (apiKey: string, channel: string, nic
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Lập lịch đăng bài cho ${channel} ngách ${niche} vùng ${region}. Cấu hình: ${JSON.stringify(config)}.`,
+      contents: `Lập lịch đăng bài cho ${channel} ngách ${niche} vùng ${region}.`,
       config: { 
         responseMimeType: "application/json",
         responseSchema: {
@@ -460,7 +539,7 @@ export const scanChannelIntelligence = async (url: string): Promise<ChannelIntel
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `TRINH SÁT KÊNH: ${url}. Trích xuất danh mục sản phẩm và chiến lược kiếm tiền.`,
+      contents: `TRINH SÁT KÊNH: ${url}. Dùng Google Search trích xuất chiến lược.`,
       config: { 
         responseMimeType: "application/json", 
         tools: [{ googleSearch: {} }],
@@ -489,7 +568,7 @@ export const runCompetitorDeepDive = async (url: string): Promise<CompetitorDeep
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `GIẢI PHẪU CHI TIẾT KÊNH ĐỐI THỦ: ${url}. Phân tích chiến lược, xác suất thành công và mổ xẻ các video hàng đầu.`,
+      contents: `GIẢI PHẪU CHI TIẾT KÊNH ĐỐI THỦ: ${url}. Dùng Google Search.`,
       config: { 
         responseMimeType: "application/json", 
         tools: [{ googleSearch: {} }],
@@ -538,7 +617,7 @@ export const predictGoldenHours = async (apiKey: string, region: string, niche: 
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Dự đoán giờ vàng đăng bài cho vùng ${region}, ngách ${niche}, trên các nền tảng: ${platforms.join(', ')}.`,
+      contents: `Dự đoán giờ vàng đăng bài vùng ${region} ngách ${niche}. Dùng Search.`,
       config: { 
         responseMimeType: "application/json",
         tools: [{ googleSearch: {} }],
@@ -561,27 +640,6 @@ export const predictGoldenHours = async (apiKey: string, region: string, niche: 
 };
 
 /**
- * Synthesizes 5 core rules.
- */
-export const synthesizeKnowledge = async (apiKey: string, text: string, existing: string[]): Promise<string[]> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Trích xuất 5 quy tắc nội dung cốt lõi từ văn bản này: ${text}. Tránh trùng lặp với: ${existing.join(', ')}.`,
-        config: { 
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING }
-          }
-        }
-    });
-    return cleanAndParseJSON(response.text) || [];
-  });
-};
-
-/**
  * Strategic Commander chat interface.
  */
 export const sendChatToAssistant = async (apiKey: string, history: any[], message: string, context: AppContext): Promise<any> => {
@@ -591,7 +649,7 @@ export const sendChatToAssistant = async (apiKey: string, history: any[], messag
       model: 'gemini-3-pro-preview',
       contents: message,
       config: {
-        systemInstruction: "BẠN LÀ TƯ LỆNH AI. Điều phối toàn bộ hệ thống AV Studio. Trình bày sắc bén, ngắn gọn. Nếu có yêu cầu thực thi, hãy trả về lệnh command trong JSON.",
+        systemInstruction: "BẠN LÀ TƯ LỆNH AI. Điều phối toàn bộ hệ thống AV Studio.",
         responseMimeType: "application/json",
         tools: [{ googleSearch: {} }],
         responseSchema: {
@@ -599,7 +657,6 @@ export const sendChatToAssistant = async (apiKey: string, history: any[], messag
           properties: {
             text: { type: Type.STRING },
             detected_lang: { type: Type.STRING },
-            sentiment: { type: Type.STRING },
             suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
             command: {
               type: Type.OBJECT,
@@ -615,8 +672,29 @@ export const sendChatToAssistant = async (apiKey: string, history: any[], messag
     });
     const parsed = cleanAndParseJSON(response.text) || { text: "Neural Core error." };
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    if (chunks) parsed.sources = chunks.map((c: any) => ({ title: c.web?.title || "Node", uri: c.web?.uri || "#" }));
+    if (chunks) parsed.sources = chunks.map((c: any) => ({ title: c.web?.title || "Source", uri: c.web?.uri || "#" }));
     return parsed;
+  });
+};
+
+/**
+ * Synthesizes knowledge from text to extract learned preferences.
+ */
+export const synthesizeKnowledge = async (apiKey: string, text: string, existingPreferences: string[]): Promise<string[]> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Phân tích văn bản sau và trích xuất các quy tắc chiến lược mới cho hệ thống AI Content. Văn bản: "${text}"`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        }
+      }
+    });
+    return cleanAndParseJSON(response.text) || [];
   });
 };
 
@@ -629,7 +707,7 @@ export const generateGeminiTTS = async (text: string, lang: string = 'vi', senti
     const voiceName = lang === 'vi' ? 'Kore' : 'Zephyr';
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Phát âm giọng chuyên nghiệp: ${text}` }] }],
+      contents: [{ parts: [{ text: `Phát âm: ${text}` }] }],
       config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } }
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";

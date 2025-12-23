@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingBag, Zap, Video, ExternalLink, Crosshair, RefreshCw, Layers, ArrowRight, ShieldCheck, Cpu, Bot, TrendingUp, DollarSign, Globe, Sparkles, Activity } from 'lucide-react';
 import { AIProduct, ApiKeyConfig, AffiliateHuntResult } from '../types';
 import NeonButton from './NeonButton';
-import { huntAffiliateProducts } from '../services/geminiService';
+import { huntAffiliateProducts, getApiHealthStatus } from '../services/geminiService';
 
 interface AIMarketplaceProps {
   onSelectProduct: (url: string) => void;
@@ -24,6 +24,7 @@ const AIMarketplace: React.FC<AIMarketplaceProps> = ({ onSelectProduct, apiKeys,
   const connectedNetworks = affiliateKeys.map(k => k.provider.toUpperCase());
 
   const handleAutoHunt = async (silent = false) => {
+    if (getApiHealthStatus().status === 'exhausted') return;
     if (!silent) setIsHunting(true);
     const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
     if (!googleKey) {
@@ -52,10 +53,13 @@ const AIMarketplace: React.FC<AIMarketplaceProps> = ({ onSelectProduct, apiKeys,
   };
 
   useEffect(() => {
-    handleAutoHunt();
-    autoHuntInterval.current = window.setInterval(() => { handleAutoHunt(true); }, 45000);
+    // Only hunt on mount if we have no feed yet to save quota
+    if (liveFeed.length === 0) handleAutoHunt();
+    
+    // Refresh interval increased to 90s to stay safe
+    autoHuntInterval.current = window.setInterval(() => { handleAutoHunt(true); }, 90000);
     return () => { if (autoHuntInterval.current) clearInterval(autoHuntInterval.current); };
-  }, [huntNiche]);
+  }, [huntNiche, liveFeed.length]);
 
   return (
     <div className="animate-fade-in space-y-4 md:space-y-6 pb-12">
