@@ -200,14 +200,17 @@ export interface ChannelIntelligence {
   channel_name: string;
   subscribers: string;
   niche: string;
-  top_videos: string[];
-}
-
-export interface ScheduleSlot {
-  slot_id: string;
-  time_of_day: string;
-  purpose: string;
-  target_audience_activity: string;
+  vidiq_score: number;
+  trending_keywords: string[];
+  views_per_hour_avg: string;
+  seo_opportunity_index: number;
+  top_videos: {
+    title: string;
+    views: string;
+    vph: string;
+    seo_score: number;
+    url: string;
+  }[];
 }
 
 export interface CompetitorDeepAudit {
@@ -218,6 +221,14 @@ export interface GoldenHourRecommendation {
   time_label: string;
   score: number;
   reason: string;
+}
+
+// Added missing ScheduleSlot interface to fix import errors in other files
+export interface ScheduleSlot {
+  slot_id: string | number;
+  time_of_day: string;
+  purpose: string;
+  target_audience_activity: string;
 }
 
 export interface YouTubeTrend {

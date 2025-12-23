@@ -73,6 +73,35 @@ const mapModelName = (uiName: string): string => {
   }
 };
 
+export const predictThumbnailPerformance = async (imgA: string, imgB: string, title: string): Promise<{a: number, b: number}> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    
+    const extractBase64 = (dataUri: string) => {
+      if (dataUri.startsWith('data:')) return dataUri.split(',')[1];
+      return dataUri;
+    };
+
+    const prompt = `Bạn là một chuyên gia tăng trưởng YouTube & TikTok. Hãy phân tích 2 ảnh bìa (Thumbnail) đính kèm cho video có tiêu đề: "${title}". 
+    Dự đoán tỷ lệ nhấp chuột (CTR %) giả lập cho mỗi ảnh dựa trên: sự nổi bật, độ rõ nét của thông điệp, tâm lý màu sắc và khả năng thu hút.
+    Trả về kết quả dưới dạng JSON thuần túy: {"a": number, "b": number}. Giá trị CTR nằm trong khoảng 1.0 đến 15.0.`;
+
+    const parts = [
+      { text: prompt },
+      { inlineData: { mimeType: "image/png", data: extractBase64(imgA) } },
+      { inlineData: { mimeType: "image/png", data: extractBase64(imgB) } }
+    ];
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: { parts },
+      config: { responseMimeType: "application/json" }
+    });
+
+    return cleanAndParseJSON(response.text) || { a: 5, b: 5 };
+  });
+};
+
 export const analyzeAIMarketIntelligence = async (): Promise<AIMarketReport[]> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
@@ -185,10 +214,37 @@ export const scanChannelIntelligence = async (url: string): Promise<ChannelIntel
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Scan channel intelligence for: ${url}`,
+      contents: `Perform a deep VidIQ-style intelligence scan for the channel at ${url}. 
+      Include channel health metrics, SEO score, trending keywords, and top-performing videos with their VPH (Views Per Hour) and individual SEO scores.`,
       config: { 
         responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
+        tools: [{ googleSearch: {} }],
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            channel_name: { type: Type.STRING },
+            subscribers: { type: Type.STRING },
+            niche: { type: Type.STRING },
+            vidiq_score: { type: Type.NUMBER, description: 'Overall channel health score 0-100' },
+            trending_keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+            views_per_hour_avg: { type: Type.STRING },
+            seo_opportunity_index: { type: Type.NUMBER, description: 'How easy it is to outrank this channel 0-100' },
+            top_videos: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  views: { type: Type.STRING },
+                  vph: { type: Type.STRING, description: 'Views per hour' },
+                  seo_score: { type: Type.NUMBER },
+                  url: { type: Type.STRING }
+                }
+              }
+            }
+          },
+          required: ['channel_name', 'vidiq_score', 'trending_keywords', 'top_videos']
+        }
       }
     });
     return cleanAndParseJSON(response.text);
