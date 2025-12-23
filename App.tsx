@@ -21,6 +21,7 @@ import AIChatAssistant from './components/AIChatAssistant';
 import ConsentModal from './components/ConsentModal';
 import CampaignWizard from './components/CampaignWizard';
 import ChannelHealthDashboard from './components/ChannelHealthDashboard';
+import WelcomeScreen from './components/WelcomeScreen';
 
 import { translations } from './constants/translations';
 import { synthesizeKnowledge, getApiHealthStatus, generateVeoVideo, generateAIImage } from './services/geminiService';
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   
   const t = useMemo(() => translations[appLang] || translations['vi'], [appLang]);
 
+  const [showWelcome, setShowWelcome] = useState(true);
   const [activeTab, setActiveTab] = useState<TabView>('campaign');
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -116,67 +118,71 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex bg-[#020617] min-h-screen text-slate-200 font-sans overflow-hidden select-none">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} t={t} />
+    <>
+      {showWelcome && <WelcomeScreen onActivate={() => setShowWelcome(false)} />}
       
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className="h-16 md:h-20 border-b border-slate-800/60 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-3xl sticky top-0 z-[60]">
-            <div className="flex items-center gap-4">
-                <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white md:hidden"><Menu size={24} /></button>
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-neon">
-                        <Activity size={20} className="text-primary animate-pulse" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-white uppercase tracking-tighter">{t.app_name} Alpha</span>
-                        <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">{t.system_ready}</span>
-                    </div>
-                </div>
-            </div>
-            
-            {apiHealth.status === 'exhausted' && (
-              <div className="flex items-center gap-3 bg-red-500/20 border border-red-500/50 px-5 py-2 rounded-2xl animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.3)]">
-                <AlertCircle size={18} className="text-red-500" />
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-red-500 uppercase tracking-widest leading-none">API Cool Down</span>
-                  <span className="text-[11px] font-black text-white uppercase mt-1">Resuming in {apiHealth.remainingCooldown}s</span>
-                </div>
+      <div className={`flex bg-[#020617] min-h-screen text-slate-200 font-sans overflow-hidden select-none transition-opacity duration-1000 ${showWelcome ? 'opacity-0' : 'opacity-100'}`}>
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} t={t} />
+        
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+          <header className="h-16 md:h-20 border-b border-slate-800/60 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-3xl sticky top-0 z-[60]">
+              <div className="flex items-center gap-4">
+                  <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-400 hover:text-white md:hidden"><Menu size={24} /></button>
+                  <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-neon">
+                          <Activity size={20} className="text-primary animate-pulse" />
+                      </div>
+                      <div className="flex flex-col">
+                          <span className="text-[11px] font-black text-white uppercase tracking-tighter">{t.app_name} Alpha</span>
+                          <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">{t.system_ready}</span>
+                      </div>
+                  </div>
               </div>
-            )}
-
-            <div className="flex items-center gap-3">
-                <div className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2 flex items-center gap-2">
-                   <ShieldCheck size={14} className="text-primary" />
-                   <span className="text-[9px] font-black text-white uppercase">{t.vip_badge}</span>
+              
+              {apiHealth.status === 'exhausted' && (
+                <div className="flex items-center gap-3 bg-red-500/20 border border-red-500/50 px-5 py-2 rounded-2xl animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                  <AlertCircle size={18} className="text-red-500" />
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-red-500 uppercase tracking-widest leading-none">API Cool Down</span>
+                    <span className="text-[11px] font-black text-white uppercase mt-1">Resuming in {apiHealth.remainingCooldown}s</span>
+                  </div>
                 </div>
-            </div>
-        </header>
+              )}
 
-        <div ref={mainContentRef} className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-            {activeTab === 'campaign' && (
-                <CampaignWizard 
-                  onStartProduction={(topic) => {
-                    setSelectedTopicFromWizard(topic);
-                    setActiveTab('studio');
-                  }} 
-                  onNavigateToSettings={() => setActiveTab('settings')} 
-                  t={t} 
-                />
-            )}
-            {activeTab === 'studio' && <ViralDNAStudio predefinedTopic={selectedTopicFromWizard} apiKeys={apiKeys} appLanguage={appLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} knowledgeBase={knowledgeBase} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} completedVideos={completedVideos} setCompletedVideos={setCompletedVideos} t={t} onInitiateRender={handleInitiateRender} />}
-            {activeTab === 'auto_pilot' && <AutoPilotDashboard apiKeys={apiKeys} isRunning={autoPilotActive} setIsRunning={(v) => v ? setIsConsentOpen(true) : setAutoPilotActive(false)} stats={autoPilotStats} logs={autoPilotLogs} currentAction={status} selectedNiche={autoPilotNiche} setSelectedNiche={setAutoPilotNiche} onAddToQueue={(j) => setJobs([j, ...jobs])} onVideoGenerated={(v) => setCompletedVideos([v, ...completedVideos])} completedVideos={completedVideos} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} resolution={resolution} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} contentLanguage={contentLanguage} currentMission={currentMission} t={t} />}
-            {activeTab === 'analytics' && <AnalyticsDashboard apiKeys={apiKeys} onDeployStrategy={(target) => { setSelectedTopicFromWizard(target); setActiveTab('studio'); }} t={t} />}
-            {activeTab === 'marketplace' && <AIMarketplace apiKeys={apiKeys} onSelectProduct={(url) => { setSelectedTopicFromWizard(url); setActiveTab('studio'); }} t={t} />}
-            {activeTab === 'settings' && <SettingsDashboard apiKeys={apiKeys} setApiKeys={setApiKeys} knowledgeBase={knowledgeBase} setKnowledgeBase={setKnowledgeBase} onTrainBrain={async (text) => { const rules = await synthesizeKnowledge(process.env.API_KEY!, text, knowledgeBase.learnedPreferences); setKnowledgeBase(prev => ({ ...prev, learnedPreferences: [...new Set([...prev.learnedPreferences, ...rules])] })); }} t={t} appLang={appLang} setAppLang={setAppLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} />}
-            {activeTab === 'risk_center' && <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={() => {}} t={t} />}
-            {activeTab === 'queue' && <QueueDashboard apiKeys={apiKeys} currentPlan={null} jobs={jobs} setJobs={setJobs} t={t} />}
-            {activeTab === 'docs' && <Documentation apiKeys={apiKeys} knowledgeBase={knowledgeBase} scriptModel={scriptModel} visualModel={visualModel} voiceModel={voiceModel} appLang={appLang} t={t} />}
-        </div>
-      </main>
+              <div className="flex items-center gap-3">
+                  <div className="bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2 flex items-center gap-2">
+                     <ShieldCheck size={14} className="text-primary" />
+                     <span className="text-[9px] font-black text-white uppercase">{t.vip_badge}</span>
+                  </div>
+              </div>
+          </header>
 
-      <AIChatAssistant t={t} apiKey={apiKeys.find(k => k.provider === 'google')?.key} appContext={{ activeTab, status, urlInput: '', activeKeys: apiKeys.length, knowledgeBase }} onCommand={(cmd) => cmd.action === 'NAVIGATE' && setActiveTab(cmd.payload as TabView)} />
-      <ConsentModal isOpen={isConsentOpen} onClose={() => setIsConsentOpen(false)} onConfirm={() => { setIsConsentOpen(false); setAutoPilotActive(true); }} t={t} />
-    </div>
+          <div ref={mainContentRef} className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+              {activeTab === 'campaign' && (
+                  <CampaignWizard 
+                    onStartProduction={(topic) => {
+                      setSelectedTopicFromWizard(topic);
+                      setActiveTab('studio');
+                    }} 
+                    onNavigateToSettings={() => setActiveTab('settings')} 
+                    t={t} 
+                  />
+              )}
+              {activeTab === 'studio' && <ViralDNAStudio predefinedTopic={selectedTopicFromWizard} apiKeys={apiKeys} appLanguage={appLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} knowledgeBase={knowledgeBase} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} completedVideos={completedVideos} setCompletedVideos={setCompletedVideos} t={t} onInitiateRender={handleInitiateRender} />}
+              {activeTab === 'auto_pilot' && <AutoPilotDashboard apiKeys={apiKeys} isRunning={autoPilotActive} setIsRunning={(v) => v ? setIsConsentOpen(true) : setAutoPilotActive(false)} stats={autoPilotStats} logs={autoPilotLogs} currentAction={status} selectedNiche={autoPilotNiche} setSelectedNiche={setAutoPilotNiche} onAddToQueue={(j) => setJobs([j, ...jobs])} onVideoGenerated={(v) => setCompletedVideos([v, ...completedVideos])} completedVideos={completedVideos} scriptModel={scriptModel} setScriptModel={setScriptModel} visualModel={visualModel} setVisualModel={setVisualModel} voiceModel={voiceModel} setVoiceModel={setVoiceModel} resolution={resolution} setResolution={setResolution} aspectRatio={aspectRatio} setAspectRatio={setAspectRatio} contentLanguage={contentLanguage} currentMission={currentMission} t={t} />}
+              {activeTab === 'analytics' && <AnalyticsDashboard apiKeys={apiKeys} onDeployStrategy={(target) => { setSelectedTopicFromWizard(target); setActiveTab('studio'); }} t={t} />}
+              {activeTab === 'marketplace' && <AIMarketplace apiKeys={apiKeys} onSelectProduct={(url) => { setSelectedTopicFromWizard(url); setActiveTab('studio'); }} t={t} />}
+              {activeTab === 'settings' && <SettingsDashboard apiKeys={apiKeys} setApiKeys={setApiKeys} knowledgeBase={knowledgeBase} setKnowledgeBase={setKnowledgeBase} onTrainBrain={async (text) => { const rules = await synthesizeKnowledge(process.env.API_KEY!, text, knowledgeBase.learnedPreferences); setKnowledgeBase(prev => ({ ...prev, learnedPreferences: [...new Set([...prev.learnedPreferences, ...rules])] })); }} t={t} appLang={appLang} setAppLang={setAppLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} />}
+              {activeTab === 'risk_center' && <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={() => {}} t={t} />}
+              {activeTab === 'queue' && <QueueDashboard apiKeys={apiKeys} currentPlan={null} jobs={jobs} setJobs={setJobs} t={t} />}
+              {activeTab === 'docs' && <Documentation apiKeys={apiKeys} knowledgeBase={knowledgeBase} scriptModel={scriptModel} visualModel={visualModel} voiceModel={voiceModel} appLang={appLang} t={t} />}
+          </div>
+        </main>
+
+        <AIChatAssistant t={t} apiKey={apiKeys.find(k => k.provider === 'google')?.key} appContext={{ activeTab, status, urlInput: '', activeKeys: apiKeys.length, knowledgeBase }} onCommand={(cmd) => cmd.action === 'NAVIGATE' && setActiveTab(cmd.payload as TabView)} />
+        <ConsentModal isOpen={isConsentOpen} onClose={() => setIsConsentOpen(false)} onConfirm={() => { setIsConsentOpen(false); setAutoPilotActive(true); }} t={t} />
+      </div>
+    </>
   );
 };
 
