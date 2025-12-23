@@ -26,15 +26,6 @@ export interface YouTubeTrend {
   tags: string[];
 }
 
-export interface ABTestMetadata {
-  variant_a_url: string;
-  variant_b_url: string;
-  variant_a_ctr: number;
-  variant_b_ctr: number;
-  winner?: 'A' | 'B';
-  test_started_at: number;
-}
-
 export interface PlatformPolicy {
   platform: string;
   last_updated: number;
@@ -42,15 +33,6 @@ export interface PlatformPolicy {
   compliance_score: number;
   ai_label_required: boolean;
   new_restrictions: string[];
-}
-
-export interface BrandDNA {
-  character_lock_id?: string;
-  character_description?: string;
-  color_palette: string[];
-  typography: string;
-  visual_style: string;
-  voice_id: string;
 }
 
 export interface SEOAudit {
@@ -64,19 +46,6 @@ export interface SEOAudit {
   description_optimized: string;
 }
 
-export interface VideoDissection {
-  timestamp: string;
-  hook_analysis: string;
-  retention_strategy: string;
-  visual_style: string;
-  visual_pacing_ms: number;
-  clone_blueprint: {
-    prompt_equivalent: string;
-    suggested_pacing: string;
-    script_structure: string[];
-  };
-}
-
 export interface ViralDNAProfile {
   structure: {
     hook_type: string;
@@ -88,7 +57,6 @@ export interface ViralDNAProfile {
   keywords: string[];
   algorithm_fit_score: number;
   risk_level: 'Safe' | 'Moderate' | 'High';
-  brand_dna?: BrandDNA;
 }
 
 export interface StudioSettings {
@@ -105,16 +73,6 @@ export interface StudioSettings {
   characterLock: boolean;
   styleLock: boolean;
   musicSync: boolean;
-}
-
-export interface Scene {
-  scene_id: string;
-  start: number;
-  duration: number;
-  vo_text: string;
-  visual_cues: string;
-  model_choice: 'VEO' | 'IMAGEN' | 'GEMINI_VIDEO';
-  character_seed?: string;
 }
 
 export interface OrchestratorResponse {
@@ -140,7 +98,7 @@ export interface OrchestratorResponse {
       resolution: VideoResolution;
     };
     script_master: string;
-    scenes: Scene[];
+    scenes: { vo_text: string; visual_cues: string; }[];
   };
   generated_content: {
     title: string;
@@ -157,13 +115,10 @@ export interface ApiKeyConfig {
   provider: string;
   category: 'model' | 'social' | 'affiliate' | 'storage';
   status: 'active' | 'quota_exceeded' | 'error';
-  lastUsed?: string;
-  health_metrics?: {
-    latency: number;
-    remaining_quota: string;
-    validation_status: 'valid' | 'invalid' | 'unknown';
-  };
-  extra_fields?: Record<string, string>;
+  /**
+   * Addition: Support for extra fields such as webhook_url
+   */
+  extra_fields?: any;
 }
 
 export interface PostingJob {
@@ -174,7 +129,6 @@ export interface PostingJob {
   platforms: string[];
   scheduled_time: number;
   status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed';
-  video_url?: string;
   visibility?: 'public' | 'private' | 'unlisted';
 }
 
@@ -200,8 +154,6 @@ export interface MissionIntel {
   reason_to_promote: string;
   trending_score: number;
   vidiq_score?: SEOAudit;
-  commission_est?: string;
-  opportunity_score?: number;
 }
 
 export enum AppStatus {
@@ -223,67 +175,33 @@ export interface AppContext {
   knowledgeBase: KnowledgeBase;
 }
 
+/**
+ * Addition: Metadata for A/B testing of video components (e.g. thumbnails)
+ */
+export interface ABTestMetadata {
+  variant_a_url: string;
+  variant_b_url: string;
+  variant_a_ctr: number;
+  variant_b_ctr: number;
+  winner?: 'A' | 'B';
+  test_started_at: number;
+}
+
 export interface CompletedVideo {
   id: string;
   url: string;
   title: string;
   thumbnail?: string;
   timestamp: number;
+  /**
+   * Addition: Optional A/B test data for completed videos
+   */
   ab_test?: ABTestMetadata;
-}
-
-export interface ChannelHealthReport {
-  channel_name: string;
-  platform: string;
-  health_score: number;
-  status: 'HEALTHY' | 'AT_RISK' | 'CRITICAL';
-  risks: { type: string; severity: 'LOW' | 'MEDIUM' | 'HIGH'; description: string; medical_term: string; }[];
-  action_plan: { task: string; instruction: string; priority: 'urgent' | 'routine'; }[];
-  recovery_estimate: string;
-  ai_diagnosis: string;
-}
-
-export interface GovernorAction {
-  id: string;
-  timestamp: number;
-  action_type: string;
-  description: string;
-  before: string;
-  after: string;
-  impact_score: number;
-}
-
-export interface AutoPilotStats {
-  cyclesRun: number;
-  videosCreated: number;
-  postedCount: number;
-  uptime: number;
-}
-
-export interface AutoPilotLog {
-  timestamp: string;
-  action: string;
-  detail: string;
-  status: 'success' | 'error' | 'warning' | 'info';
 }
 
 export interface AgentCommand {
   action: 'NAVIGATE' | 'EXECUTE' | 'NOTIFY';
   payload: any;
-}
-
-export interface CompetitorDeepAudit {
-  channel_name: string;
-  overall_strategy: string;
-  success_probability: number;
-  niche_authority_score: number;
-  top_video_dissection: VideoDissection[];
-}
-
-export interface AIProduct extends MissionIntel {
-  id: string;
-  opportunity_score: number;
-  commission_est: string;
 }
 
 export interface ChatMessage {
@@ -292,8 +210,6 @@ export interface ChatMessage {
   text: string;
   timestamp: number;
   command?: AgentCommand;
-  detected_lang?: string;
-  sentiment?: string;
   suggestions?: string[];
   sources?: { title: string; uri: string }[];
 }
@@ -305,14 +221,134 @@ export interface ChatSession {
   createdAt: number;
 }
 
-export type TargetRegion = 'VN' | 'US' | 'GLOBAL';
+/**
+ * Addition: Support for channel health auditing reports
+ */
+export interface ChannelHealthReport {
+  platform: string;
+  channel_name: string;
+  status: 'HEALTHY' | 'AT_RISK' | 'CRITICAL';
+  recovery_estimate: string;
+  health_score: number;
+  ai_diagnosis: string;
+  risks: {
+    type: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH';
+    medical_term: string;
+    description: string;
+  }[];
+  action_plan: {
+    task: string;
+    instruction: string;
+    priority: 'low' | 'normal' | 'urgent';
+  }[];
+}
 
+/**
+ * Addition: Autonomous governor intervention records
+ */
+export interface GovernorAction {
+  id: string;
+  action_type: string;
+  timestamp: number;
+  description: string;
+  impact_score: number;
+}
+
+/**
+ * Addition: Results from affiliate product scouting
+ */
+export interface AffiliateHuntResult {
+  products: any[];
+  strategy_note: string;
+}
+
+/**
+ * Addition: Strategic intelligence gathered from scanning channels
+ */
+export interface ChannelIntelligence {
+  [key: string]: any;
+}
+
+/**
+ * Addition: Scheduled posting slots for automation
+ */
+export interface ScheduleSlot {
+  slot_id: string;
+  time_of_day: string;
+  purpose: string;
+  target_audience_activity: string;
+}
+
+/**
+ * Addition: Deep autopsy results of competitor channels
+ */
+export interface CompetitorDeepAudit {
+  channel_name: string;
+  overall_strategy: string;
+  success_probability: number;
+  niche_authority_score: number;
+  top_video_dissection: {
+    timestamp: string;
+    hook_analysis: string;
+    visual_style: string;
+    clone_blueprint: {
+      prompt_equivalent: string;
+    };
+  }[];
+}
+
+/**
+ * Addition: Optimized time recommendations for posting
+ */
 export interface GoldenHourRecommendation {
   time_label: string;
   score: number;
   reason: string;
 }
 
+/**
+ * Addition: Real-time statistics for Auto-Pilot operations
+ */
+export interface AutoPilotStats {
+  cyclesRun: number;
+  videosCreated: number;
+  postedCount: number;
+  uptime: number;
+}
+
+/**
+ * Addition: Log entries for Auto-Pilot activities
+ */
+export interface AutoPilotLog {
+  timestamp: string;
+  action: string;
+  detail: string;
+  status: 'success' | 'error' | 'warning' | 'info';
+}
+
+/**
+ * Addition: Product entries for the AI Marketplace
+ */
+export interface AIProduct {
+  id: string;
+  product_name: string;
+  commission_est: string;
+  opportunity_score: number;
+  reason_to_promote: string;
+  affiliate_link: string;
+  timestamp: number;
+  strategy_note?: string;
+}
+
+/**
+ * Addition: Geographical target regions for scouting
+ */
+export type TargetRegion = 'VN' | 'US' | 'GLOBAL';
+
+/**
+ * Addition: Individual task items in a batch production queue
+ */
 export interface BatchJobItem {
   id: string;
   input: string;
@@ -321,29 +357,12 @@ export interface BatchJobItem {
   log: string;
 }
 
+/**
+ * Addition: Base channel data for competitor dissection
+ */
 export interface CompetitorChannel {
   id: string;
   url: string;
   name: string;
   status: 'pending' | 'analyzing' | 'completed' | 'error';
-}
-
-export interface AffiliateHuntResult {
-  products: MissionIntel[];
-  strategy_note: string;
-}
-
-export interface ChannelIntelligence {
-  channel_name: string;
-  niche: string;
-  monetization_strategies: string[];
-  content_pillars: string[];
-  product_categories: string[];
-}
-
-export interface ScheduleSlot {
-  slot_id: string;
-  time_of_day: string;
-  purpose: string;
-  target_audience_activity: string;
 }

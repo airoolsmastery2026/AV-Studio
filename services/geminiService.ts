@@ -70,7 +70,7 @@ async function callAiWithRetry<T>(apiCall: () => Promise<T>, retries = 3, initia
         return callAiWithRetry(apiCall, retries - 1, initialDelay * 2);
       } else {
         isQuotaExhausted = true;
-        exhaustionResetTime = Date.now() + 300000; // 5 mins lockout
+        exhaustionResetTime = Date.now() + 300000;
         throw new Error("QUOTA_EXHAUSTED");
       }
     }
@@ -83,9 +83,7 @@ async function callAiWithRetry<T>(apiCall: () => Promise<T>, retries = 3, initia
 export const generateVeoVideo = async (prompt: string, aspectRatio: AspectRatio = "9:16"): Promise<string> => {
   const ai = getAi();
   if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) await window.aistudio.openSelectKey();
-  
   const finalRatio: "16:9" | "9:16" = (aspectRatio === '1:1') ? '9:16' : (aspectRatio as "16:9" | "9:16");
-
   let operation = await ai.models.generateVideos({
     model: 'veo-3.1-fast-generate-preview',
     prompt: prompt,
@@ -110,61 +108,34 @@ export const generateAIImage = async (prompt: string, aspectRatio: "1:1" | "16:9
   return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
 };
 
-export const scoutYouTubeTrends = async (niche: string): Promise<YouTubeTrend[]> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Search and analyze current trending keywords and topics for YouTube Shorts in the niche: "${niche}". Focus on high-velocity trends.`,
-      config: { 
-        responseMimeType: "application/json", 
-        tools: [{ googleSearch: {} }],
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              keyword: { type: Type.STRING },
-              volume: { type: Type.STRING },
-              competition: { type: Type.STRING, enum: ['LOW', 'MEDIUM', 'HIGH'] },
-              potential_ctr: { type: Type.NUMBER },
-              tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
-            required: ['keyword', 'volume', 'competition', 'potential_ctr', 'tags']
-          }
-        }
-      }
-    });
-    return cleanAndParseJSON(response.text) || [];
-  });
-};
-
 export const sendChatToAssistant = async (apiKey: string, history: any[], message: string, context: AppContext): Promise<any> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
     const learnedRules = context.knowledgeBase.learnedPreferences.map(p => `- ${p}`).join('\n');
     
-    const systemPrompt = `BẠN LÀ AI COMMANDER V4 - TỔNG TƯ LỆNH CHIẾN LƯỢC của AV Studio.
-Nhiệm vụ: Tư vấn cấp cao, giải quyết yêu cầu sản xuất video AI phức tạp, báo cáo tình báo và thực thi lệnh hệ thống.
+    const uiLang = localStorage.getItem('av_studio_ui_lang') || 'vi';
+    const instructions: Record<string, string> = {
+        vi: "BẠN LÀ AI COMMANDER V4 - TỔNG TƯ LỆNH CHIẾN LƯỢC. Nhiệm vụ: Tư vấn sản xuất video AI, phân tích đối thủ và thực thi lệnh.",
+        en: "YOU ARE AI COMMANDER V4 - STRATEGIC OVERLORD. Mission: AI Video production advisor, competitor autopsy, and system dispatch.",
+        ja: "あなたは AI COMMANDER V4 です。使命：AI動画制作アドバイザー、競合分析、およびシステム指令。",
+        zh: "你是 AI 指挥官 V4。任务：AI 视频制作顾问、竞品分析和系统调度。",
+        es: "ERES EL COMANDANTE AI V4. Misión: Asesor de producción de video AI, autopsia de competidores y despacho del sistema."
+    };
 
-PHONG CÁCH PHẢN HỒI:
-- Chuyên nghiệp, uy quyền nhưng hỗ trợ tận tâm.
-- Sử dụng Markdown cho báo cáo: Bảng biểu, danh sách, in đậm các Key Insights.
-- Luôn dựa trên tri thức đã học và dữ liệu trực tuyến mới nhất.
+    const systemPrompt = `${instructions[uiLang] || instructions['vi']}
+    
+PHONG CÁCH: Chuyên nghiệp, uy quyền. Phản hồi bằng ngôn ngữ người dùng đang sử dụng.
 
-TRI THỨC HỆ THỐNG ĐÃ HỌC:
-${learnedRules || "Chưa có quy tắc ưu tiên nào."}
+TRI THỨC ĐÃ HỌC:
+${learnedRules || "N/A"}
 
-TRẠNG THÁI HIỆN TẠI:
-- Đang ở Tab: ${context.activeTab}
-- Trạng thái máy chủ: ${context.status}
+BỐI CẢNH: Tab hiện tại: ${context.activeTab}.
 
-CẤU TRÚC PHẢN HỒI JSON:
+JSON RESPONSE SCHEMA:
 {
-  "text": "Nội dung phản hồi Markdown",
-  "detected_lang": "vi",
-  "suggestions": ["Gợi ý 1", "Gợi ý 2", "Gợi ý 3"],
-  "command": { "action": "NAVIGATE | NOTIFY | EXECUTE", "payload": "dữ liệu thực thi" }
+  "text": "Phản hồi Markdown",
+  "suggestions": ["Gợi ý 1", "Gợi ý 2"],
+  "command": { "action": "NAVIGATE | NOTIFY", "payload": "data" }
 }`;
 
     const response = await ai.models.generateContent({
@@ -178,7 +149,6 @@ CẤU TRÚC PHẢN HỒI JSON:
           type: Type.OBJECT,
           properties: {
             text: { type: Type.STRING },
-            detected_lang: { type: Type.STRING },
             suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
             command: { type: Type.OBJECT, properties: { action: { type: Type.STRING }, payload: { type: Type.STRING } } }
           },
@@ -187,7 +157,7 @@ CẤU TRÚC PHẢN HỒI JSON:
       }
     });
 
-    const parsed = cleanAndParseJSON(response.text) || { text: "Neural Core đang bận, vui lòng thử lại." };
+    const parsed = cleanAndParseJSON(response.text) || { text: "System Busy." };
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
       parsed.sources = chunks.filter((c: any) => c.web).map((c: any) => ({ title: c.web.title, uri: c.web.uri }));
@@ -201,7 +171,7 @@ export const synthesizeKnowledge = async (apiKey: string, text: string, existing
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Phân tích văn bản này và trích xuất ra các quy tắc chiến lược mới cho việc sản xuất nội dung (ví dụ: phong cách hình ảnh, nhịp độ video, quy tắc hashtag). Văn bản: "${text}". Kết hợp với các quy tắc cũ: ${JSON.stringify(existingPreferences)}. Trả về mảng string các quy tắc ngắn gọn.`,
+      contents: `Extract short content strategy rules from: "${text}". Combine with: ${JSON.stringify(existingPreferences)}. JSON string array output only.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
@@ -211,33 +181,30 @@ export const synthesizeKnowledge = async (apiKey: string, text: string, existing
   });
 };
 
-export const generateGeminiTTS = async (text: string, lang: string = 'vi', sentiment: string = 'neutral'): Promise<string> => {
+export const generateGeminiTTS = async (text: string): Promise<string> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
-    const voiceName = lang === 'vi' ? 'Kore' : 'Zephyr';
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Đọc văn bản sau với giọng chuyên gia đầy uy quyền: ${text}` }] }],
+      contents: [{ parts: [{ text }] }],
       config: { 
         responseModalities: [Modality.AUDIO], 
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } 
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } 
       }
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
   });
 };
 
-// Các hàm phụ trợ khác được khôi phục đầy đủ
 export const syncPlatformPolicies = async (platforms: string[]): Promise<PlatformPolicy[]> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Update latest AI policies for: ${platforms.join(', ')}. Focus on mandatory labels.`,
+      contents: `Check latest AI labeling policies for: ${platforms.join(', ')}.`,
       config: { 
         responseMimeType: "application/json", 
-        tools: [{ googleSearch: {} }],
-        responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { platform: { type: Type.STRING }, critical_changes: { type: Type.ARRAY, items: { type: Type.STRING } }, compliance_score: { type: Type.NUMBER }, ai_label_required: { type: Type.BOOLEAN } } } }
+        tools: [{ googleSearch: {} }]
       }
     });
     return cleanAndParseJSON(response.text) || [];
@@ -247,23 +214,38 @@ export const syncPlatformPolicies = async (platforms: string[]): Promise<Platfor
 export const extractViralDNA = async (apiKey: string, urls: string[], mode: string, lang: string): Promise<ViralDNAProfile> => {
     return callAiWithRetry(async () => {
       const ai = getAi();
+      const prompt = `Perform a Deep Autopsy of these competitor URLs: ${urls.join(', ')}.
+Analyze the video structure based on publicly available metadata and common patterns in the niche.
+Return a precise JSON object following this ViralDNAProfile structure:
+{
+  "structure": {
+    "hook_type": "string (e.g. Question, Visual Surprise, Shocking Statement)",
+    "pacing": "Fast | Moderate | Slow",
+    "avg_scene_duration": number (seconds),
+    "visual_pacing_avg": number (milliseconds between cuts)
+  },
+  "emotional_curve": ["string", "string", "string"], // sequence of emotions: curiosity -> interest -> desire -> action
+  "keywords": ["string"],
+  "algorithm_fit_score": number (0-100),
+  "risk_level": "Safe | Moderate | High"
+}
+Ensure the analysis is in language: ${lang}. Use Google Search grounding to understand the latest channel performance.`;
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Analyze viral DNA structure for: ${urls.join(', ')}. Return precise JSON analysis.`,
+        contents: prompt,
         config: { 
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                structure: { type: Type.OBJECT, properties: { hook_type: { type: Type.STRING }, pacing: { type: Type.STRING }, avg_scene_duration: { type: Type.NUMBER }, visual_pacing_avg: { type: Type.NUMBER } } },
-                keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
-                algorithm_fit_score: { type: Type.NUMBER },
-                risk_level: { type: Type.STRING }
-              }
-            }
+          responseMimeType: "application/json",
+          tools: [{ googleSearch: {} }]
         }
       });
-      return cleanAndParseJSON(response.text) || {};
+      return cleanAndParseJSON(response.text) || {
+          structure: { hook_type: 'Unknown', pacing: 'Moderate', avg_scene_duration: 3, visual_pacing_avg: 1500 },
+          emotional_curve: ['Neutral'],
+          keywords: [],
+          algorithm_fit_score: 50,
+          risk_level: 'Safe'
+      };
     });
 };
 
@@ -272,18 +254,8 @@ export const generateProScript = async (apiKey: string, dna: ViralDNAProfile, se
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Create high-conversion video production plan for: ${settings.topic}. Follow learned rules: ${kb.learnedPreferences.join(', ')}.`,
-        config: { 
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    market_scoring: { type: Type.OBJECT, properties: { tiktok_potential: { type: Type.NUMBER }, youtube_shorts_potential: { type: Type.NUMBER }, estimated_cpm: { type: Type.STRING } } },
-                    production_plan: { type: Type.OBJECT, properties: { technical_specs: { type: Type.OBJECT, properties: { ratio: { type: Type.STRING }, resolution: { type: Type.STRING } } }, script_master: { type: Type.STRING }, scenes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { vo_text: { type: Type.STRING }, visual_cues: { type: Type.STRING } } } } } },
-                    generated_content: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, hashtags: { type: Type.ARRAY, items: { type: Type.STRING } }, thumbnail_prompt: { type: Type.STRING } } }
-                }
-            }
-        }
+        contents: `Create production plan for: ${settings.topic} in ${settings.contentLanguage}. Use learned DNA patterns: ${JSON.stringify(dna)}.`,
+        config: { responseMimeType: "application/json" }
       });
       return cleanAndParseJSON(response.text) || {};
     });
@@ -294,10 +266,18 @@ export const runSeoAudit = async (title: string, description: string, topic: str
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Audit SEO for content: "${title}". Use search grounding.`,
+        contents: `Audit SEO for: "${title}". Use grounding.`,
         config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
       });
-      return cleanAndParseJSON(response.text) || {};
+      return cleanAndParseJSON(response.text) || {
+        seo_score: 0,
+        keyword_difficulty: 'LOW',
+        search_volume_score: 0,
+        trending_momentum: 0,
+        suggested_tags: [],
+        checklist: [],
+        title_optimization_suggestions: []
+      };
     });
 };
 
@@ -306,7 +286,7 @@ export const huntAffiliateProducts = async (apiKey: string, niche: string, netwo
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Hunt trending products in ${niche}. Search web data.`,
+        contents: `Find top bounty products in ${niche} across ${networks.join(', ')}.`,
         config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
       });
       return cleanAndParseJSON(response.text) || { products: [], strategy_note: "" };
@@ -318,7 +298,7 @@ export const generateChannelAudit = async (apiKey: string, channel: string, plat
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Audit health for channel ${channel} on ${platform}.`,
+        contents: `Audit health for ${channel} on ${platform}.`,
         config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
       });
       return cleanAndParseJSON(response.text) || {};
@@ -330,7 +310,7 @@ export const runGovernorExecution = async (channel: string, diagnosis: string): 
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Suggest fix for channel ${channel} error: ${diagnosis}.`,
+        contents: `Suggest executive fix for ${channel}: ${diagnosis}.`,
         config: { responseMimeType: "application/json" }
       });
       return cleanAndParseJSON(response.text) || {};
@@ -342,7 +322,7 @@ export const scanChannelIntelligence = async (url: string): Promise<ChannelIntel
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Extract strategic intelligence from channel: ${url}.`,
+        contents: `Extract strategy from channel: ${url}.`,
         config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
       });
       return cleanAndParseJSON(response.text) || {};
@@ -354,7 +334,7 @@ export const runCompetitorDeepDive = async (url: string): Promise<CompetitorDeep
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Deep dive competitor analysis for ${url}.`,
+        contents: `Deep dive analysis for competitor: ${url}.`,
         config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
       });
       return cleanAndParseJSON(response.text) || {};
@@ -378,9 +358,38 @@ export const generateDailySchedule = async (apiKey: string, channel: string, nic
       const ai = getAi();
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Plan daily schedule for ${channel}.`,
+        contents: `Create smart schedule for ${channel}.`,
         config: { responseMimeType: "application/json" }
       });
       return cleanAndParseJSON(response.text) || [];
     });
+};
+
+export const scoutYouTubeTrends = async (niche: string): Promise<YouTubeTrend[]> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Scout trending YouTube Shorts topics for the niche: "${niche}". Focus on high-velocity trends.`,
+      config: { 
+        responseMimeType: "application/json", 
+        tools: [{ googleSearch: {} }],
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              keyword: { type: Type.STRING },
+              volume: { type: Type.STRING },
+              competition: { type: Type.STRING, enum: ['LOW', 'MEDIUM', 'HIGH'] },
+              potential_ctr: { type: Type.NUMBER },
+              tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ['keyword', 'volume', 'competition', 'potential_ctr', 'tags']
+          }
+        }
+      }
+    });
+    return cleanAndParseJSON(response.text) || [];
+  });
 };

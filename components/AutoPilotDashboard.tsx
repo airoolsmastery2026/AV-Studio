@@ -4,9 +4,7 @@ import {
     Infinity as InfinityIcon, Play, Pause, Zap, Crosshair, 
     Loader2, Activity, Cpu, Sparkles, Target, ShieldCheck,
     ChevronDown, Layers, Search, FileText, Video, Mic, Share2, TrendingUp, DollarSign,
-    SearchCode, BarChartHorizontal, Eye, Radar, CheckCircle, Clock, ShoppingBag, Store, UserCircle2, AlertTriangle, ExternalLink, Flame, BrainCircuit, Globe, Rocket, Scissors, Gauge, Wand2, Lightbulb, Trophy, Fingerprint, MessageSquareText, Coins, Star, TrendingDown, MoveUpRight,
-    // Fix: Added missing Terminal import
-    Terminal
+    SearchCode, BarChartHorizontal, Eye, Radar, CheckCircle, Clock, ShoppingBag, Store, UserCircle2, AlertTriangle, ExternalLink, Flame, BrainCircuit, Globe, Rocket, Scissors, Gauge, Wand2, Lightbulb, Trophy, Fingerprint, MessageSquareText, Coins, Star, TrendingDown, MoveUpRight, BarChartHorizontal as BarChart, Terminal, Cpu as Processor
 } from 'lucide-react';
 import { 
     ApiKeyConfig, PostingJob, CompletedVideo, ScriptModel, VisualModel, VoiceModel, 
@@ -48,11 +46,10 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
     const logsEndRef = useRef<HTMLDivElement>(null);
     useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
 
-    const hasActiveAiKey = apiKeys.some(k => k.provider === 'google' && k.status === 'active');
-
     const formatUptime = (sec: number) => {
-        const m = Math.floor(sec / 60);
-        return `${m}m Active`;
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        return `${h}h ${m}m Active`;
     };
 
     const MISSION_STAGES = [
@@ -62,16 +59,15 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
         { id: AppStatus.SCHEDULING, label: 'DISPATCH', desc: 'Social API Handover' }
     ];
 
-    if (!hasActiveAiKey && isRunning) {
-        return (
-            <div className="bg-red-900/10 border border-red-500/20 p-12 rounded-[40px] text-center space-y-4 animate-fade-in">
-                <AlertTriangle size={48} className="text-red-500 mx-auto" />
-                <h3 className="text-xl font-black text-white uppercase">Critical Halt: No AI Core Connected</h3>
-                <p className="text-slate-400 text-sm max-w-md mx-auto">Auto-Pilot requires an active Google Gemini API Key in the Infrastructure Vault to perform autonomous scouting.</p>
-                <button onClick={() => setIsRunning(false)} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-xs uppercase">Disable Auto-Pilot</button>
-            </div>
-        );
-    }
+    const NICHES = [
+        { value: 'AUTO', label: t.niche_auto },
+        { value: 'AI_SAAS_TOOLS', label: t.niche_ai_saas },
+        { value: 'ML_PLATFORMS', label: t.niche_ml_platforms },
+        { value: 'AI_PRODUCTIVITY_HACKS', label: t.niche_ai_hacks },
+        { value: 'PASSIVE_INCOME_METHODS', label: t.niche_passive_income },
+        { value: 'SMART_HOME_GADGETS', label: t.niche_smart_home },
+        { value: 'CRYPTO_FINTECH', label: t.niche_crypto }
+    ];
 
     return (
         <div className="animate-fade-in space-y-4 md:space-y-6 pb-20">
@@ -82,52 +78,50 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
                         <InfinityIcon size={28} className={isRunning ? "text-primary animate-pulse" : "text-slate-700"} />
                     </div>
                     <div>
-                        <h2 className="text-xl md:text-3xl font-black text-white tracking-tighter uppercase leading-tight">Agentic Auto-Pilot</h2>
+                        <h2 className="text-xl md:text-3xl font-black text-white tracking-tighter uppercase leading-tight">{t.auto}</h2>
                         <div className="flex items-center gap-2 mt-1">
                             <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
                             <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                {isRunning ? `Hunting Niche: ${selectedNiche}` : 'System Offline'}
+                                {isRunning ? `Hunting Mode: ${NICHES.find(n => n.value === selectedNiche)?.label || selectedNiche}` : 'System Standby'}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex gap-4 w-full lg:w-auto">
-                    <div className="flex-1 grid grid-cols-3 gap-2 px-6 py-3 bg-black/40 rounded-2xl border border-white/5 min-w-[280px]">
+                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                    <div className="flex-1 grid grid-cols-3 gap-2 px-6 py-3 bg-black/40 rounded-2xl border border-white/5 min-w-[300px]">
                         <div className="text-center border-r border-white/5">
                             <div className="text-[8px] text-slate-500 font-black uppercase mb-0.5">Cycles</div>
                             <div className="font-mono text-base text-primary font-black">{stats.cyclesRun}</div>
                         </div>
                         <div className="text-center border-r border-white/5">
-                            <div className="text-size-[8px] text-slate-500 font-black uppercase mb-0.5">Assets</div>
+                            <div className="text-[8px] text-slate-500 font-black uppercase mb-0.5">Assets</div>
                             <div className="font-mono text-base text-white font-black">{stats.videosCreated}</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-[8px] text-slate-500 font-black uppercase mb-0.5">Ops Time</div>
-                            <div className="font-mono text-base text-slate-400 font-black">{formatUptime(stats.uptime)}</div>
+                            <div className="text-[8px] text-slate-500 font-black uppercase mb-0.5">Runtime</div>
+                            <div className="font-mono text-[10px] text-slate-400 font-black mt-1 uppercase">{formatUptime(stats.uptime)}</div>
                         </div>
                     </div>
 
                     <button 
                       onClick={() => setIsRunning(!isRunning)} 
-                      className={`px-8 rounded-2xl font-black uppercase text-xs flex items-center justify-center gap-3 transition-all shadow-xl active:scale-95 whitespace-nowrap ${
+                      className={`px-8 h-14 rounded-2xl font-black uppercase text-xs flex items-center justify-center gap-3 transition-all shadow-xl active:scale-95 whitespace-nowrap ${
                         isRunning ? 'bg-red-500/10 border border-red-500/40 text-red-500' : 'bg-primary border border-primary/40 text-white shadow-neon'
                       }`}
                     >
                         {isRunning ? <Pause fill="currentColor" size={18} /> : <Play fill="currentColor" size={18} />}
-                        {isRunning ? 'Emergency Stop' : 'Engage Hunter'}
+                        {isRunning ? 'Halt System' : 'Engage Hunter'}
                     </button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Pipeline Progress */}
                 <div className="lg:col-span-3 space-y-4">
-                    <div className="bg-slate-950 border border-slate-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden">
+                    <div className="bg-slate-950 border border-slate-800 rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
                         <h3 className="text-[10px] font-black text-white uppercase tracking-widest mb-8 flex items-center gap-2">
                            <Activity size={16} className="text-primary" /> Core Pipeline
                         </h3>
-
                         <div className="space-y-8">
                             {MISSION_STAGES.map((stage) => {
                                 const isActive = currentAction === stage.id;
@@ -146,100 +140,114 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
                         </div>
                     </div>
 
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2"><Target size={14} className="text-primary"/> Target Sector</h3>
-                        <select 
-                            value={selectedNiche} 
-                            onChange={(e) => setSelectedNiche(e.target.value)} 
-                            disabled={isRunning}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs text-white outline-none focus:border-primary transition-all font-black uppercase disabled:opacity-50"
-                        >
-                            <option value="AUTO">🚀 Global Trending</option>
-                            <option value="AI_SAAS_TOOLS">🤖 AI Software</option>
-                            <option value="AI_PRODUCTIVITY_HACKS">⚡ Productivity</option>
-                            <option value="SMART_HOME_GADGETS">🏠 Smart Gadgets</option>
-                        </select>
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                        <div className="space-y-2">
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                <Target size={14} className="text-primary"/> {t.niche_select}
+                            </h3>
+                            <select 
+                                value={selectedNiche} 
+                                onChange={(e) => setSelectedNiche(e.target.value)} 
+                                disabled={isRunning}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs text-white outline-none focus:border-primary transition-all font-black uppercase disabled:opacity-50 appearance-none shadow-inner cursor-pointer"
+                            >
+                                {NICHES.map(niche => (
+                                    <option key={niche.value} value={niche.value}>{niche.label}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                {/* Real-time Intel Display */}
                 <div className="lg:col-span-6 space-y-4">
-                    <div className="bg-slate-950 border border-slate-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden min-h-[500px] flex flex-col">
+                    <div className="bg-slate-950 border border-slate-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden min-h-[550px] flex flex-col">
                         <div className="flex justify-between items-center mb-8">
                             <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-3">
-                                <SearchCode size={20} className="text-primary" /> Alpha Acquisition Feed
+                                <SearchCode size={20} className="text-primary" /> Autonomous Intelligence Feed
                             </h3>
-                            {isRunning && <span className="flex items-center gap-2 text-[8px] font-black text-primary animate-pulse uppercase tracking-[0.2em]"><Globe size={10}/> Scouring Live Market...</span>}
+                            {isRunning && (
+                                <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
+                                    <Globe size={10} className="text-primary animate-spin-slow" />
+                                    <span className="text-[8px] font-black text-primary uppercase tracking-widest">Global Scan Active</span>
+                                </div>
+                            )}
                         </div>
 
                         {currentMission ? (
                             <div className="animate-fade-in space-y-8 flex-1">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-slate-900/50 p-6 rounded-3xl border border-primary/20 flex flex-col items-center justify-center text-center shadow-xl">
-                                        <div className="text-4xl font-black text-primary tracking-tighter">{currentMission.trending_score}%</div>
-                                        <div className="text-[9px] text-slate-500 font-black uppercase mt-2 tracking-widest">Viral Momentum</div>
+                                    <div className="bg-slate-900/50 p-6 rounded-3xl border border-primary/20 flex flex-col items-center justify-center text-center shadow-xl group hover:border-primary/40 transition-all">
+                                        <div className="text-4xl font-black text-primary tracking-tighter group-hover:scale-110 transition-transform">{currentMission.trending_score}%</div>
+                                        <div className="text-[9px] text-slate-500 font-black uppercase mt-2 tracking-widest">Viral Velocity</div>
                                     </div>
-                                    <div className="bg-slate-900/50 p-6 rounded-3xl border border-green-500/20 flex flex-col items-center justify-center text-center shadow-xl">
-                                        <div className="text-2xl font-black text-green-500 tracking-tight flex items-center gap-1"><Coins size={20}/> {currentMission.commission_rate}</div>
+                                    <div className="bg-slate-900/50 p-6 rounded-3xl border border-green-500/20 flex flex-col items-center justify-center text-center shadow-xl group hover:border-green-500/40 transition-all">
+                                        <div className="text-2xl font-black text-green-500 tracking-tight flex items-center gap-1 group-hover:scale-110 transition-transform"><Coins size={20}/> {currentMission.commission_rate}</div>
                                         <div className="text-[9px] text-slate-500 font-black uppercase mt-2 tracking-widest">Bounty Level</div>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-6 relative group">
-                                    <div className="absolute top-4 right-4 opacity-20 group-hover:opacity-100 transition-opacity"><Trophy className="text-yellow-500" size={24}/></div>
-                                    
+                                <div className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-6 relative group hover:shadow-neon/10 transition-all">
+                                    <div className="absolute top-4 right-4 opacity-20 transition-all group-hover:rotate-12"><Trophy className="text-yellow-500" size={24}/></div>
                                     <div className="space-y-1">
-                                        <div className="text-[8px] text-slate-500 font-black uppercase tracking-[0.3em]">Identified Rising Star</div>
+                                        <div className="text-[8px] text-slate-500 font-black uppercase tracking-[0.3em] flex items-center gap-2">
+                                            <Sparkles size={10} className="text-primary" /> Target Entity Identified
+                                        </div>
                                         <h4 className="text-2xl font-black text-white uppercase tracking-tight truncate">{currentMission.product_name}</h4>
                                     </div>
-
-                                    <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-3 shadow-inner">
-                                        <div className="text-[9px] text-primary font-black uppercase flex items-center gap-2"><BrainCircuit size={12}/> Strategy Rationale</div>
+                                    <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 space-y-3 shadow-inner relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-primary/40"></div>
+                                        <div className="text-[9px] text-primary font-black uppercase flex items-center gap-2 tracking-widest"><BrainCircuit size={12}/> AI Rationale</div>
                                         <p className="text-xs text-slate-300 italic leading-relaxed font-medium">"{currentMission.reason_to_promote}"</p>
                                     </div>
-
-                                    <div className="flex justify-between items-center pt-4">
+                                    <div className="flex justify-between items-center pt-4 border-t border-slate-800/50">
                                         <div className="flex gap-2">
-                                            <span className="text-[9px] bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 font-black uppercase">#AutoDetect</span>
-                                            <span className="text-[9px] bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 text-primary font-black uppercase">#ViralHigh</span>
+                                            <span className="text-[9px] bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 font-black uppercase">#AutoProfit</span>
+                                            <span className="text-[9px] bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 text-primary font-black uppercase tracking-tight">#HighConvert</span>
                                         </div>
-                                        <a href={currentMission.affiliate_link} target="_blank" className="text-[10px] font-black text-primary hover:text-white uppercase flex items-center gap-2 transition-all">
-                                            View Affiliate Portal <ExternalLink size={14}/>
+                                        <a href={currentMission.affiliate_link} target="_blank" className="text-[10px] font-black text-primary hover:text-white uppercase flex items-center gap-2 transition-all group/link">
+                                            Visit Network <MoveUpRight size={14} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
                                         </a>
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-center opacity-20 space-y-8">
-                                <Radar size={100} className="animate-spin-slow text-primary" />
-                                <h4 className="text-xl font-black text-white uppercase tracking-[0.4em]">Predicting Waves...</h4>
+                            <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30 space-y-8">
+                                <div className="relative">
+                                    <Radar size={120} className="animate-spin-slow text-primary" />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <Processor size={40} className="text-primary/50 animate-pulse" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="text-xl font-black text-white uppercase tracking-[0.4em]">Awaiting Uplink</h4>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Infiltrating algorithm signals for trending opportunities...</p>
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Execution Logs */}
                 <div className="lg:col-span-3 space-y-4">
-                    <div className="bg-black border border-slate-800 rounded-3xl overflow-hidden flex flex-col h-[300px] md:h-[650px] shadow-2xl relative">
-                        <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex justify-between items-center shrink-0">
+                    <div className="bg-black border border-slate-800 rounded-3xl overflow-hidden flex flex-col h-[400px] md:h-[650px] shadow-2xl relative ring-1 ring-white/5">
+                        <div className="bg-slate-900/80 px-6 py-4 border-b border-slate-800 flex justify-between items-center shrink-0 backdrop-blur-md">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <Terminal size={14} /> Agentic Logs
+                                <Terminal size={14} className="text-primary" /> Mission Console
                             </span>
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
                         </div>
-                        <div className="flex-1 p-6 font-mono text-[10px] overflow-y-auto space-y-3 custom-scrollbar">
-                            {logs.length === 0 ? (
-                                <div className="text-slate-800 italic uppercase font-black text-center mt-20 opacity-20">Awaiting Signal...</div>
-                            ) : (
-                                logs.map((log, i) => (
-                                    <div key={i} className={`flex gap-3 animate-fade-in border-l-2 pl-4 py-1.5 ${
-                                        log.status === 'error' ? 'border-red-500/50 bg-red-500/5' : log.status === 'success' ? 'border-green-500/50 bg-green-500/5' : 'border-primary/50'
-                                    }`}>
-                                        <span className="text-slate-700 shrink-0 text-[8px]">[{log.timestamp}]</span>
-                                        <span className="text-slate-300 italic leading-snug">{log.detail}</span>
+                        <div className="flex-1 p-6 font-mono text-[10px] overflow-y-auto space-y-4 custom-scrollbar text-slate-400">
+                            {logs.map((log, i) => (
+                                <div key={i} className={`flex flex-col gap-1.5 animate-fade-in border-l-2 pl-4 py-1 ${
+                                    log.status === 'error' ? 'border-red-500 bg-red-500/5' : log.status === 'success' ? 'border-green-500 bg-green-500/5' : 'border-primary/40 bg-primary/5'
+                                }`}>
+                                    <div className="flex justify-between items-center opacity-50">
+                                        <span className="text-[8px] font-bold">TASK_LOG_{i.toString().padStart(3, '0')}</span>
+                                        <span className="text-[8px]">{log.timestamp}</span>
                                     </div>
-                                ))
-                            )}
+                                    <span className={`text-[10px] font-bold leading-relaxed ${log.status === 'error' ? 'text-red-400' : log.status === 'success' ? 'text-green-400' : 'text-slate-300'}`}>
+                                        {log.action.toUpperCase()}: {log.detail}
+                                    </span>
+                                </div>
+                            ))}
                             <div ref={logsEndRef} />
                         </div>
                     </div>

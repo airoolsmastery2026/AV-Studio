@@ -14,13 +14,6 @@ interface AIChatAssistantProps {
 
 const STORAGE_KEY = 'av_studio_chat_sessions_v4';
 
-function encode(bytes: Uint8Array) {
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
 function decode(base64: string) {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
@@ -43,7 +36,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLiveMode, setIsLiveMode] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isSpeakingId, setIsSpeakingId] = useState<string | null>(null);
   const [isRecordingInput, setIsRecordingInput] = useState(false);
@@ -54,8 +46,6 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
   const inputRef = useRef<HTMLInputElement>(null);
   const outputAudioContextRef = useRef<AudioContext | null>(null);
   const activeSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  const liveSessionRef = useRef<any>(null);
-  const nextStartTimeRef = useRef(0);
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -75,7 +65,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = false;
         recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = 'vi-VN';
+        recognitionRef.current.lang = appContext.activeTab === 'studio' ? 'en-US' : 'vi-VN';
         recognitionRef.current.onresult = (event: any) => {
             const transcript = Array.from(event.results).map((result: any) => result[0].transcript).join('');
             setInputText(transcript);
@@ -83,7 +73,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
         recognitionRef.current.onend = () => setIsRecordingInput(false);
         recognitionRef.current.onerror = () => setIsRecordingInput(false);
     }
-  }, []);
+  }, [appContext.activeTab]);
 
   useEffect(() => {
     if (isOpen) {
@@ -102,13 +92,7 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
     activeSourcesRef.current.forEach(source => { try { source.stop(); } catch(e) {} });
     activeSourcesRef.current.clear();
     setIsSpeakingId(null);
-    nextStartTimeRef.current = 0;
   }, []);
-
-  const toggleRecording = () => {
-    if (isRecordingInput) recognitionRef.current?.stop();
-    else { setInputText(''); setIsRecordingInput(true); recognitionRef.current?.start(); }
-  };
 
   const playTTS = async (text: string, msgId: string) => {
     if (isSpeakingId === msgId) { stopAllAudio(); return; }
@@ -171,143 +155,70 @@ const AIChatAssistant: React.FC<AIChatAssistantProps> = ({ apiKey, appContext, o
 
   return (
     <>
-      {/* Floating Button */}
       <div className={`fixed bottom-6 right-6 z-[100] transition-all duration-500 transform ${isOpen ? 'scale-0 translate-y-12' : 'scale-100 translate-y-0'}`}>
-        <button 
-            onClick={() => setIsOpen(true)} 
-            className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-900 border border-primary/30 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,164,0.4)] hover:shadow-primary/60 hover:scale-110 group transition-all"
-        >
+        <button onClick={() => setIsOpen(true)} className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-900 border border-primary/30 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,164,0.4)] hover:shadow-primary/60 hover:scale-110 group transition-all">
           <Bot size={32} className="text-primary group-hover:rotate-12 transition-transform" />
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900 animate-pulse"></div>
         </button>
       </div>
 
-      {/* Main Chat UI */}
       {isOpen && (
         <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[680px] bg-slate-950/98 backdrop-blur-2xl border border-slate-800/60 sm:rounded-[32px] shadow-2xl flex flex-col overflow-hidden z-[200] animate-fade-in ring-1 ring-white/5">
-          
-          {/* Header */}
           <div className="h-[64px] px-6 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <Shield size={20} className="text-primary animate-pulse" />
-              </div>
+              <div className="p-2 bg-primary/10 rounded-xl"><Shield size={20} className="text-primary animate-pulse" /></div>
               <div className="flex flex-col">
                 <span className="font-black text-white text-xs tracking-tight uppercase leading-none">{t.commander_title}</span>
-                <span className="text-[8px] text-primary/70 font-black uppercase tracking-widest mt-1.5">Intelligence Core Active</span>
+                <span className="text-[8px] text-primary/70 font-black uppercase tracking-widest mt-1.5">{t.commander_subtitle}</span>
               </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <button onClick={() => setIsAudioEnabled(!isAudioEnabled)} className={`p-2 rounded-xl transition-all ${isAudioEnabled ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:text-white'}`}>{isAudioEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
-              <button onClick={() => setIsOpen(false)} className="p-2 text-slate-500 hover:text-white ml-1 transition-colors"><ChevronDown size={24}/></button>
-            </div>
+            <button onClick={() => setIsOpen(false)} className="p-2 text-slate-500 hover:text-white transition-colors"><ChevronDown size={24}/></button>
           </div>
 
-          {/* Messages Area - Chống tràn bằng min-h-0 và flex-1 */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[radial-gradient(circle_at_top_right,rgba(14,165,164,0.03),transparent)]">
-            <div className="bg-slate-900/60 rounded-2xl p-4 border border-slate-800/60 flex items-center gap-3">
-                <Terminal size={14} className="text-primary animate-pulse" />
-                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">AV-COMMANDER: Strategic Protocol Active</span>
-            </div>
-
+          {/* CRITICAL FIX: Add min-h-0 and flex-1 to prevent container expansion and allow internal scrolling */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gradient-to-b from-transparent to-slate-950/40">
             {sessions.find(s => s.id === currentSessionId)?.messages.map((m, i) => (
                 <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in group`}>
                     <div className={`max-w-[92%] px-4 py-3 rounded-2xl text-xs leading-relaxed shadow-lg border transition-all relative whitespace-pre-wrap ${
-                      m.role === 'user' 
-                        ? 'bg-primary border-primary/20 text-white rounded-tr-none shadow-primary/10' 
-                        : 'bg-slate-900 border-slate-800 text-slate-200 rounded-tl-none group-hover:border-primary/30'
+                      m.role === 'user' ? 'bg-primary border-primary/20 text-white rounded-tr-none' : 'bg-slate-900 border-slate-800 text-slate-200 rounded-tl-none group-hover:border-primary/30'
                     }`}>
                         {m.text}
-                        
                         {m.role === 'model' && (m as any).sources && (
                           <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
-                              <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                  <Globe size={12} /> Căn cứ dữ liệu trực tuyến:
-                              </div>
+                              <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest"><Globe size={12} /> External Intelligence:</div>
                               <div className="flex flex-wrap gap-2">
                                   {(m as any).sources.map((src: any, idx: number) => (
-                                      <a key={idx} href={src.uri} target="_blank" className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-[9px] text-primary hover:text-white hover:bg-primary/20 transition-all flex items-center gap-1.5 group/link">
-                                          <ExternalLink size={10} /> {src.title || "Chi tiết nguồn"} <MoveUpRight size={8} className="opacity-0 group-hover/link:opacity-100" />
+                                      <a key={idx} href={src.uri} target="_blank" className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-[9px] text-primary hover:text-white transition-all flex items-center gap-1.5">
+                                          <ExternalLink size={10} /> {src.title || "Source"}
                                       </a>
                                   ))}
                               </div>
                           </div>
                         )}
-
                         {m.role === 'model' && (
-                          <button 
-                              onClick={() => playTTS(m.text, m.id)} 
-                              className={`absolute -bottom-2 -right-2 p-2 rounded-xl border transition-all ${isSpeakingId === m.id ? 'bg-primary text-white scale-110 shadow-neon' : 'bg-slate-800 text-slate-500 hover:text-primary border-slate-700'}`}
-                          >
-                              <Volume2 size={12} />
-                          </button>
+                          <button onClick={() => playTTS(m.text, m.id)} className={`absolute -bottom-2 -right-2 p-2 rounded-xl border transition-all ${isSpeakingId === m.id ? 'bg-primary text-white shadow-neon' : 'bg-slate-800 text-slate-500'}`}><Volume2 size={12} /></button>
                         )}
                     </div>
-                    
-                    {m.suggestions && m.role === 'model' && (
-                      <div className="flex flex-wrap gap-2 mt-4 ml-2">
-                          {m.suggestions.map((s, idx) => (
-                              <button 
-                                  key={idx} 
-                                  onClick={() => { setInputText(s); inputRef.current?.focus(); }}
-                                  className="text-[10px] font-bold text-slate-500 hover:text-primary bg-slate-900/40 hover:bg-primary/10 border border-slate-800 px-3 py-1.5 rounded-full transition-all"
-                              >
-                                  + {s}
-                              </button>
-                          ))}
-                      </div>
-                    )}
                 </div>
             ))}
-            
             {isLoading && (
-                <div className="flex justify-start animate-fade-in">
-                    <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl rounded-tl-none flex items-center gap-3">
-                          <div className="flex gap-1.5">
-                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
-                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                          <div className="text-[9px] font-black text-primary/70 uppercase tracking-widest flex items-center gap-2">
-                              <Search size={12} className="animate-pulse" /> Commander is reasoning...
-                          </div>
+                <div className="flex justify-start">
+                    <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex items-center gap-3">
+                          <div className="flex gap-1.5"><div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{animationDelay:'0.1s'}}></div><div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{animationDelay:'0.2s'}}></div></div>
+                          <div className="text-[9px] font-black text-primary/70 uppercase tracking-widest">{t.status_analyzing}...</div>
                     </div>
                 </div>
             )}
-            <div ref={messagesEndRef} className="h-4" />
+            <div ref={messagesEndRef} className="h-4 shrink-0" />
           </div>
 
-          {/* Input Area */}
           <div className="h-[96px] px-4 pb-6 pt-2 bg-slate-950 border-t border-slate-800 shrink-0 flex flex-col justify-center relative">
-              {isRecordingInput && (
-                  <div className="absolute top-[-36px] left-0 right-0 h-[36px] bg-primary/20 backdrop-blur-sm flex items-center justify-center gap-2 px-4 animate-fade-in border-t border-primary/20">
-                      <Waves size={14} className="text-primary animate-pulse" />
-                      <span className="text-[9px] text-primary font-black uppercase tracking-widest">Listening... speak your command clearly.</span>
-                  </div>
-              )}
               <div className="flex items-center gap-3">
-                  <button 
-                      onClick={toggleRecording} 
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all shrink-0 ${isRecordingInput ? 'bg-red-500 text-white shadow-neon animate-pulse' : 'bg-slate-900 text-slate-500 hover:text-primary border border-slate-800'}`}
-                  >
+                  <button onClick={() => { setInputText(''); setIsRecordingInput(!isRecordingInput); }} className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all shrink-0 ${isRecordingInput ? 'bg-red-500 text-white shadow-neon animate-pulse' : 'bg-slate-900 text-slate-500 border border-slate-800'}`}>
                       {isRecordingInput ? <MicOff size={20} /> : <Mic size={20} />}
                   </button>
-                  <div className="flex-1 relative flex items-center group">
-                      <input 
-                          ref={inputRef} 
-                          value={inputText} 
-                          onChange={(e) => setInputText(e.target.value)} 
-                          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} 
-                          placeholder={t.placeholder_cmd || "Hỏi tư lệnh chiến lược..."} 
-                          className="w-full bg-slate-900 border border-slate-800 rounded-[20px] pl-5 pr-12 py-3.5 text-xs text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700 shadow-inner" 
-                      />
-                      <button 
-                          onClick={handleSendMessage} 
-                          disabled={isLoading || !inputText.trim()} 
-                          className="absolute right-1.5 w-9 h-9 bg-primary rounded-xl text-white flex items-center justify-center hover:bg-primary/80 transition-all disabled:opacity-0 shadow-lg active:scale-90"
-                      >
-                          <Send size={18} />
-                      </button>
+                  <div className="flex-1 relative flex items-center">
+                      <input ref={inputRef} value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} placeholder={t.placeholder_cmd} className="w-full bg-slate-900 border border-slate-800 rounded-[20px] pl-5 pr-12 py-3.5 text-xs text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700 shadow-inner" />
+                      <button onClick={handleSendMessage} disabled={isLoading || !inputText.trim()} className="absolute right-1.5 w-9 h-9 bg-primary rounded-xl text-white flex items-center justify-center hover:bg-primary/80 transition-all active:scale-90"><Send size={18} /></button>
                   </div>
               </div>
           </div>

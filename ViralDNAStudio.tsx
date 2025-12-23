@@ -4,13 +4,14 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   ApiKeyConfig, KnowledgeBase, ScriptModel, VisualModel, VoiceModel, 
   VideoResolution, AspectRatio, OrchestratorResponse, SEOAudit, ViralDNAProfile, StudioSettings, AppLanguage, ContentLanguage, CompetitorChannel, CompletedVideo, ChannelIntelligence, ABTestMetadata 
-} from '../types';
-import NeonButton from './NeonButton';
-import ModelSelector from './ModelSelector';
-import PlanResult from './PlanResult';
-import ABThumbnailTester from './ABThumbnailTester';
+  // Fix: Corrected relative path to types.ts since this file is in the root
+} from './types';
+import NeonButton from './components/NeonButton';
+import ModelSelector from './components/ModelSelector';
+import PlanResult from './components/PlanResult';
+import ABThumbnailTester from './components/ABThumbnailTester';
 // Fixed the missing scanChannelIntelligence by adding it to types.ts and geminiService.ts
-import { generateProScript, extractViralDNA, runSeoAudit, scanChannelIntelligence } from '../services/geminiService';
+import { generateProScript, extractViralDNA, runSeoAudit, scanChannelIntelligence } from './services/geminiService';
 
 interface ChannelAnalysis extends CompetitorChannel {
   profile?: ViralDNAProfile;
@@ -52,6 +53,11 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   const [isChannelScanMode, setIsChannelScanMode] = useState(false);
   const [channelIntel, setChannelIntel] = useState<ChannelIntelligence | null>(null);
   const [selectedVideoForAB, setSelectedVideoForAB] = useState<string | null>(null);
+
+  // Fix: Function hoisted/moved up to ensure it's available for handleRunAnalysis
+  const addLog = (tag: string, detail: string) => {
+    console.log(`[${tag}] ${detail}`);
+  };
 
   const [channels, setChannels] = useState<ChannelAnalysis[]>([
     { id: '1', url: '', name: 'Target Alpha', status: 'pending', isExpanded: false }
@@ -128,7 +134,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
       }
     });
 
-    const results = await Promise.all(analysisTasks);
+    await Promise.all(analysisTasks);
     setStatus('done');
   };
 
@@ -154,10 +160,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
       v.title.toLowerCase().includes(query)
     );
   }, [completedVideos, searchQuery]);
-
-  const addLog = (tag: string, detail: string) => {
-    console.log(`[${tag}] ${detail}`);
-  };
 
   const startABTest = (videoId: string) => {
     setSelectedVideoForAB(videoId);
