@@ -1,15 +1,16 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { 
     Infinity as InfinityIcon, Play, Pause, Zap, Crosshair, 
     Loader2, Activity, Sparkles, Target, ShieldCheck,
-    SearchCode, Radar, CheckCircle, Clock, BrainCircuit, Globe, Rocket, Terminal, Cpu as Processor, MoveUpRight, Trophy, Coins
+    SearchCode, Radar, CheckCircle, Clock, BrainCircuit, Globe, Rocket, Terminal, Cpu as Processor, MoveUpRight, Trophy, Coins, Settings2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { 
     ApiKeyConfig, PostingJob, CompletedVideo, ScriptModel, VisualModel, VoiceModel, 
     VideoResolution, AspectRatio, AutoPilotStats, AutoPilotLog, AppStatus, ContentLanguage, MissionIntel 
 } from '../types';
 import NeonButton from './NeonButton';
+import ModelSelector from './ModelSelector';
 
 interface AutoPilotDashboardProps {
   apiKeys: ApiKeyConfig[];
@@ -40,11 +41,12 @@ interface AutoPilotDashboardProps {
 
 const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({ 
     isRunning, setIsRunning, stats, logs, currentAction, selectedNiche, setSelectedNiche,
-    currentMission, t
+    currentMission, t, scriptModel, setScriptModel, visualModel, setVisualModel, voiceModel, setVoiceModel,
+    resolution, setResolution, aspectRatio, setAspectRatio
 }) => {
     const logsEndRef = useRef<HTMLDivElement>(null);
+    const [isConfigExpanded, setIsConfigExpanded] = useState(false);
     
-    // Chỉ cuộn Terminal, không cuộn window
     useEffect(() => { 
         if (logsEndRef.current) {
             logsEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); 
@@ -105,6 +107,37 @@ const AutoPilotDashboard: React.FC<AutoPilotDashboardProps> = ({
                         {isRunning ? 'Dừng hệ thống' : 'Kích hoạt Radar'}
                     </button>
                 </div>
+            </div>
+
+            {/* AI Engine Config Collapsible for AutoPilot */}
+            <div className="bg-slate-900/60 border border-slate-800 rounded-[32px] overflow-hidden">
+                <button 
+                  onClick={() => setIsConfigExpanded(!isConfigExpanded)}
+                  className="w-full p-6 flex justify-between items-center px-10 hover:bg-slate-800/40 transition-all"
+                >
+                   <div className="flex items-center gap-4">
+                      <Settings2 className="text-primary" size={20} />
+                      <span className="text-xs font-black text-white uppercase tracking-widest">Cấu hình Engine Sản xuất AI</span>
+                   </div>
+                   <div className="flex items-center gap-4">
+                      <span className="text-[10px] text-slate-500 font-black uppercase hidden md:block">
+                        {scriptModel} • {visualModel} • {aspectRatio}
+                      </span>
+                      {isConfigExpanded ? <ChevronUp size={20} className="text-slate-500" /> : <ChevronDown size={20} className="text-slate-500" />}
+                   </div>
+                </button>
+                {isConfigExpanded && (
+                    <div className="p-4 bg-black/20 border-t border-slate-800 animate-fade-in">
+                        <ModelSelector 
+                            scriptModel={scriptModel} setScriptModel={setScriptModel}
+                            visualModel={visualModel} setVisualModel={setVisualModel}
+                            voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+                            resolution={resolution} setResolution={setResolution}
+                            aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+                            t={t}
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

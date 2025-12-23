@@ -1,5 +1,5 @@
 
-import { Bot, Send, X, Mic, MicOff, Zap, Volume2, VolumeX, Activity, UserCheck, Play, Loader2, Waves, ChevronDown, ExternalLink, Globe, Search, BrainCircuit, Sparkles, Terminal, Dna, Plus, Trash2, LayoutGrid, Layers, Radar, Target, BarChart2, Gauge, Info, TrendingUp, ChevronRight, Video as VideoIcon, Film, AlertTriangle, CheckCircle2, Filter, Library, SearchIcon, Clock, Download, ZapOff, BarChart3, Eraser, Scissors, ShoppingCart, Link, Columns, ChevronUp, Flame, TrendingDown, MoveUpRight, BarChartHorizontal, Rocket, Lightbulb, Lock, Unlock, ShieldCheck, HeartPulse } from 'lucide-react';
+import { Bot, Send, X, Mic, MicOff, Zap, Volume2, VolumeX, Activity, UserCheck, Play, Loader2, Waves, ChevronDown, ExternalLink, Globe, Search, BrainCircuit, Sparkles, Terminal, Dna, Plus, Trash2, LayoutGrid, Layers, Radar, Target, BarChart2, Gauge, Info, TrendingUp, ChevronRight, Video as VideoIcon, Film, AlertTriangle, CheckCircle2, Filter, Library, SearchIcon, Clock, Download, ZapOff, BarChart3, Eraser, Scissors, ShoppingCart, Link, Columns, ChevronUp, Flame, TrendingDown, MoveUpRight, BarChartHorizontal, Rocket, Lightbulb, Lock, Unlock, ShieldCheck, HeartPulse, Settings2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   ApiKeyConfig, KnowledgeBase, ScriptModel, VisualModel, VoiceModel, 
@@ -31,6 +31,7 @@ interface ViralDNAStudioProps {
   setVisualModel: (m: VisualModel) => void;
   voiceModel: VoiceModel;
   setVoiceModel: (m: VoiceModel) => void;
+  resolution: VideoResolution;
   setResolution: (r: VideoResolution) => void;
   aspectRatio: AspectRatio;
   setAspectRatio: (a: AspectRatio) => void;
@@ -43,20 +44,14 @@ interface ViralDNAStudioProps {
 const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ 
   predefinedTopic, apiKeys, appLanguage: appLang, contentLanguage, setContentLanguage, 
   knowledgeBase, scriptModel, setScriptModel, visualModel, setVisualModel, 
-  voiceModel, setVoiceModel, setResolution, aspectRatio, setAspectRatio,
+  voiceModel, setVoiceModel, resolution, setResolution, aspectRatio, setAspectRatio,
   completedVideos = [], setCompletedVideos, t, onInitiateRender
 }) => {
   const [activeStudioTab, setActiveStudioTab] = useState<'recon' | 'studio' | 'library'>('recon');
   const [status, setStatus] = useState<'idle' | 'analyzing' | 'generating' | 'done'>('idle');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isChannelScanMode, setIsChannelScanMode] = useState(false);
-  const [channelIntel, setChannelIntel] = useState<ChannelIntelligence | null>(null);
-  const [selectedVideoForAB, setSelectedVideoForAB] = useState<string | null>(null);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
-
-  const addLog = (tag: string, detail: string) => {
-    console.log(`[${tag}] ${detail}`);
-  };
 
   const [channels, setChannels] = useState<ChannelAnalysis[]>([
     { id: '1', url: '', name: 'Target Alpha', status: 'pending', isExpanded: false }
@@ -64,12 +59,17 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
   const [generatedPlan, setGeneratedPlan] = useState<OrchestratorResponse | null>(null);
   const [studioSettings, setStudioSettings] = useState<StudioSettings>({
-    quality: 'Standard', aspectRatio: '9:16', model: 'Balanced',
+    quality: 'Standard', aspectRatio: aspectRatio, model: 'Balanced',
     hookStrength: 85, storyMode: 'One-shot', riskLevel: 'Safe',
     videoFormat: 'Shorts', contentLanguage: contentLanguage,
     topic: predefinedTopic || '', generationMode: 'Free Storyboard',
     characterLock: true, styleLock: true, musicSync: true
   });
+
+  // Đồng bộ aspect ratio từ props vào settings
+  useEffect(() => {
+    setStudioSettings(prev => ({ ...prev, aspectRatio }));
+  }, [aspectRatio]);
 
   const addChannel = () => {
     setChannels([...channels, { id: Date.now().toString(), url: '', name: `Target Node ${channels.length + 1}`, status: 'pending', isExpanded: false }]);
@@ -82,15 +82,10 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
   const clearChannels = () => {
     setChannels([{ id: '1', url: '', name: 'Target Alpha', status: 'pending', isExpanded: false }]);
-    setChannelIntel(null);
   };
 
   const updateChannelUrl = (id: string, url: string) => {
     setChannels(channels.map(c => c.id === id ? { ...c, url, status: 'pending', profile: undefined, seoAudit: undefined, error: undefined } : c));
-  };
-
-  const toggleExpand = (id: string) => {
-    setChannels(channels.map(c => c.id === id ? { ...c, isExpanded: !c.isExpanded } : c));
   };
 
   const handleRunAnalysis = async () => {
@@ -98,7 +93,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
     if (validChannels.length === 0) return;
 
     setStatus('analyzing');
-    
     setChannels(prev => prev.map(c => c.url.trim() ? { ...c, status: 'analyzing' } : c));
 
     const analysisTasks = validChannels.map(async (ch) => {
@@ -114,10 +108,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         return true;
       } catch (e: any) {
         let errorMsg = e.message;
-        if (errorMsg === "API_LIMIT_REACHED") {
-            const h = getApiHealthStatus();
-            errorMsg = `API Cooling Down (${h.remainingCooldown}s)`;
-        }
         setChannels(prev => prev.map(item => 
           item.id === ch.id ? { ...item, status: 'error', error: errorMsg } : item
         ));
@@ -136,7 +126,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         const plan = await generateProScript(
           process.env.API_KEY!, 
           masterProfile || { keywords: [studioSettings.topic], algorithm_fit_score: 80, risk_level: 'Safe', structure: { hook_type: 'visual', pacing: 'Fast', avg_scene_duration: 3 }, emotional_curve: [] }, 
-          studioSettings, 
+          { ...studioSettings, aspectRatio }, 
           knowledgeBase
         );
         setGeneratedPlan(plan);
@@ -163,11 +153,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   const filteredArchive = useMemo(() => {
     if (!searchQuery) return completedVideos;
     const query = searchQuery.toLowerCase().trim();
-    return completedVideos.filter(v => {
-      const matchTitle = v.title.toLowerCase().includes(query);
-      const matchKeywords = v.keywords?.some(k => k.toLowerCase().includes(query));
-      return matchTitle || matchKeywords;
-    });
+    return completedVideos.filter(v => v.title.toLowerCase().includes(query));
   }, [completedVideos, searchQuery]);
 
   return (
@@ -183,7 +169,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                   <div className="flex items-center gap-2">
                     <div className={`w-1.5 h-1.5 rounded-full ${status === 'idle' ? 'bg-green-500' : 'bg-primary animate-pulse'}`}></div>
                     <span className="text-slate-500 text-[9px] font-black uppercase tracking-[0.15em]">
-                      {status === 'idle' ? "Targeting System Active" : t.processing_dna}
+                      {status === 'idle' ? "Hệ thống Radar Sẵn sàng" : t.processing_dna}
                     </span>
                   </div>
               </div>
@@ -195,6 +181,28 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
           </div>
       </div>
 
+      {/* Model Selection Integration */}
+      <div className="bg-[#070B14]/60 border border-slate-800 rounded-[32px] overflow-hidden shadow-xl">
+        <div className="p-4 bg-slate-900/50 flex justify-between items-center px-8 border-b border-slate-800">
+           <h3 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-3">
+             <Settings2 size={16} /> Cấu hình Engine Sản xuất AI
+           </h3>
+           <div className="flex gap-4">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">{scriptModel} • {visualModel} • {aspectRatio}</span>
+           </div>
+        </div>
+        <div className="p-2">
+           <ModelSelector 
+              scriptModel={scriptModel} setScriptModel={setScriptModel}
+              visualModel={visualModel} setVisualModel={setVisualModel}
+              voiceModel={voiceModel} setVoiceModel={setVoiceModel}
+              resolution={resolution} setResolution={setResolution}
+              aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
+              t={t}
+           />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-8 space-y-6">
               {activeStudioTab === 'recon' && (
@@ -204,7 +212,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                       <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-slate-800 pb-8">
                         <div className="space-y-2">
                             <h3 className="text-3xl font-black text-white tracking-tighter uppercase flex items-center gap-3"><Target className="text-red-500 animate-pulse" size={28} /> {t.dna_viral_structure}</h3>
-                            <p className="text-slate-500 text-xs italic font-medium leading-relaxed max-w-2xl">{appLang === 'vi' ? '"Phân tích đa chiều kịch bản, âm thanh và chuyển cảnh để bẻ khóa thành công của đối thủ."' : '"Multidimensional analysis of scripts, audio, and transitions to crack competitor success DNA."'}</p>
+                            <p className="text-slate-500 text-xs italic font-medium leading-relaxed max-w-2xl">{"Phân tích đa chiều kịch bản, âm thanh và chuyển cảnh để bẻ khóa thành công của đối thủ."}</p>
                         </div>
                         <div className="flex gap-4">
                             <button onClick={addChannel} className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-primary hover:bg-primary hover:text-white transition-all"><Plus size={20}/></button>
@@ -291,7 +299,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                </NeonButton>
                           </div>
                       ) : (
-                          <PlanResult data={generatedPlan} videoUrl={null} t={t} />
+                          <PlanResult data={generatedPlan} videoUrl={null} t={t} onInitiateRender={onInitiateRender} />
                       )}
                   </div>
               )}
@@ -333,7 +341,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                             <div className="flex flex-col items-center justify-center py-20 opacity-20 text-center space-y-4">
                                 <SearchIcon size={80} />
                                 <h4 className="text-2xl font-black uppercase tracking-tighter">
-                                  {searchQuery ? (appLang === 'vi' ? "Không tìm thấy kết quả" : "No results found") : (appLang === 'vi' ? "Kho lưu trữ trống" : "Archive empty")}
+                                  {searchQuery ? "Không tìm thấy kết quả" : "Kho lưu trữ trống"}
                                 </h4>
                             </div>
                         )}
@@ -371,7 +379,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
                       <NeonButton onClick={handleRenderCycle} disabled={!generatedPlan || isRendering} className="w-full h-16 uppercase text-xs font-black shadow-neon">
                           {isRendering ? <Loader2 size={18} className="animate-spin" /> : <Film size={18} />}
-                          {isRendering ? (appLang === 'vi' ? "ĐANG RENDER..." : "RENDERING...") : t.initiate_render}
+                          {isRendering ? "ĐANG RENDER..." : t.initiate_render}
                       </NeonButton>
                   </div>
               </div>
@@ -382,7 +390,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                       <h4 className="text-sm font-black text-white uppercase tracking-tight">{t.ai_strategy_insight}</h4>
                   </div>
                   <p className="text-[11px] text-slate-400 italic leading-relaxed">
-                    {appLang === 'vi' ? '"Sử dụng Target Autopsy sẽ giúp AI trích xuất các nhãn dán thị giác (visual tags) quan trọng nhất khiến video dễ dàng lên xu hướng."' : '"Using Target Autopsy helps AI extract the most important visual tags that make videos trend easily."'}
+                    {"Sử dụng Target Autopsy sẽ giúp AI trích xuất các nhãn dán thị giác (visual tags) quan trọng nhất khiến video dễ dàng lên xu hướng."}
                   </p>
               </div>
           </div>

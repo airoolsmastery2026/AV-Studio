@@ -39,7 +39,6 @@ const cleanAndParseJSON = (text: string) => {
 async function callAiWithRetry<T>(apiCall: () => Promise<T>, retries = 2): Promise<T> {
   const health = getApiHealthStatus();
   if (health.status === 'exhausted') {
-    console.log(`API đang nghỉ, chờ ${health.remainingCooldown}s...`);
     await new Promise(resolve => setTimeout(resolve, (health.remainingCooldown + 1) * 1000));
   }
 
@@ -51,8 +50,7 @@ async function callAiWithRetry<T>(apiCall: () => Promise<T>, retries = 2): Promi
       isQuotaExhausted = true;
       exhaustionResetTime = Date.now() + COOLDOWN_PERIOD_MS;
       if (retries > 0) {
-        const backoff = COOLDOWN_PERIOD_MS + (2 - retries) * 10000; 
-        await new Promise(resolve => setTimeout(resolve, backoff + 1000));
+        await new Promise(resolve => setTimeout(resolve, COOLDOWN_PERIOD_MS + 1000));
         return callAiWithRetry(apiCall, retries - 1);
       }
       throw new Error("API_LIMIT_REACHED");
@@ -65,16 +63,22 @@ async function callAiWithRetry<T>(apiCall: () => Promise<T>, retries = 2): Promi
   }
 }
 
-// HÀM MỚI: PHÂN TÍCH THỊ TRƯỜNG CHIẾN LƯỢC
+// Map UI Model Names to API Model Names
+const mapModelName = (uiName: string): string => {
+  switch (uiName) {
+    case 'Gemini 3 Pro': return 'gemini-3-pro-preview';
+    case 'Gemini 3 Flash': return 'gemini-3-flash-preview';
+    case 'Gemini 2.5 Flash': return 'gemini-flash-lite-latest';
+    default: return 'gemini-3-flash-preview';
+  }
+};
+
 export const analyzeAIMarketIntelligence = async (): Promise<AIMarketReport[]> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Phân tích thị trường công cụ AI (AI Tools) toàn cầu và Việt Nam giai đoạn cuối 2024 - đầu 2025. 
-      Tìm ra 5 ngách phụ (sub-niches) có tiềm năng hoa hồng affiliate cao nhất. 
-      Với mỗi ngách, liệt kê 3 sản phẩm cụ thể và mạng lưới tiếp thị (Shopee, Amazon, hoặc Direct).
-      Trả về kết quả dưới định dạng JSON ARRAY.`,
+      contents: `Phân tích thị trường công cụ AI (AI Tools) toàn cầu và Việt Nam giai đoạn cuối 2024 - đầu 2025.`,
       config: { 
         responseMimeType: "application/json", 
         tools: [{ googleSearch: {} }],
@@ -99,150 +103,21 @@ export const analyzeAIMarketIntelligence = async (): Promise<AIMarketReport[]> =
                   }
                 }
               }
-            },
-            required: ['sub_niche', 'growth_velocity', 'bounty_score', 'monetization_logic', 'top_products']
+            }
           }
         }
       }
     });
-    
-    // Log các link nguồn để hiển thị lên UI (Search Grounding Rule)
-    console.log("Grounding Sources:", response.candidates?.[0]?.groundingMetadata?.groundingChunks);
-    
     return cleanAndParseJSON(response.text) || [];
   });
 };
 
-// ... (Implementing missing exports)
-
-export const runCompetitorDeepDive = async (target: string): Promise<CompetitorDeepAudit> => {
+export const extractViralDNA = async (key: string, urls: string[], mode: string, lang: string): Promise<ViralDNAProfile> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Perform deep audit on competitor: ${target}`,
-      config: { 
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
-    });
-    return cleanAndParseJSON(response.text) || { seo_score: 0 };
-  });
-};
-
-export const runSeoAudit = async (target: string, mode: string, niche: string): Promise<SEOAudit> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Run SEO Audit for ${target} in ${mode} mode for ${niche} niche.`,
-      config: { 
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
-    });
-    return cleanAndParseJSON(response.text) || { seo_score: 0, title_optimization_suggestions: [], suggested_tags: [] };
-  });
-};
-
-export const scoutYouTubeTrends = async (niche: string): Promise<YouTubeTrend[]> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Scout YouTube trends for niche: ${niche}`,
-      config: { 
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
-    });
-    return cleanAndParseJSON(response.text) || [];
-  });
-};
-
-export const huntAffiliateProducts = async (key: string, niche: string, networks: string[]): Promise<AffiliateHuntResult> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Hunt affiliate products for ${niche} on ${networks.join(', ')}`,
-      config: { 
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
-    });
-    const parsed = cleanAndParseJSON(response.text);
-    return { products: parsed?.products || [], strategy_note: parsed?.strategy_note || "" };
-  });
-};
-
-export const sendChatToAssistant = async (key: string, history: any[], message: string, context: AppContext): Promise<any> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: message,
-      config: { 
-        systemInstruction: `You are an AI Commander for AV Studio. Context: ${JSON.stringify(context)}`,
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
-    });
-    return cleanAndParseJSON(response.text);
-  });
-};
-
-export const generateGeminiTTS = async (text: string): Promise<string | undefined> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
-      }
-    });
-    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  });
-};
-
-export const predictGoldenHours = async (key: string, region: string, niche: string, platforms: string[]): Promise<GoldenHourRecommendation[]> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Predict golden hours for posting in ${region} for ${niche} on ${platforms.join(', ')}`,
-      config: { 
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
-    });
-    return cleanAndParseJSON(response.text) || [];
-  });
-};
-
-export const generateDailySchedule = async (key: string, account: string, niche: string, region: string, config: any): Promise<ScheduleSlot[]> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Generate daily schedule for ${account} in ${niche} for region ${region}. Config: ${JSON.stringify(config)}`,
-      config: { 
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
-    });
-    return cleanAndParseJSON(response.text) || [];
-  });
-};
-
-export const generateChannelAudit = async (key: string, alias: string, provider: string): Promise<ChannelHealthReport> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Perform channel health audit for ${alias} on ${provider}.`,
+      contents: `Extract viral DNA from ${urls.join(', ')} in ${mode} mode, language: ${lang}`,
       config: { 
         responseMimeType: "application/json",
         tools: [{ googleSearch: {} }]
@@ -252,27 +127,21 @@ export const generateChannelAudit = async (key: string, alias: string, provider:
   });
 };
 
-export const runGovernorExecution = async (alias: string, diagnosis: string): Promise<GovernorAction> => {
+export const generateProScript = async (key: string, profile: ViralDNAProfile, settings: StudioSettings, kb: KnowledgeBase): Promise<OrchestratorResponse> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
+    // Use selected model from UI if it's a Gemini model
+    const modelId = mapModelName(settings.model || 'Gemini 3 Pro');
+    
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Execute governor action for ${alias} based on diagnosis: ${diagnosis}`,
-      config: { responseMimeType: "application/json" }
+      model: modelId,
+      contents: `Generate pro video script for ${settings.topic}. Format: ${settings.videoFormat}, Ratio: ${settings.aspectRatio}. Knowledge base rules: ${kb.learnedPreferences.join(', ')}`,
+      config: { 
+        responseMimeType: "application/json",
+        systemInstruction: `You are a world-class viral video orchestrator. Output JSON strictly following OrchestratorResponse type.`
+      }
     });
-    return { id: crypto.randomUUID(), timestamp: Date.now(), ...cleanAndParseJSON(response.text) };
-  });
-};
-
-export const synthesizeKnowledge = async (key: string, text: string, current: string[]): Promise<string[]> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Synthesize new knowledge rules from: ${text}. Current rules: ${current.join(', ')}`,
-      config: { responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text) || [];
+    return cleanAndParseJSON(response.text);
   });
 };
 
@@ -296,6 +165,88 @@ export const generateVeoVideo = async (prompt: string, ratio: string): Promise<s
   });
 };
 
+export const runSeoAudit = async (target: string, mode: string, niche: string): Promise<SEOAudit> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Run SEO Audit for ${target} in ${mode} mode for ${niche} niche.`,
+      config: { 
+        responseMimeType: "application/json",
+        tools: [{ googleSearch: {} }]
+      }
+    });
+    return cleanAndParseJSON(response.text) || { seo_score: 0, title_optimization_suggestions: [], suggested_tags: [] };
+  });
+};
+
+export const scanChannelIntelligence = async (url: string): Promise<ChannelIntelligence> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Scan channel intelligence for: ${url}`,
+      config: { 
+        responseMimeType: "application/json",
+        tools: [{ googleSearch: {} }]
+      }
+    });
+    return cleanAndParseJSON(response.text);
+  });
+};
+
+export const runCompetitorDeepDive = async (target: string): Promise<CompetitorDeepAudit> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Deep audit: ${target}`,
+      config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
+    });
+    return cleanAndParseJSON(response.text) || { seo_score: 0 };
+  });
+};
+
+export const scoutYouTubeTrends = async (niche: string): Promise<YouTubeTrend[]> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Scout trends for ${niche}`,
+      config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
+    });
+    return cleanAndParseJSON(response.text) || [];
+  });
+};
+
+export const huntAffiliateProducts = async (key: string, niche: string, networks: string[]): Promise<AffiliateHuntResult> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Hunt affiliate products for ${niche} on ${networks.join(', ')}`,
+      config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
+    });
+    const parsed = cleanAndParseJSON(response.text);
+    return { products: parsed?.products || [], strategy_note: parsed?.strategy_note || "" };
+  });
+};
+
+export const generateGeminiTTS = async (text: string): Promise<string | undefined> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
+      }
+    });
+    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  });
+};
+
 export const generateAIImage = async (prompt: string, aspectRatio: string): Promise<string> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
@@ -309,40 +260,74 @@ export const generateAIImage = async (prompt: string, aspectRatio: string): Prom
   });
 };
 
-export const extractViralDNA = async (key: string, urls: string[], mode: string, lang: string): Promise<ViralDNAProfile> => {
+export const synthesizeKnowledge = async (key: string, text: string, current: string[]): Promise<string[]> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Extract viral DNA from ${urls.join(', ')} in ${mode} mode, language: ${lang}`,
-      config: { 
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
+      contents: `Synthesize rules: ${text}`,
+      config: { responseMimeType: "application/json" }
+    });
+    return cleanAndParseJSON(response.text) || [];
+  });
+};
+
+export const predictGoldenHours = async (key: string, region: string, niche: string, platforms: string[]): Promise<GoldenHourRecommendation[]> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Predict hours for ${region} / ${niche}`,
+      config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
+    });
+    return cleanAndParseJSON(response.text) || [];
+  });
+};
+
+export const generateDailySchedule = async (key: string, account: string, niche: string, region: string, config: any): Promise<ScheduleSlot[]> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Daily schedule for ${account}`,
+      config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
+    });
+    return cleanAndParseJSON(response.text) || [];
+  });
+};
+
+export const generateChannelAudit = async (key: string, alias: string, provider: string): Promise<ChannelHealthReport> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Health audit: ${alias}`,
+      config: { responseMimeType: "application/json", tools: [{ googleSearch: {} }] }
     });
     return cleanAndParseJSON(response.text);
   });
 };
 
-export const generateProScript = async (key: string, profile: ViralDNAProfile, settings: StudioSettings, kb: KnowledgeBase): Promise<OrchestratorResponse> => {
+export const runGovernorExecution = async (alias: string, diagnosis: string): Promise<GovernorAction> => {
+  return callAiWithRetry(async () => {
+    const ai = getAi();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Execute governor: ${alias}`,
+      config: { responseMimeType: "application/json" }
+    });
+    return { id: crypto.randomUUID(), timestamp: Date.now(), ...cleanAndParseJSON(response.text) };
+  });
+};
+
+export const sendChatToAssistant = async (key: string, history: any[], message: string, context: AppContext): Promise<any> => {
   return callAiWithRetry(async () => {
     const ai = getAi();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `Generate pro video script based on profile: ${JSON.stringify(profile)}, settings: ${JSON.stringify(settings)}, knowledge: ${JSON.stringify(kb)}`,
-      config: { responseMimeType: "application/json" }
-    });
-    return cleanAndParseJSON(response.text);
-  });
-};
-
-export const scanChannelIntelligence = async (url: string): Promise<ChannelIntelligence> => {
-  return callAiWithRetry(async () => {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Scan channel intelligence for: ${url}`,
+      contents: message,
       config: { 
+        systemInstruction: `Commander for AV Studio. Context: ${JSON.stringify(context)}`,
         responseMimeType: "application/json",
         tools: [{ googleSearch: {} }]
       }
