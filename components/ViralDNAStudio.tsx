@@ -1,5 +1,5 @@
 
-import { Bot, Send, X, Mic, MicOff, Zap, Volume2, VolumeX, Activity, UserCheck, Play, Loader2, Waves, ChevronDown, ExternalLink, Globe, Search, BrainCircuit, Sparkles, Terminal, Dna, Plus, Trash2, LayoutGrid, Layers, Radar, Target, BarChart2, Gauge, Info, TrendingUp, ChevronRight, Video as VideoIcon, Film, AlertTriangle, CheckCircle2, Filter, Library, SearchIcon, Clock, Download, ZapOff, BarChart3, Eraser, Scissors, ShoppingCart, Link, Columns, ChevronUp, Flame, TrendingDown, MoveUpRight, BarChartHorizontal, Rocket, Lightbulb, Lock, Unlock, ShieldCheck, HeartPulse, Sliders } from 'lucide-react';
+import { Bot, Send, X, Mic, MicOff, Zap, Volume2, VolumeX, Activity, UserCheck, Play, Loader2, Waves, ChevronDown, ExternalLink, Globe, Search, BrainCircuit, Sparkles, Terminal, Dna, Plus, Trash2, LayoutGrid, Layers, Radar, Target, BarChart2, Gauge, Info, TrendingUp, ChevronRight, Video as VideoIcon, Film, AlertTriangle, CheckCircle2, Filter, Library, SearchIcon, Clock, Download, ZapOff, BarChart3, Eraser, Scissors, ShoppingCart, Link, Columns, ChevronUp, Flame, TrendingDown, MoveUpRight, BarChartHorizontal, Rocket, Lightbulb, Lock, Unlock, ShieldCheck, HeartPulse } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   ApiKeyConfig, KnowledgeBase, ScriptModel, VisualModel, VoiceModel, 
@@ -9,7 +9,7 @@ import NeonButton from './NeonButton';
 import ModelSelector from './ModelSelector';
 import PlanResult from './PlanResult';
 import ABThumbnailTester from './ABThumbnailTester';
-import { generateProScript, extractViralDNA, runSeoAudit, scanChannelIntelligence } from '../services/geminiService';
+import { generateProScript, extractViralDNA, runSeoAudit, scanChannelIntelligence, getApiHealthStatus } from '../services/geminiService';
 
 interface ChannelAnalysis extends CompetitorChannel {
   profile?: ViralDNAProfile;
@@ -54,6 +54,10 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
   const [selectedVideoForAB, setSelectedVideoForAB] = useState<string | null>(null);
   const [isRendering, setIsRendering] = useState(false);
 
+  const addLog = (tag: string, detail: string) => {
+    console.log(`[${tag}] ${detail}`);
+  };
+
   const [channels, setChannels] = useState<ChannelAnalysis[]>([
     { id: '1', url: '', name: 'Target Alpha', status: 'pending', isExpanded: false }
   ]);
@@ -95,25 +99,13 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
     setStatus('analyzing');
     
-    if (isChannelScanMode) {
-      try {
-        const intel = await scanChannelIntelligence(validChannels[0].url);
-        setChannelIntel(intel);
-        setStatus('done');
-      } catch (e: any) {
-        setChannels(prev => prev.map(c => ({...c, status: 'error', error: e.message})));
-        setStatus('idle');
-      }
-      return;
-    }
-
     setChannels(prev => prev.map(c => c.url.trim() ? { ...c, status: 'analyzing' } : c));
 
     const analysisTasks = validChannels.map(async (ch) => {
       try {
         const [profile, seoAudit] = await Promise.all([
-          extractViralDNA(process.env.API_KEY!, [ch.url], "Deep Autopsy Mode", contentLanguage),
-          runSeoAudit(ch.url, "Competitor Recon", "Global Market")
+          extractViralDNA(process.env.API_KEY!, [ch.url], "VidIQ-Enhanced Deep Recon", contentLanguage),
+          runSeoAudit(ch.url, "Competitor Analysis Mode", "Affiliate Market")
         ]);
         
         setChannels(prev => prev.map(item => 
@@ -121,8 +113,13 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         ));
         return true;
       } catch (e: any) {
+        let errorMsg = e.message;
+        if (errorMsg === "API_LIMIT_REACHED") {
+            const h = getApiHealthStatus();
+            errorMsg = `API Cooling Down (${h.remainingCooldown}s)`;
+        }
         setChannels(prev => prev.map(item => 
-          item.id === ch.id ? { ...item, status: 'error', error: e.message } : item
+          item.id === ch.id ? { ...item, status: 'error', error: errorMsg } : item
         ));
         return false;
       }
@@ -144,7 +141,10 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
         );
         setGeneratedPlan(plan);
         setStatus('done');
-    } catch (e) { setStatus('idle'); }
+    } catch (e: any) { 
+        console.error("Script generation failed", e);
+        setStatus('idle'); 
+    }
   };
 
   const handleRenderCycle = async () => {
@@ -220,6 +220,13 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                       <input value={channel.url} onChange={(e) => updateChannelUrl(channel.id, e.target.value)} disabled={channel.status === 'analyzing'} placeholder="Dán URL video đối thủ (TikTok, YouTube, Facebook...)" className="bg-transparent border-none outline-none text-white font-mono text-sm flex-1 placeholder:text-slate-800" />
                                       {channels.length > 1 && <button onClick={() => removeChannel(channel.id)} className="p-2 text-slate-600 hover:text-red-500 transition-colors"><X size={18}/></button>}
                                   </div>
+
+                                  {channel.error && (
+                                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center gap-3 text-red-500 animate-fade-in">
+                                        <ZapOff size={16} />
+                                        <span className="text-xs font-bold uppercase">{channel.error}</span>
+                                    </div>
+                                  )}
 
                                   {channel.profile && (
                                     <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 space-y-10 animate-fade-in relative overflow-hidden group">
@@ -299,7 +306,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                </NeonButton>
                           </div>
                       ) : (
-                          <PlanResult data={generatedPlan} videoUrl={null} t={t} />
+                          <PlanResult data={generatedPlan} videoUrl={null} t={t} onInitiateRender={onInitiateRender} />
                       )}
                   </div>
               )}
