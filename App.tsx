@@ -66,7 +66,6 @@ const App: React.FC = () => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
   const [jobs, setJobs] = useState<PostingJob[]>([]);
 
-  // Kiểm tra sức khỏe API định kỳ để cập nhật countdown
   useEffect(() => {
     const timer = setInterval(() => {
       const health = getApiHealthStatus();
@@ -102,10 +101,10 @@ const App: React.FC = () => {
         thumbnail: thumbUrl, 
         title: plan.generated_content.title, 
         timestamp: Date.now(),
-        keywords: plan.generated_content.hashtags // Lưu trữ hashtags từ plan
+        keywords: plan.generated_content.hashtags 
       };
       setCompletedVideos(prev => [newVideo, ...prev]);
-      addLog("FACTORY", `Hoàn tất: ${plan.generated_content.title}`, "success");
+      addLog("FACTORY", `Hoất tất: ${plan.generated_content.title}`, "success");
       setStatus(AppStatus.IDLE);
       return newVideo;
     } catch (e: any) {
@@ -129,13 +128,12 @@ const App: React.FC = () => {
                         <Activity size={20} className="text-primary animate-pulse" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-white uppercase tracking-tighter">AV Studio Alpha</span>
+                        <span className="text-[11px] font-black text-white uppercase tracking-tighter">{t.app_name} Alpha</span>
                         <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">{t.system_ready}</span>
                     </div>
                 </div>
             </div>
             
-            {/* CẢNH BÁO QUOTA API - Nổi bật hơn để người dùng biết hệ thống đang chờ */}
             {apiHealth.status === 'exhausted' && (
               <div className="flex items-center gap-3 bg-red-500/20 border border-red-500/50 px-5 py-2 rounded-2xl animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.3)]">
                 <AlertCircle size={18} className="text-red-500" />
@@ -155,7 +153,6 @@ const App: React.FC = () => {
         </header>
 
         <div ref={mainContentRef} className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-            {/* CẢNH BÁO TOÀN MÀN HÌNH KHI ĐANG QUÁ TẢI (Optional overlay if needed, but sticky header is enough) */}
             {activeTab === 'campaign' && (
                 <CampaignWizard 
                   onStartProduction={(topic) => {
@@ -173,12 +170,12 @@ const App: React.FC = () => {
             {activeTab === 'settings' && <SettingsDashboard apiKeys={apiKeys} setApiKeys={setApiKeys} knowledgeBase={knowledgeBase} setKnowledgeBase={setKnowledgeBase} onTrainBrain={async (text) => { const rules = await synthesizeKnowledge(process.env.API_KEY!, text, knowledgeBase.learnedPreferences); setKnowledgeBase(prev => ({ ...prev, learnedPreferences: [...new Set([...prev.learnedPreferences, ...rules])] })); }} t={t} appLang={appLang} setAppLang={setAppLang} contentLanguage={contentLanguage} setContentLanguage={setContentLanguage} />}
             {activeTab === 'risk_center' && <ChannelHealthDashboard apiKeys={apiKeys} onSendReportToChat={() => {}} t={t} />}
             {activeTab === 'queue' && <QueueDashboard apiKeys={apiKeys} currentPlan={null} jobs={jobs} setJobs={setJobs} t={t} />}
-            {activeTab === 'docs' && <Documentation apiKeys={apiKeys} knowledgeBase={knowledgeBase} scriptModel={scriptModel} visualModel={visualModel} voiceModel={voiceModel} appLang={appLang} />}
+            {activeTab === 'docs' && <Documentation apiKeys={apiKeys} knowledgeBase={knowledgeBase} scriptModel={scriptModel} visualModel={visualModel} voiceModel={voiceModel} appLang={appLang} t={t} />}
         </div>
       </main>
 
       <AIChatAssistant t={t} apiKey={apiKeys.find(k => k.provider === 'google')?.key} appContext={{ activeTab, status, urlInput: '', activeKeys: apiKeys.length, knowledgeBase }} onCommand={(cmd) => cmd.action === 'NAVIGATE' && setActiveTab(cmd.payload as TabView)} />
-      <ConsentModal isOpen={isConsentOpen} onClose={() => setIsConsentOpen(false)} onConfirm={() => { setIsConsentOpen(false); setAutoPilotActive(true); }} />
+      <ConsentModal isOpen={isConsentOpen} onClose={() => setIsConsentOpen(false)} onConfirm={() => { setIsConsentOpen(false); setAutoPilotActive(true); }} t={t} />
     </div>
   );
 };

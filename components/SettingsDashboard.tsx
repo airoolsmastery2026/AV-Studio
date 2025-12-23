@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Database, Shield, Brain, ShoppingBag, 
@@ -5,7 +6,6 @@ import {
   Store, Music, X, Loader2, Sparkles,
   ExternalLink, Lock, ShieldCheck,
   Languages, Monitor, Youtube, Facebook, LayoutGrid, ArrowUpRight, Save, Trash2, Share2, Globe, Instagram, MessageCircle, MoreVertical,
-  // Added missing imports
   Layers, BookOpen
 } from 'lucide-react';
 import NeonButton from './NeonButton';
@@ -107,7 +107,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
 
   const handleSaveConnection = () => {
     if (!showFormFor || !formData.alias) {
-        alert("Vui lòng nhập Tên gợi nhớ để phân biệt tài khoản.");
+        alert(t.input_alias_alert || "Please enter an alias.");
         return;
     }
     
@@ -134,7 +134,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   };
 
   const deleteKey = (id: string) => {
-    if (confirm("Xóa vĩnh viễn Node kết nối này?")) {
+    if (confirm(t.delete_confirm || "Delete this connection?")) {
       const updated = apiKeys.filter(k => k.id !== id);
       setApiKeys(updated);
       localStorage.setItem('av_studio_secure_vault_v1', JSON.stringify(updated));
@@ -152,22 +152,21 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
             <ShieldCheck size={36} className="text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter uppercase leading-none">{t.settings}</h2>
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2">Vault v5.0 • Multi-Node Management</p>
+            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter uppercase leading-none">{t.vault_title}</h2>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2">{t.vault_subtitle}</p>
           </div>
         </div>
         <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-inner flex-wrap justify-center overflow-x-auto no-scrollbar max-w-full">
           <button onClick={() => setActiveTab('affiliate')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'affiliate' ? 'bg-green-600 text-white shadow-neon' : 'text-slate-500'}`}>{t.affiliate_vault}</button>
           <button onClick={() => setActiveTab('social')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'social' ? 'bg-blue-600 text-white shadow-neon' : 'text-slate-500'}`}>{t.social_hub}</button>
-          <button onClick={() => setActiveTab('brain')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'brain' ? 'bg-slate-700 text-white shadow-neon' : 'text-slate-500'}`}>Neural Brain</button>
-          <button onClick={() => setActiveTab('system')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'system' ? 'bg-primary text-white shadow-neon' : 'text-slate-500'}`}>Locales</button>
+          <button onClick={() => setActiveTab('brain')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'brain' ? 'bg-slate-700 text-white shadow-neon' : 'text-slate-500'}`}>{t.neural_brain}</button>
+          <button onClick={() => setActiveTab('system')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeTab === 'system' ? 'bg-primary text-white shadow-neon' : 'text-slate-500'}`}>{t.locales}</button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
           
-          {/* DYNAMIC CONNECTION FORM MODAL */}
           {showFormFor && currentPlatform && (
             <div className="bg-slate-950 border-2 border-primary/50 rounded-[32px] p-8 animate-fade-in space-y-8 shadow-[0_0_80px_rgba(14,165,164,0.15)] relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none"><KeyIcon size={240} /></div>
@@ -175,7 +174,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                 <div className="flex justify-between items-start relative z-10">
                     <div>
                         <h3 className="text-2xl font-black text-white uppercase flex items-center gap-3">
-                            <Zap className="text-primary animate-pulse" /> Kết nối {showFormFor.platform.replace('_', ' ').toUpperCase()}
+                            <Zap className="text-primary animate-pulse" /> {t.connect_node} {showFormFor.platform.replace('_', ' ').toUpperCase()}
                         </h3>
                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">Node Integration v5.0</p>
                     </div>
@@ -186,8 +185,8 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-neon"><ExternalLink size={24}/></div>
                         <div className="text-left">
-                            <h4 className="text-sm font-black text-white uppercase">Truy cập Console chính thức</h4>
-                            <p className="text-xs text-slate-400">Hệ thống mở đúng phân mục cấu hình của sàn này.</p>
+                            <h4 className="text-sm font-black text-white uppercase">{t.get_key_btn}</h4>
+                            <p className="text-xs text-slate-400">Official Console Link</p>
                         </div>
                     </div>
                     <a href={currentPlatform.link} target="_blank" rel="noopener noreferrer" className="px-10 py-4 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-neon hover:scale-105 transition-all flex items-center gap-2">
@@ -199,51 +198,50 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     {currentPlatform.fields.includes('alias') && (
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.input_alias}</label>
-                            <input value={formData.alias} onChange={(e) => setFormData({...formData, alias: e.target.value})} placeholder="e.g. Shop Quần Áo TP.HCM" className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner" />
+                            <input value={formData.alias} onChange={(e) => setFormData({...formData, alias: e.target.value})} placeholder="Node Alias..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner" />
                         </div>
                     )}
                     {currentPlatform.fields.includes('clientId') && (
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.input_client_id}</label>
-                            <input value={formData.clientId} onChange={(e) => setFormData({...formData, clientId: e.target.value})} placeholder="App Key / Client ID..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner" />
+                            <input value={formData.clientId} onChange={(e) => setFormData({...formData, clientId: e.target.value})} placeholder="Client ID..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner" />
                         </div>
                     )}
                     {currentPlatform.fields.includes('secret') && (
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.input_secret}</label>
-                            <input value={formData.secret} onChange={(e) => setFormData({...formData, secret: e.target.value})} type="password" placeholder="App Secret / Secret Key..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-mono outline-none focus:border-primary shadow-inner" />
+                            <input value={formData.secret} onChange={(e) => setFormData({...formData, secret: e.target.value})} type="password" placeholder="Secret Key..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-mono outline-none focus:border-primary shadow-inner" />
                         </div>
                     )}
                     {currentPlatform.fields.includes('partnerId') && (
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.input_partner_id}</label>
-                            <input value={formData.partnerId} onChange={(e) => setFormData({...formData, partnerId: e.target.value})} placeholder="Partner ID / Shop ID..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner" />
+                            <input value={formData.partnerId} onChange={(e) => setFormData({...formData, partnerId: e.target.value})} placeholder="Partner ID..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner" />
                         </div>
                     )}
                     {currentPlatform.fields.includes('trackingId') && (
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.input_tracking_id}</label>
-                            <input value={formData.trackingId} onChange={(e) => setFormData({...formData, trackingId: e.target.value})} placeholder="Associate Tag / Tracking ID..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner" />
+                            <input value={formData.trackingId} onChange={(e) => setFormData({...formData, trackingId: e.target.value})} placeholder="Tracking ID..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner" />
                         </div>
                     )}
                     {currentPlatform.fields.includes('key') && (
                         <div className="md:col-span-2 space-y-2">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.input_key_label}</label>
-                            <input value={formData.key} onChange={(e) => setFormData({...formData, key: e.target.value})} type="password" placeholder="API Access Token..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-mono outline-none focus:border-primary shadow-inner" />
+                            <input value={formData.key} onChange={(e) => setFormData({...formData, key: e.target.value})} type="password" placeholder="API Key / Token..." className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white font-mono outline-none focus:border-primary shadow-inner" />
                         </div>
                     )}
                 </div>
 
                 <div className="flex gap-4 pt-4 relative z-10">
                     <NeonButton onClick={handleSaveConnection} className="flex-1 h-16 uppercase text-[11px] font-black">
-                        <Save size={20}/> Lưu vào Vault an toàn
+                        <Save size={20}/> {t.save}
                     </NeonButton>
-                    <button onClick={() => setShowFormFor(null)} className="px-10 py-4 bg-slate-900 border border-slate-800 rounded-2xl text-slate-500 text-xs font-black uppercase hover:bg-slate-800 transition-all">Hủy</button>
+                    <button onClick={() => setShowFormFor(null)} className="px-10 py-4 bg-slate-900 border border-slate-800 rounded-2xl text-slate-500 text-xs font-black uppercase hover:bg-slate-800 transition-all">{t.cancel}</button>
                 </div>
             </div>
           )}
 
-          {/* LIST VIEW: AFFILIATE & SOCIAL */}
           {(activeTab === 'affiliate' || activeTab === 'social') && !showFormFor && (
             <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 animate-fade-in space-y-8">
                <div className="flex justify-between items-center border-b border-slate-800 pb-8 flex-wrap gap-6">
@@ -253,7 +251,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     </div>
                     <div>
                         <h3 className="text-xl font-black text-white uppercase tracking-tight">{activeTab === 'affiliate' ? t.affiliate_vault : t.social_hub}</h3>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{apiKeys.filter(k => k.category === activeTab).length} Nodes Connected</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{apiKeys.filter(k => k.category === activeTab).length} {t.nodes_connected}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 flex-wrap">
@@ -291,25 +289,18 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                         </div>
                     );
                   })}
-                  {apiKeys.filter(k => k.category === activeTab).length === 0 && (
-                      <div className="md:col-span-2 py-20 flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-[32px] opacity-20">
-                          <Layers size={48} className="mb-4" />
-                          <p className="text-xs font-black uppercase tracking-widest">Chưa có kết nối nào trong Vault</p>
-                      </div>
-                  )}
                </div>
             </div>
           )}
 
-          {/* SYSTEM & BRAIN TABS (KEPT AS BEFORE) */}
           {activeTab === 'system' && (
              <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 animate-fade-in space-y-10">
-                <h3 className="text-xl font-black text-white uppercase flex items-center gap-3"><Monitor className="text-primary"/> System Localization</h3>
+                <h3 className="text-xl font-black text-white uppercase flex items-center gap-3"><Monitor className="text-primary"/> {t.locales}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="bg-slate-950 border border-slate-800 p-6 rounded-[32px] space-y-5">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800"><Languages className="text-primary" /></div>
-                            <h4 className="font-black text-white uppercase tracking-tight">Giao diện (UI)</h4>
+                            <h4 className="font-black text-white uppercase tracking-tight">UI Language</h4>
                         </div>
                         <select value={appLang} onChange={(e) => setAppLang(e.target.value as AppLanguage)} className="w-full bg-slate-900 border-2 border-slate-800 rounded-xl p-4 text-xs text-white font-black uppercase outline-none focus:border-primary cursor-pointer shadow-inner appearance-none">
                             <option value="vi">🇻🇳 Tiếng Việt</option>
@@ -319,7 +310,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                     <div className="bg-slate-950 border border-slate-800 p-6 rounded-[32px] space-y-5">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800"><Globe className="text-green-500" /></div>
-                            <h4 className="font-black text-white uppercase tracking-tight">Nội dung (Script)</h4>
+                            <h4 className="font-black text-white uppercase tracking-tight">Script Language</h4>
                         </div>
                         <select value={contentLanguage} onChange={(e) => setContentLanguage(e.target.value as ContentLanguage)} className="w-full bg-slate-900 border-2 border-slate-800 rounded-xl p-4 text-xs text-white font-black uppercase outline-none focus:border-green-500 cursor-pointer shadow-inner appearance-none">
                             <option value="vi">Tiếng Việt</option>
@@ -334,9 +325,9 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
              <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 animate-fade-in space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                    <div className="space-y-6">
-                      <h3 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-3"><Brain className="text-primary"/> Neural Memory</h3>
-                      <textarea value={trainingText} onChange={(e) => setTrainingText(e.target.value)} placeholder="Nhập quy tắc hoặc sở thích nội dung của bạn..." className="w-full h-64 bg-slate-950 border border-slate-800 rounded-[24px] p-6 text-sm text-white focus:border-primary outline-none resize-none shadow-inner transition-all" />
-                      <NeonButton onClick={async () => { if (!onTrainBrain || !trainingText) return; setIsSynthesizing(true); await onTrainBrain(trainingText); setTrainingText(''); setIsSynthesizing(false); }} disabled={isSynthesizing || !trainingText} className="w-full h-14">{isSynthesizing ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}{isSynthesizing ? "PROCESSING..." : "TRAIN COMMANDER"}</NeonButton>
+                      <h3 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-3"><Brain className="text-primary"/> {t.neural_brain}</h3>
+                      <textarea value={trainingText} onChange={(e) => setTrainingText(e.target.value)} placeholder="Type rules or preferences..." className="w-full h-64 bg-slate-950 border border-slate-800 rounded-[24px] p-6 text-sm text-white focus:border-primary outline-none resize-none shadow-inner transition-all" />
+                      <NeonButton onClick={async () => { if (!onTrainBrain || !trainingText) return; setIsSynthesizing(true); await onTrainBrain(trainingText); setTrainingText(''); setIsSynthesizing(false); }} disabled={isSynthesizing || !trainingText} className="w-full h-14">{isSynthesizing ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}{isSynthesizing ? t.loading : "TRAIN COMMANDER"}</NeonButton>
                    </div>
                    <div className="bg-slate-950 border border-slate-800 rounded-[32px] p-6 overflow-y-auto h-[400px] custom-scrollbar space-y-3 text-left">
                       <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2"><Database size={12} className="text-primary" /> Established Preferences</h4>
@@ -347,7 +338,6 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
           )}
         </div>
 
-        {/* Support Sidebar Card */}
         <div className="lg:col-span-4 space-y-6">
            <div className="bg-slate-900/80 border border-slate-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:rotate-12 transition-all duration-700"><BookOpen size={120} /></div>
@@ -357,11 +347,11 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                <div className="space-y-6">
                   <div className="bg-slate-950 p-6 rounded-[28px] border border-slate-800 hover:border-amber-500/20 transition-all">
                      <h4 className="text-xs font-black text-amber-500 uppercase mb-2 flex items-center gap-2"><Lock size={14}/> Local-Only Relay</h4>
-                     <p className="text-[11px] text-slate-400 leading-relaxed italic">"Dữ liệu của bạn được lưu trữ 100% tại LocalStorage của trình duyệt này. Hệ thống không lưu giữ Token của người dùng trên Cloud."</p>
+                     <p className="text-[11px] text-slate-400 leading-relaxed italic">"{t.vault_local_desc}"</p>
                   </div>
                   <div className="bg-slate-950 p-6 rounded-[28px] border border-slate-800 hover:border-primary/20 transition-all">
                      <h4 className="text-xs font-black text-primary uppercase mb-2 flex items-center gap-2"><Share2 size={14}/> Node Dispatcher</h4>
-                     <p className="text-[11px] text-slate-400 leading-relaxed italic">"Mỗi Node là một tài khoản riêng biệt. Bạn có thể kết nối hàng chục Shop Shopee hoặc Kênh TikTok để AI điều phối nội dung song song."</p>
+                     <p className="text-[11px] text-slate-400 leading-relaxed italic">"{t.node_dispatcher_desc}"</p>
                   </div>
                </div>
            </div>

@@ -41,7 +41,7 @@ interface ViralDNAStudioProps {
 }
 
 const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({ 
-  predefinedTopic, apiKeys, appLanguage, contentLanguage, setContentLanguage, 
+  predefinedTopic, apiKeys, appLanguage: appLang, contentLanguage, setContentLanguage, 
   knowledgeBase, scriptModel, setScriptModel, visualModel, setVisualModel, 
   voiceModel, setVoiceModel, setResolution, aspectRatio, setAspectRatio,
   completedVideos = [], setCompletedVideos, t, onInitiateRender
@@ -179,19 +179,19 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                 <Scissors className="text-primary" size={28} />
               </div>
               <div>
-                  <h2 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase leading-tight">DNA Dissection & Cloning</h2>
+                  <h2 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase leading-tight">{t.dna_dissection}</h2>
                   <div className="flex items-center gap-2">
                     <div className={`w-1.5 h-1.5 rounded-full ${status === 'idle' ? 'bg-green-500' : 'bg-primary animate-pulse'}`}></div>
                     <span className="text-slate-500 text-[9px] font-black uppercase tracking-[0.15em]">
-                      {status === 'idle' ? "Targeting System Active" : "Scanning Multimodal success signals..."}
+                      {status === 'idle' ? "Targeting System Active" : t.processing_dna}
                     </span>
                   </div>
               </div>
           </div>
           <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800/50 shadow-inner w-full md:w-auto overflow-x-auto no-scrollbar">
-              <button onClick={() => setActiveStudioTab('recon')} className={`flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest whitespace-nowrap ${activeStudioTab === 'recon' ? 'bg-primary text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>1. Target Autopsy</button>
-              <button onClick={() => setActiveStudioTab('studio')} className={`flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest whitespace-nowrap ${activeStudioTab === 'studio' ? 'bg-primary text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>2. Genetic Cloning</button>
-              <button onClick={() => setActiveStudioTab('library')} className={`flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest whitespace-nowrap ${activeStudioTab === 'library' ? 'bg-primary text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>Media Archive</button>
+              <button onClick={() => setActiveStudioTab('recon')} className={`flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest whitespace-nowrap ${activeStudioTab === 'recon' ? 'bg-primary text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>{t.target_autopsy}</button>
+              <button onClick={() => setActiveStudioTab('studio')} className={`flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest whitespace-nowrap ${activeStudioTab === 'studio' ? 'bg-primary text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>{t.genetic_cloning}</button>
+              <button onClick={() => setActiveStudioTab('library')} className={`flex-1 md:flex-none px-4 md:px-8 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest whitespace-nowrap ${activeStudioTab === 'library' ? 'bg-primary text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>{t.media_archive}</button>
           </div>
       </div>
 
@@ -204,7 +204,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                       <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-slate-800 pb-8">
                         <div className="space-y-2">
                             <h3 className="text-3xl font-black text-white tracking-tighter uppercase flex items-center gap-3"><Target className="text-red-500 animate-pulse" size={28} /> {t.dna_viral_structure}</h3>
-                            <p className="text-slate-500 text-xs italic font-medium leading-relaxed max-w-2xl">"Phân tích đa chiều kịch bản, âm thanh và chuyển cảnh để bẻ khóa thành công của đối thủ."</p>
+                            <p className="text-slate-500 text-xs italic font-medium leading-relaxed max-w-2xl">{appLang === 'vi' ? '"Phân tích đa chiều kịch bản, âm thanh và chuyển cảnh để bẻ khóa thành công của đối thủ."' : '"Multidimensional analysis of scripts, audio, and transitions to crack competitor success DNA."'}</p>
                         </div>
                         <div className="flex gap-4">
                             <button onClick={addChannel} className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-primary hover:bg-primary hover:text-white transition-all"><Plus size={20}/></button>
@@ -219,16 +219,9 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center border text-[11px] font-black transition-colors ${channel.status === 'completed' ? 'bg-green-500/20 border-green-500 text-green-500' : 'bg-slate-900 border-slate-800 text-primary group-hover:bg-primary/10'}`}>
                                         {channel.status === 'analyzing' ? <Loader2 size={18} className="animate-spin" /> : channel.status === 'completed' ? <CheckCircle2 size={18} /> : i + 1}
                                       </div>
-                                      <input value={channel.url} onChange={(e) => updateChannelUrl(channel.id, e.target.value)} disabled={channel.status === 'analyzing'} placeholder="Dán URL video đối thủ (TikTok, YouTube, Facebook...)" className="bg-transparent border-none outline-none text-white font-mono text-sm flex-1 placeholder:text-slate-800" />
+                                      <input value={channel.url} onChange={(e) => updateChannelUrl(channel.id, e.target.value)} disabled={channel.status === 'analyzing'} placeholder={appLang === 'vi' ? "Dán URL video đối thủ (TikTok, YouTube...)" : "Paste competitor URL (TikTok, YouTube...)"} className="bg-transparent border-none outline-none text-white font-mono text-sm flex-1 placeholder:text-slate-800" />
                                       {channels.length > 1 && <button onClick={() => removeChannel(channel.id)} className="p-2 text-slate-600 hover:text-red-500 transition-colors"><X size={18}/></button>}
                                   </div>
-
-                                  {channel.error && (
-                                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center gap-3 text-red-500 animate-fade-in">
-                                        <ZapOff size={16} />
-                                        <span className="text-xs font-bold uppercase">{channel.error}</span>
-                                    </div>
-                                  )}
 
                                   {channel.profile && (
                                     <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 space-y-10 animate-fade-in relative overflow-hidden group">
@@ -257,19 +250,9 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
-                                            <div className="flex justify-between items-center">
-                                                <h4 className="text-[10px] font-black text-primary uppercase tracking-widest">Algorithm Compatibility</h4>
-                                                <span className="text-xl font-black text-white">{channel.profile.algorithm_fit_score}%</span>
-                                            </div>
-                                            <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden shadow-inner">
-                                                <div className="h-full bg-primary shadow-neon transition-all duration-1000" style={{ width: `${channel.profile.algorithm_fit_score}%` }}></div>
-                                            </div>
-                                        </div>
-
                                         <div className="flex gap-3 pt-2">
                                             <button onClick={() => { setStudioSettings({...studioSettings, topic: channel.profile?.keywords[0] || ""}); setActiveStudioTab('studio'); }} className="flex-1 py-4 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-neon hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
-                                                <Zap size={18} /> Clone DNA to Script Engine
+                                                <Zap size={18} /> {t.clone_to_script}
                                             </button>
                                         </div>
                                     </div>
@@ -281,7 +264,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                       <div className="pt-8 border-t border-slate-800 flex justify-center">
                           <NeonButton onClick={handleRunAnalysis} disabled={status === 'analyzing' || channels.every(c => !c.url.trim())} size="lg" className="min-w-[400px] h-16 shadow-neon">
                               {status === 'analyzing' ? <Loader2 size={24} className="animate-spin" /> : <Radar size={24} />}
-                              {status === 'analyzing' ? "Infiltrating Metadata..." : "Initiate DNA Autopsy"}
+                              {status === 'analyzing' ? t.loading : t.initiate_autopsy}
                           </NeonButton>
                       </div>
                   </div>
@@ -297,18 +280,18 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                </div>
                                <div className="space-y-3">
                                    <h4 className="text-2xl font-black text-white uppercase tracking-tighter">Strategic Factory Locked</h4>
-                                   <p className="text-slate-500 text-sm max-w-sm italic">"Kịch bản sẽ được băm nhỏ thành các Scene để xử lý phái sinh, đảm bảo không trùng lặp DNA gốc."</p>
+                                   <p className="text-slate-500 text-sm max-w-sm italic">{t.studio_locked_desc}</p>
                                </div>
                                <div className="w-full max-w-md relative">
-                                  <input value={studioSettings.topic} onChange={(e) => setStudioSettings({...studioSettings, topic: e.target.value})} placeholder="Topic hoặc từ khóa chiến dịch..." className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 text-sm text-white font-bold outline-none focus:border-primary shadow-inner transition-all" />
+                                  <input value={studioSettings.topic} onChange={(e) => setStudioSettings({...studioSettings, topic: e.target.value})} placeholder={appLang === 'vi' ? "Topic hoặc từ khóa chiến dịch..." : "Campaign topic or keyword..."} className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 text-sm text-white font-bold outline-none focus:border-primary shadow-inner transition-all" />
                                </div>
                                <NeonButton onClick={handleGenerateScript} disabled={status === 'generating' || !studioSettings.topic} className="w-full max-w-md h-16">
                                    {status === 'generating' ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}
-                                   {status === 'generating' ? "Processing DNA..." : "Synthesize AI Script"}
+                                   {status === 'generating' ? t.loading : t.synthesize_script}
                                </NeonButton>
                           </div>
                       ) : (
-                          <PlanResult data={generatedPlan} videoUrl={null} t={t} onInitiateRender={onInitiateRender} />
+                          <PlanResult data={generatedPlan} videoUrl={null} t={t} />
                       )}
                   </div>
               )}
@@ -317,13 +300,13 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                 <div className="animate-fade-in space-y-6">
                     <div className="bg-[#070B14]/80 border border-slate-800 rounded-[32px] p-10 backdrop-blur-xl shadow-2xl space-y-8">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3"><Library className="text-primary" size={28} /> Video Archive</h3>
+                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3"><Library className="text-primary" size={28} /> {t.media_archive}</h3>
                             <div className="w-full md:w-80 relative group">
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-primary transition-colors"><SearchIcon size={20} /></div>
                                 <input 
                                   value={searchQuery} 
                                   onChange={(e) => setSearchQuery(e.target.value)} 
-                                  placeholder="Tìm kiếm theo tiêu đề hoặc từ khóa..." 
+                                  placeholder={t.search_placeholder} 
                                   className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner transition-all" 
                                 />
                             </div>
@@ -342,13 +325,6 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                                 <h4 className="text-sm font-black text-white line-clamp-2 uppercase tracking-tight leading-tight group-hover:text-primary transition-colors">{video.title}</h4>
                                                 <div className="flex items-center gap-2 text-slate-500"><Clock size={12} /><span className="text-[10px] font-mono">{new Date(video.timestamp).toLocaleDateString()}</span></div>
                                             </div>
-                                            {video.keywords && video.keywords.length > 0 && (
-                                              <div className="flex flex-wrap gap-1 mt-2">
-                                                {video.keywords.slice(0, 3).map((k, i) => (
-                                                  <span key={i} className="text-[8px] font-black text-slate-600 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 uppercase">#{k.replace('#','')}</span>
-                                                ))}
-                                              </div>
-                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -357,7 +333,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                             <div className="flex flex-col items-center justify-center py-20 opacity-20 text-center space-y-4">
                                 <SearchIcon size={80} />
                                 <h4 className="text-2xl font-black uppercase tracking-tighter">
-                                  {searchQuery ? "Không tìm thấy kết quả" : "Kho lưu trữ trống"}
+                                  {searchQuery ? (appLang === 'vi' ? "Không tìm thấy kết quả" : "No results found") : (appLang === 'vi' ? "Kho lưu trữ trống" : "Archive empty")}
                                 </h4>
                             </div>
                         )}
@@ -368,17 +344,17 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
           <div className="lg:col-span-4 space-y-6">
               <div className="bg-[#0A101F] border border-slate-800 rounded-[32px] p-8 shadow-2xl backdrop-blur-md">
-                  <h3 className="text-xs font-black text-white uppercase tracking-widest mb-8 flex items-center gap-3"><Zap size={18} className="text-primary" /> Render Constraints</h3>
+                  <h3 className="text-xs font-black text-white uppercase tracking-widest mb-8 flex items-center gap-3"><Zap size={18} className="text-primary" /> {t.render_constraints}</h3>
                   <div className="space-y-8">
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Character Lock</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.character_lock}</label>
                             <button onClick={() => setStudioSettings({...studioSettings, characterLock: !studioSettings.characterLock})} className={`p-2 rounded-xl border transition-all ${studioSettings.characterLock ? 'bg-primary/20 border-primary text-primary shadow-neon' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
                               {studioSettings.characterLock ? <Lock size={16}/> : <Unlock size={16}/>}
                             </button>
                         </div>
                         <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Visual Consistency</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.visual_consistency}</label>
                             <button onClick={() => setStudioSettings({...studioSettings, styleLock: !studioSettings.styleLock})} className={`p-2 rounded-xl border transition-all ${studioSettings.styleLock ? 'bg-blue-500/20 border-blue-500 text-blue-400 shadow-neon' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
                               {studioSettings.styleLock ? <ShieldCheck size={16}/> : <Layers size={16}/>}
                             </button>
@@ -387,7 +363,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
                       <div className="space-y-4">
                           <div className="flex justify-between items-center">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Viral DNA Adherence</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.viral_adherence}</label>
                             <span className="text-[11px] font-black text-primary">{studioSettings.hookStrength}%</span>
                           </div>
                           <input type="range" min="50" max="100" value={studioSettings.hookStrength} onChange={(e) => setStudioSettings({...studioSettings, hookStrength: parseInt(e.target.value)})} className="w-full accent-primary bg-slate-950 h-2 rounded-full cursor-pointer" />
@@ -395,7 +371,7 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
                       <NeonButton onClick={handleRenderCycle} disabled={!generatedPlan || isRendering} className="w-full h-16 uppercase text-xs font-black shadow-neon">
                           {isRendering ? <Loader2 size={18} className="animate-spin" /> : <Film size={18} />}
-                          {isRendering ? "RENDERING..." : "Initiate Final Render"}
+                          {isRendering ? (appLang === 'vi' ? "ĐANG RENDER..." : "RENDERING...") : t.initiate_render}
                       </NeonButton>
                   </div>
               </div>
@@ -403,9 +379,11 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
               <div className="bg-primary/5 border border-primary/20 rounded-[32px] p-8 space-y-4">
                   <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary"><Lightbulb size={24}/></div>
-                      <h4 className="text-sm font-black text-white uppercase tracking-tight">AI Strategy Insight</h4>
+                      <h4 className="text-sm font-black text-white uppercase tracking-tight">{t.ai_strategy_insight}</h4>
                   </div>
-                  <p className="text-[11px] text-slate-400 italic leading-relaxed">"Sử dụng Target Autopsy sẽ giúp AI trích xuất các nhãn dán thị giác (visual tags) quan trọng nhất khiến video dễ dàng lên xu hướng."</p>
+                  <p className="text-[11px] text-slate-400 italic leading-relaxed">
+                    {appLang === 'vi' ? '"Sử dụng Target Autopsy sẽ giúp AI trích xuất các nhãn dán thị giác (visual tags) quan trọng nhất khiến video dễ dàng lên xu hướng."' : '"Using Target Autopsy helps AI extract the most important visual tags that make videos trend easily."'}
+                  </p>
               </div>
           </div>
       </div>
