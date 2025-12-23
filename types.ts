@@ -15,9 +15,17 @@ export interface ApiKeyConfig {
   alias: string;
   key: string;
   provider: string;
-  category: 'social' | 'affiliate' | 'google';
+  category: 'social' | 'affiliate' | 'google' | 'ai';
   status: 'active' | 'inactive';
-  extra_fields?: Record<string, string>;
+  extra_fields?: {
+    client_id?: string;
+    secret?: string;
+    partner_id?: string;
+    tracking_id?: string;
+    app_id?: string;
+    webhook_url?: string;
+    region?: string;
+  };
 }
 
 export interface KnowledgeBase {
@@ -223,7 +231,6 @@ export interface GoldenHourRecommendation {
   reason: string;
 }
 
-// Added missing ScheduleSlot interface to fix import errors in other files
 export interface ScheduleSlot {
   slot_id: string | number;
   time_of_day: string;
@@ -297,8 +304,8 @@ export interface ABTestMetadata {
 
 export interface AIMarketReport {
   sub_niche: string;
-  growth_velocity: number; // 0-100
-  bounty_score: number; // 0-100
+  growth_velocity: number;
+  bounty_score: number;
   monetization_logic: string;
   top_products: {
     name: string;

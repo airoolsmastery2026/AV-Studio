@@ -66,8 +66,6 @@ export const translations: any = {
     commander_subtitle: "CHẾ ĐỘ TỔNG TƯ LỆNH",
     placeholder_cmd: "Nhập lệnh điều hành hệ thống...",
     status_analyzing: "Đang phân tích",
-    
-    // Detailed Manual Content for VI
     manual_content: {
       status: {
         title: "0. KIỂM TRA HỆ THẦN KINH",
@@ -172,25 +170,6 @@ export const translations: any = {
     commander_title: "AI COMMANDER V4",
     commander_subtitle: "EXECUTIVE MODE",
     placeholder_cmd: "Enter system command...",
-    status_analyzing: "Analyzing",
-    
-    manual_content: {
-      status: {
-        title: "0. NEURAL SYSTEM CHECK",
-        content: "Ensure your Google Gemini API is Healthy. The system uses Gemini 3 Pro for strategic thinking and Veo 3.1 for cinematography. Check Google AI Studio if you see quota errors.",
-        check_list: ["Internet Connection", "API Key Validation", "Multi-Node Activation"]
-      },
-      philosophy: {
-        title: "1. DNA CLONING PHILOSOPHY",
-        content: "We don't copy. We dissect successful videos to extract Visual Pacing, Hook Strength, and Emotional Curves. AI then generates a completely new entity with the same 'success genes'.",
-        pro_tip: "Mix 3 different DNA sources in the Studio for original, high-performing scripts."
-      },
-      tips: {
-        title: "9. PRO TRICKS",
-        video_tips: ["3-Second Rule: Grab attention immediately.", "Captions: Highlight keywords to stimulate visuals.", "Audio: Mix trending music at 10-15% volume."],
-        affiliate_tips: ["AI Tools Niche: 2025 Goldmine. Review tools that solve pain points.", "CTA: Don't just say 'Buy'. Offer value like 'Get this kit to save 5h/day'."],
-        social_tips: ["Frequency: 3 videos/day for AutoPilot.", "Hashtags: Use 2 Niche + 2 Trending + 1 Brand."]
-      }
-    }
+    status_analyzing: "Analyzing"
   }
 };

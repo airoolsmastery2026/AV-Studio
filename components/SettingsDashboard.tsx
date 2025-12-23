@@ -5,8 +5,8 @@ import {
   Zap, Key as KeyIcon, 
   Store, Music, X, Loader2, Sparkles,
   ExternalLink, Lock, ShieldCheck,
-  Languages, Monitor, Youtube, Facebook, LayoutGrid, ArrowUpRight, Save, Trash2, Share2, Globe, Instagram, MessageCircle, MoreVertical,
-  Layers, BookOpen, Plus, CheckCircle2, AlertCircle
+  Languages, Monitor, Youtube, Facebook, LayoutGrid, ArrowUpRight, ArrowRight, Save, Trash2, Share2, Globe, Instagram, MessageCircle, MoreVertical,
+  Layers, BookOpen, Plus, CheckCircle2, AlertCircle, Cpu, Mic, Video, CreditCard, ShoppingCart
 } from 'lucide-react';
 import NeonButton from './NeonButton';
 import { ApiKeyConfig, KnowledgeBase, AppLanguage, ContentLanguage } from '../types';
@@ -28,10 +28,10 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
   apiKeys, setApiKeys, knowledgeBase, setKnowledgeBase, onTrainBrain, t,
   appLang, setAppLang, contentLanguage, setContentLanguage
 }) => {
-  const [activeTab, setActiveTab] = useState<'affiliate' | 'social' | 'brain' | 'system'>('affiliate');
+  const [activeTab, setActiveTab] = useState<'ai_nodes' | 'affiliate' | 'social' | 'brain' | 'system'>('ai_nodes');
   const [trainingText, setTrainingText] = useState('');
   const [isSynthesizing, setIsSynthesizing] = useState(false);
-  const [showFormFor, setShowFormFor] = useState<{platform: string, category: 'social' | 'affiliate'} | null>(null);
+  const [showFormFor, setShowFormFor] = useState<{platform: string, category: 'social' | 'affiliate' | 'ai'} | null>(null);
   
   const [formData, setFormData] = useState({ 
     alias: '', 
@@ -39,20 +39,37 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
     clientId: '', 
     secret: '', 
     partnerId: '', 
-    trackingId: '' 
+    trackingId: '',
+    appId: ''
   });
 
   const PLATFORM_CONFIG: Record<string, { label: string, link: string, fields: string[], icon: any, color: string, bgColor: string }> = {
+    // AI NODES
+    'gemini': { label: 'Google Gemini AI', link: 'https://aistudio.google.com/app/apikey', fields: ['alias', 'key'], icon: Sparkles, color: 'text-blue-400', bgColor: 'bg-blue-400/10' },
+    'openai': { label: 'OpenAI (GPT-4o/Sora)', link: 'https://platform.openai.com/api-keys', fields: ['alias', 'key'], icon: Cpu, color: 'text-green-500', bgColor: 'bg-green-500/10' },
+    'elevenlabs': { label: 'ElevenLabs Voice', link: 'https://elevenlabs.io/app/settings/api-keys', fields: ['alias', 'key'], icon: Mic, color: 'text-orange-400', bgColor: 'bg-orange-400/10' },
+    'vbee': { label: 'Vbee TTS Vietnam', link: 'https://vbee.vn/console', fields: ['alias', 'key', 'appId'], icon: Music, color: 'text-purple-400', bgColor: 'bg-purple-400/10' },
+    
+    // AFFILIATE - GLOBAL & REGIONAL
     'shopee': { label: 'Shopee Open Platform', link: 'https://open.shopee.com/apps', fields: ['alias', 'clientId', 'secret', 'partnerId'], icon: ShoppingBag, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
     'lazada': { label: 'Lazada Open Platform', link: 'https://open.lazada.com/apps/', fields: ['alias', 'clientId', 'secret'], icon: Store, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
     'tiktok_shop': { label: 'TikTok Shop Partner', link: 'https://partner.tiktokshop.com/service/list', fields: ['alias', 'clientId', 'secret', 'partnerId'], icon: Music, color: 'text-white', bgColor: 'bg-slate-800' },
-    'amazon': { label: 'Amazon Associates API', link: 'https://affiliate-program.amazon.com/home/tools/paapi', fields: ['alias', 'key', 'secret', 'trackingId'], icon: ShoppingBag, color: 'text-yellow-500', bgColor: 'bg-yellow-500/10' },
+    'amazon': { label: 'Amazon Associates (US/Global)', link: 'https://affiliate-program.amazon.com/home/tools/paapi', fields: ['alias', 'key', 'secret', 'trackingId'], icon: ShoppingBag, color: 'text-yellow-500', bgColor: 'bg-yellow-500/10' },
+    'amazon_jp': { label: 'Amazon Japan Associates', link: 'https://affiliate.amazon.co.jp/assoc_credentials/home', fields: ['alias', 'key', 'secret', 'trackingId'], icon: ShoppingBag, color: 'text-orange-400', bgColor: 'bg-orange-400/10' },
+    'aliexpress': { label: 'AliExpress Portals', link: 'https://portals.aliexpress.com/adcenter/api_setting.htm', fields: ['alias', 'key', 'secret', 'trackingId'], icon: ShoppingCart, color: 'text-red-500', bgColor: 'bg-red-500/10' },
+    'ebay': { label: 'eBay Partner Network', link: 'https://partnernetwork.ebay.com/', fields: ['alias', 'clientId', 'secret', 'trackingId'], icon: ShoppingBag, color: 'text-blue-400', bgColor: 'bg-blue-400/10' },
+    'coupang': { label: 'Coupang Partners (Korea)', link: 'https://partners.coupang.com/#help/api', fields: ['alias', 'key', 'secret'], icon: Zap, color: 'text-red-600', bgColor: 'bg-red-600/10' },
+    'rakuten_jp': { label: 'Rakuten Ichiba (Japan)', link: 'https://webservice.rakuten.co.jp/', fields: ['alias', 'appId', 'partnerId'], icon: Store, color: 'text-red-700', bgColor: 'bg-red-700/10' },
+    'gmarket': { label: 'Gmarket API (Korea)', link: 'http://nls.gmarket.co.kr/', fields: ['alias', 'clientId', 'secret'], icon: ShoppingCart, color: 'text-green-600', bgColor: 'bg-green-600/10' },
+    'clickbank': { label: 'ClickBank API', link: 'https://accounts.clickbank.com/master/settings.htm', fields: ['alias', 'key', 'clientId'], icon: CreditCard, color: 'text-blue-800', bgColor: 'bg-blue-800/10' },
     'accesstrade': { label: 'AccessTrade API V2', link: 'https://pub.accesstrade.vn/tools/api_key', fields: ['alias', 'key'], icon: Zap, color: 'text-red-500', bgColor: 'bg-red-500/10' },
+    
+    // SOCIAL
     'youtube': { label: 'Google Cloud (YouTube API)', link: 'https://console.cloud.google.com/apis/credentials', fields: ['alias', 'key', 'clientId'], icon: Youtube, color: 'text-red-600', bgColor: 'bg-red-600/10' },
     'tiktok': { label: 'TikTok For Developers', link: 'https://developers.tiktok.com/console/app', fields: ['alias', 'clientId', 'secret'], icon: Music, color: 'text-white', bgColor: 'bg-slate-800' },
-    'facebook': { label: 'Meta For Developers', link: 'https://developers.facebook.com/apps/', fields: ['alias', 'clientId', 'key'], icon: Facebook, color: 'text-blue-600', bgColor: 'bg-blue-600/10' },
+    'facebook': { label: 'Meta For Developers', link: 'https://developers.facebook.com/apps/', fields: ['alias', 'appId', 'secret'], icon: Facebook, color: 'text-blue-600', bgColor: 'bg-blue-600/10' },
     'instagram': { label: 'Instagram Graph API', link: 'https://developers.facebook.com/docs/instagram-api/', fields: ['alias', 'key'], icon: Instagram, color: 'text-pink-500', bgColor: 'bg-pink-500/10' },
-    'zalo': { label: 'Zalo Developers Platform', link: 'https://developers.zalo.me/apps/', fields: ['alias', 'clientId', 'key'], icon: MessageCircle, color: 'text-blue-400', bgColor: 'bg-blue-400/10' }
+    'zalo': { label: 'Zalo Developers Platform', link: 'https://developers.zalo.me/apps/', fields: ['alias', 'appId', 'key'], icon: MessageCircle, color: 'text-blue-400', bgColor: 'bg-blue-400/10' }
   };
 
   const handleSaveConnection = () => {
@@ -60,7 +77,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
     const newKey: ApiKeyConfig = {
         id: crypto.randomUUID(),
         alias: formData.alias,
-        key: formData.key || 'MANAGED_KEY',
+        key: formData.key || 'MANAGED_CREDENTIAL',
         provider: showFormFor.platform,
         category: showFormFor.category,
         status: 'active',
@@ -68,24 +85,25 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
           client_id: formData.clientId, 
           secret: formData.secret, 
           partner_id: formData.partnerId, 
-          tracking_id: formData.trackingId 
+          tracking_id: formData.trackingId,
+          app_id: formData.appId
         }
     };
     setApiKeys([...apiKeys, newKey]);
     setShowFormFor(null);
-    setFormData({ alias: '', key: '', clientId: '', secret: '', partnerId: '', trackingId: '' });
+    setFormData({ alias: '', key: '', clientId: '', secret: '', partnerId: '', trackingId: '', appId: '' });
   };
 
   const removeNode = (id: string) => {
     setApiKeys(apiKeys.filter(k => k.id !== id));
   };
 
-  const renderActiveNodes = (category: 'social' | 'affiliate') => {
+  const renderActiveNodes = (category: 'social' | 'affiliate' | 'ai') => {
     const nodes = apiKeys.filter(k => k.category === category);
     if (nodes.length === 0) return (
       <div className="py-12 text-center opacity-30 border-2 border-dashed border-slate-800 rounded-[32px]">
         <AlertCircle size={48} className="mx-auto mb-3" />
-        <p className="text-xs font-black uppercase tracking-widest">Không có Node nào đang hoạt động</p>
+        <p className="text-xs font-black uppercase tracking-widest">Không có Node {category.toUpperCase()} nào đang hoạt động</p>
       </div>
     );
 
@@ -124,10 +142,11 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
           </div>
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter uppercase leading-none">{t.vault_title}</h2>
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2">{t.vault_subtitle}</p>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2">HỆ THỐNG QUẢN LÝ NODE DỮ LIỆU TẬP TRUNG V5.0</p>
           </div>
         </div>
         <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 shadow-inner flex-wrap justify-center overflow-x-auto no-scrollbar max-w-full">
+          <button onClick={() => setActiveTab('ai_nodes')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'ai_nodes' ? 'bg-purple-600 text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>AI ENGINE NODES</button>
           <button onClick={() => setActiveTab('affiliate')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'affiliate' ? 'bg-green-600 text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>{t.affiliate_vault}</button>
           <button onClick={() => setActiveTab('social')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'social' ? 'bg-blue-600 text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>{t.social_hub}</button>
           <button onClick={() => setActiveTab('brain')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeTab === 'brain' ? 'bg-slate-700 text-white shadow-neon' : 'text-slate-500 hover:text-white'}`}>{t.neural_brain}</button>
@@ -138,21 +157,25 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-8">
           
-          {(activeTab === 'affiliate' || activeTab === 'social') && (
+          {(activeTab === 'ai_nodes' || activeTab === 'affiliate' || activeTab === 'social') && (
             <div className="animate-fade-in space-y-8">
               {/* Node Registration Grid */}
               <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 space-y-8 shadow-xl">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-6">
                   <h3 className="text-xl font-black text-white uppercase flex items-center gap-3">
-                    {activeTab === 'affiliate' ? <ShoppingBag className="text-green-500" /> : <Globe className="text-blue-500" />}
-                    {activeTab === 'affiliate' ? 'ĐĂNG KÝ KẾT NỐI AFFILIATE' : 'LIÊN KẾT MẠNG XÃ HỘI'}
+                    {activeTab === 'ai_nodes' ? <Cpu className="text-purple-500" /> : activeTab === 'affiliate' ? <ShoppingBag className="text-green-500" /> : <Globe className="text-blue-500" />}
+                    {activeTab === 'ai_nodes' ? 'KẾT NỐI TRÍ TUỆ NHÂN TẠO (AI NODES)' : activeTab === 'affiliate' ? 'ĐĂNG KÝ KẾT NỐI AFFILIATE QUỐC TẾ' : 'LIÊN KẾT MẠNG XÃ HỘI'}
                   </h3>
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">V5.0 Multi-Node Support</span>
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">AES-256 VAULT SECURED</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {Object.entries(PLATFORM_CONFIG)
-                    .filter(([key, val]) => activeTab === 'affiliate' ? ['shopee', 'lazada', 'tiktok_shop', 'amazon', 'accesstrade'].includes(key) : ['youtube', 'tiktok', 'facebook', 'instagram', 'zalo'].includes(key))
+                    .filter(([key]) => {
+                      if (activeTab === 'ai_nodes') return ['gemini', 'openai', 'elevenlabs', 'vbee'].includes(key);
+                      if (activeTab === 'affiliate') return ['shopee', 'lazada', 'tiktok_shop', 'amazon', 'amazon_jp', 'aliexpress', 'ebay', 'coupang', 'rakuten_jp', 'gmarket', 'clickbank', 'accesstrade'].includes(key);
+                      return ['youtube', 'tiktok', 'facebook', 'instagram', 'zalo'].includes(key);
+                    })
                     .map(([key, config]) => (
                       <button 
                         key={key} 
@@ -171,7 +194,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
               {/* Active Nodes List */}
               <div className="bg-slate-950/50 border border-slate-800 rounded-[40px] p-8 space-y-6">
                 <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-3">
-                  <Layers size={16} className="text-primary" /> {t.nodes_connected}
+                  <Layers size={16} className="text-primary" /> {t.nodes_connected} ({apiKeys.filter(k => k.category === activeTab).length})
                 </h3>
                 {renderActiveNodes(activeTab)}
               </div>
@@ -257,7 +280,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
             <div className="bg-slate-950 border border-slate-800 rounded-[40px] p-8 space-y-6 shadow-2xl">
                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-3"><Zap size={14} className="text-yellow-500"/> Node Dispatcher Intel</h4>
                 <div className="space-y-4">
-                   <p className="text-[10px] text-slate-400 leading-loose font-medium">Hệ thống v5.0 hỗ trợ <span className="text-primary">Multi-Node</span>. Mỗi tài khoản kết nối đóng vai trò là một Node phân phối nội dung song song để tối đa hóa độ phủ thương hiệu.</p>
+                   <p className="text-[10px] text-slate-400 leading-loose font-medium">Bản v5.0 đã bổ sung các sàn TMĐT quốc tế chất lượng nhất từ Hàn Quốc và Nhật Bản. Tận dụng <span className="text-primary">Multi-Node</span> để triển khai chiến dịch Affiliate toàn cầu.</p>
                    <div className="flex items-center gap-3 text-green-500">
                       <CheckCircle2 size={16} />
                       <span className="text-[10px] font-black uppercase">AES-256 Client-Side Encryption</span>
@@ -291,7 +314,12 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                 {PLATFORM_CONFIG[showFormFor.platform].fields.map(field => (
                   <div key={field} className="space-y-2">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
-                      {field === 'alias' ? t.input_alias : field === 'key' ? t.input_key_label : field === 'clientId' ? t.input_client_id : field === 'secret' ? t.input_secret : field === 'partnerId' ? t.input_partner_id : t.input_tracking_id}
+                      {field === 'alias' ? 'Tên gợi nhớ (Ví dụ: Store Hàn Quốc 01)' : 
+                       field === 'key' ? 'Access Key / API Key' : 
+                       field === 'clientId' ? 'Client ID' : 
+                       field === 'secret' ? 'Secret Key' : 
+                       field === 'partnerId' ? 'Partner ID' : 
+                       field === 'appId' ? 'App ID' : 'Tracking ID'}
                     </label>
                     <input 
                       value={(formData as any)[field]}
@@ -306,10 +334,10 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
               <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <ExternalLink size={18} className="text-primary" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cần hỗ trợ lấy API Key?</span>
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cần lấy mã API cho nền tảng này?</span>
                 </div>
                 <a href={PLATFORM_CONFIG[showFormFor.platform].link} target="_blank" rel="noreferrer" className="text-[10px] font-black text-white bg-slate-900 border border-slate-800 px-5 py-2.5 rounded-xl hover:bg-primary transition-all uppercase tracking-widest">
-                  {t.get_key_btn}
+                  ĐẾN TRANG DÍCH <ArrowRight size={14} className="inline ml-1" />
                 </a>
               </div>
 
@@ -318,7 +346,7 @@ const SettingsDashboard: React.FC<SettingsDashboardProps> = ({
                   {t.cancel}
                 </button>
                 <NeonButton onClick={handleSaveConnection} className="flex-[2] h-[64px] rounded-3xl text-sm shadow-neon">
-                  <Save size={20} /> {t.save}
+                  <Save size={20} /> LƯU NODE KẾT NỐI
                 </NeonButton>
               </div>
             </div>
