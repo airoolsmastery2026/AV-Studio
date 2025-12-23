@@ -383,11 +383,29 @@ export const sendChatToAssistant = async (key: string, history: any[], message: 
       model: 'gemini-3-pro-preview',
       contents: message,
       config: { 
-        systemInstruction: `Commander for AV Studio. Context: ${JSON.stringify(context)}`,
+        systemInstruction: `Bạn là AI Commander của hệ thống AV Studio.
+        NHIỆM VỤ: Hỗ trợ người dùng điều hành xưởng sản xuất video Affiliate.
+        DỮ LIỆU HIỆN TẠI: ${JSON.stringify(context)}.
+        QUY TẮC:
+        1. Sử dụng Google Search khi người dùng hỏi về xu hướng, kiến thức mới.
+        2. Nếu người dùng muốn chuyển tab (ví dụ: "vào studio", "xem lịch"), hãy trả về lệnh NAVIGATE kèm ID tab. Các tab: studio, auto_pilot, campaign, analytics, marketplace, risk_center, queue, settings.
+        3. Luôn trả về JSON format: {"text": "lời thoại", "command": {"action": "NAVIGATE", "payload": "tab_id"} | null, "suggestions": ["câu hỏi gợi ý"], "sources": []}.
+        4. Trích xuất URLs từ groundingMetadata.groundingChunks và đưa vào mảng "sources" dưới dạng {"uri": "", "title": ""}.`,
         responseMimeType: "application/json",
         tools: [{ googleSearch: {} }]
       }
     });
-    return cleanAndParseJSON(response.text);
+
+    const parsed = cleanAndParseJSON(response.text) || { text: response.text, command: null, suggestions: [], sources: [] };
+    
+    // Auto-extract sources from grounding metadata if model didn't fill it correctly
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    if (chunks && (!parsed.sources || parsed.sources.length === 0)) {
+      parsed.sources = chunks
+        .filter((c: any) => c.web)
+        .map((c: any) => ({ uri: c.web.uri, title: c.web.title }));
+    }
+
+    return parsed;
   });
 };

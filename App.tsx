@@ -24,7 +24,7 @@ import ChannelHealthDashboard from './components/ChannelHealthDashboard';
 import WelcomeScreen from './components/WelcomeScreen';
 
 import { translations } from './constants/translations';
-import { synthesizeKnowledge, getApiHealthStatus, generateVeoVideo, generateAIImage, huntAffiliateProducts } from './services/geminiService';
+import { synthesizeKnowledge, getApiHealthStatus, generateVeoVideo, generateAIImage } from './services/geminiService';
 
 const VAULT_STORAGE_KEY = 'av_studio_secure_vault_v1';
 const KNOWLEDGE_BASE_KEY = 'av_studio_brain_v1';
@@ -57,7 +57,7 @@ const App: React.FC = () => {
   const [autoPilotActive, setAutoPilotActive] = useState(false);
   const [autoPilotStats, setAutoPilotStats] = useState<AutoPilotStats>({ cyclesRun: 0, videosCreated: 0, postedCount: 0, uptime: 0 });
   const [autoPilotLogs, setAutoPilotLogs] = useState<AutoPilotLog[]>([]);
-  const [autoPilotNiche, setAutoPilotNiche] = useState('AI_SAAS_TOOLS'); 
+  const [autoPilotNiche, setAutoPilotNiche] = useState('AUTO'); 
   const [currentMission, setCurrentMission] = useState<MissionIntel | null>(null);
   const [selectedTopicFromWizard, setSelectedTopicFromWizard] = useState('');
 
@@ -68,7 +68,6 @@ const App: React.FC = () => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
   const [jobs, setJobs] = useState<PostingJob[]>([]);
 
-  // Timer for API health
   useEffect(() => {
     const timer = setInterval(() => {
       const health = getApiHealthStatus();
@@ -76,47 +75,6 @@ const App: React.FC = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Main AutoPilot Loop Logic
-  useEffect(() => {
-    let interval: number;
-    if (autoPilotActive) {
-      const runCycle = async () => {
-        const googleKey = apiKeys.find(k => k.provider === 'google' && k.status === 'active');
-        if (!googleKey) {
-            addLog("AUTO_PILOT", "Critical Error: No Google API Key found in Vault.", "error");
-            setAutoPilotActive(false);
-            return;
-        }
-
-        setStatus(AppStatus.HUNTING);
-        addLog("AUTO_HUNTER", `Scanning Global Marketplace for ${autoPilotNiche} signals...`, "info");
-        
-        try {
-            const huntResult = await huntAffiliateProducts(googleKey.key, autoPilotNiche, ['Global AI Networks']);
-            if (huntResult.products && huntResult.products.length > 0) {
-                const mission = huntResult.products[0];
-                setCurrentMission(mission);
-                addLog("AUTO_HUNTER", `High Bounty Target Identified: ${mission.product_name} (${mission.commission_rate})`, "success");
-                
-                // Simulate production delay for realism
-                setTimeout(() => {
-                   addLog("RECON", `Analyzing Viral DNA for target: ${mission.product_name}`, "info");
-                   setAutoPilotStats(prev => ({ ...prev, cyclesRun: prev.cyclesRun + 1 }));
-                }, 2000);
-            }
-        } catch (e: any) {
-            addLog("AUTO_HUNTER", `Search Failure: ${e.message}`, "error");
-        } finally {
-            setStatus(AppStatus.IDLE);
-        }
-      };
-
-      runCycle();
-      interval = window.setInterval(runCycle, 600000); // Repeat every 10 mins
-    }
-    return () => clearInterval(interval);
-  }, [autoPilotActive, autoPilotNiche]);
 
   useEffect(() => {
     if (mainContentRef.current) {
@@ -128,12 +86,7 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(completedVideos)); }, [completedVideos]);
 
   const addLog = (action: string, detail: string, status: 'success' | 'error' | 'warning' | 'info' = 'info') => {
-    const newLog: AutoPilotLog = { 
-        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }), 
-        action, 
-        detail, 
-        status 
-    };
+    const newLog: AutoPilotLog = { timestamp: new Date().toLocaleTimeString('vi-VN', { hour12: false }), action, detail, status };
     setAutoPilotLogs(prev => [newLog, ...prev].slice(0, 50));
   };
 
