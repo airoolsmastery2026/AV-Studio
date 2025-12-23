@@ -78,6 +78,7 @@ export interface CompletedVideo {
   thumbnail?: string;
   title: string;
   timestamp: number;
+  keywords?: string[];
   ab_test?: ABTestMetadata;
 }
 

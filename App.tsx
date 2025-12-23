@@ -96,7 +96,14 @@ const App: React.FC = () => {
     try {
       const videoUrl = await generateVeoVideo(plan.production_plan.script_master, plan.production_plan.technical_specs.ratio);
       const thumbUrl = await generateAIImage(plan.generated_content.thumbnail_prompt, "1:1");
-      const newVideo: CompletedVideo = { id: crypto.randomUUID(), url: videoUrl, thumbnail: thumbUrl, title: plan.generated_content.title, timestamp: Date.now() };
+      const newVideo: CompletedVideo = { 
+        id: crypto.randomUUID(), 
+        url: videoUrl, 
+        thumbnail: thumbUrl, 
+        title: plan.generated_content.title, 
+        timestamp: Date.now(),
+        keywords: plan.generated_content.hashtags // Lưu trữ hashtags từ plan
+      };
       setCompletedVideos(prev => [newVideo, ...prev]);
       addLog("FACTORY", `Hoàn tất: ${plan.generated_content.title}`, "success");
       setStatus(AppStatus.IDLE);

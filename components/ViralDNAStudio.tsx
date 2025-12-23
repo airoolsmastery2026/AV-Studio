@@ -162,10 +162,12 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
 
   const filteredArchive = useMemo(() => {
     if (!searchQuery) return completedVideos;
-    const query = searchQuery.toLowerCase();
-    return completedVideos.filter(v => 
-      v.title.toLowerCase().includes(query)
-    );
+    const query = searchQuery.toLowerCase().trim();
+    return completedVideos.filter(v => {
+      const matchTitle = v.title.toLowerCase().includes(query);
+      const matchKeywords = v.keywords?.some(k => k.toLowerCase().includes(query));
+      return matchTitle || matchKeywords;
+    });
   }, [completedVideos, searchQuery]);
 
   return (
@@ -318,7 +320,12 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                             <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3"><Library className="text-primary" size={28} /> Video Archive</h3>
                             <div className="w-full md:w-80 relative group">
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-primary transition-colors"><SearchIcon size={20} /></div>
-                                <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Tìm kiếm trong kho..." className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner transition-all" />
+                                <input 
+                                  value={searchQuery} 
+                                  onChange={(e) => setSearchQuery(e.target.value)} 
+                                  placeholder="Tìm kiếm theo tiêu đề hoặc từ khóa..." 
+                                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-xs text-white font-bold outline-none focus:border-primary shadow-inner transition-all" 
+                                />
                             </div>
                         </div>
 
@@ -335,6 +342,13 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                                                 <h4 className="text-sm font-black text-white line-clamp-2 uppercase tracking-tight leading-tight group-hover:text-primary transition-colors">{video.title}</h4>
                                                 <div className="flex items-center gap-2 text-slate-500"><Clock size={12} /><span className="text-[10px] font-mono">{new Date(video.timestamp).toLocaleDateString()}</span></div>
                                             </div>
+                                            {video.keywords && video.keywords.length > 0 && (
+                                              <div className="flex flex-wrap gap-1 mt-2">
+                                                {video.keywords.slice(0, 3).map((k, i) => (
+                                                  <span key={i} className="text-[8px] font-black text-slate-600 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 uppercase">#{k.replace('#','')}</span>
+                                                ))}
+                                              </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -342,7 +356,9 @@ const ViralDNAStudio: React.FC<ViralDNAStudioProps> = ({
                         ) : (
                             <div className="flex flex-col items-center justify-center py-20 opacity-20 text-center space-y-4">
                                 <SearchIcon size={80} />
-                                <h4 className="text-2xl font-black uppercase tracking-tighter">Archive Empty</h4>
+                                <h4 className="text-2xl font-black uppercase tracking-tighter">
+                                  {searchQuery ? "Không tìm thấy kết quả" : "Kho lưu trữ trống"}
+                                </h4>
                             </div>
                         )}
                     </div>
